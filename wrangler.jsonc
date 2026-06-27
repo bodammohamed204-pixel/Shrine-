@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "book-of-heaven",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-06-01",
+  "workers_dev": true,
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "vars": {
+    "ALLOWED_ORIGINS": "https://book-of-heaven.bodammohamed204.workers.dev,http://localhost,capacitor://localhost"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

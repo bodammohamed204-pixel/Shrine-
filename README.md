@@ -29,6 +29,19 @@ The key is used only by the local Express server. It is not shipped to the brows
 npm run build
 ```
 
+## Deploy to Cloudflare Workers
+
+The Worker in `worker/index.js` serves the built app and handles `/api/otp/send` and `/api/otp/verify` on the same deployed domain.
+
+```bash
+npm install
+npx wrangler login
+npx wrangler secret put ONCALLOS_API_KEY
+npm run worker:deploy
+```
+
+Use the Oncallos key as the secret value when Wrangler asks for it. The key is stored in Cloudflare and is not bundled into the browser app.
+
 ## Production release
 
 Android release packaging is configured with Capacitor. Native builds require a deployed HTTPS backend URL via `VITE_API_BASE_URL`, plus Android upload signing credentials. See `RELEASE.md` for the full store submission checklist and exact build commands.

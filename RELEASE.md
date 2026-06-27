@@ -96,7 +96,7 @@ $env:ANDROID_KEY_PASSWORD="your-key-password"
 
 ```powershell
 npm install
-$env:VITE_API_BASE_URL="https://your-production-api.example.com"
+$env:VITE_API_BASE_URL="https://book-of-heaven.bodammohamed204.workers.dev"
 $env:ANDROID_KEYSTORE_PATH="C:\secure\shrine-upload-key.p12"
 $env:ANDROID_KEYSTORE_PASSWORD="your-keystore-password"
 $env:ANDROID_KEY_ALIAS="shrine-upload"
@@ -115,6 +115,19 @@ Verify signing:
 ```powershell
 jarsigner -verify -verbose -certs android\app\build\outputs\bundle\release\app-release.aab
 ```
+
+## Cloudflare Worker Deploy
+
+The Cloudflare Worker serves the static app from `dist` and handles the OTP API on the same domain.
+
+```powershell
+npm install
+npx wrangler login
+npx wrangler secret put ONCALLOS_API_KEY
+npm run worker:deploy
+```
+
+Use the Oncallos key only in Wrangler's secret prompt. Do not put it in `wrangler.jsonc`.
 
 ## iOS Release
 
@@ -200,9 +213,9 @@ Remaining release blockers:
 
 ## Publication Checklist
 
-- [ ] Deploy backend over HTTPS.
-- [ ] Configure `ONCALLOS_API_KEY` on backend host.
-- [ ] Set `VITE_API_BASE_URL` to deployed backend URL.
+- [ ] Deploy Cloudflare Worker over HTTPS.
+- [ ] Configure `ONCALLOS_API_KEY` with `npx wrangler secret put ONCALLOS_API_KEY`.
+- [ ] Set `VITE_API_BASE_URL` to `https://book-of-heaven.bodammohamed204.workers.dev` for native builds.
 - [ ] Host privacy policy.
 - [ ] Add privacy policy URL in Google Play Console.
 - [ ] Configure Android upload signing env vars.

@@ -4,6 +4,7 @@ qa-shots/
 .env
 .env.local
 .env.*.local
+.dev.vars
 !.env.example
 npm-debug.log*
 yarn-debug.log*

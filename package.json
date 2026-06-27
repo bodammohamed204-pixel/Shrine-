@@ -8,6 +8,8 @@
     "build": "vite build",
     "preview": "node server.js",
     "start": "node server.js",
+    "worker:dev": "npm run build && wrangler dev",
+    "worker:deploy": "npm run build && wrangler deploy",
     "mobile:sync": "npm run build && npx cap sync android",
     "android:bundle": "node scripts/check-release-env.mjs android && npm run mobile:sync && cd android && gradlew.bat bundleRelease",
     "android:bundle:unsigned": "npm run mobile:sync && cd android && gradlew.bat bundleRelease"
@@ -27,6 +29,7 @@
     "@capacitor/core": "^8.4.1",
     "sharp": "^0.35.2",
     "typescript": "^6.0.3",
+    "wrangler": "^4.105.0",
     "ws": "^8.21.0"
   }
 }

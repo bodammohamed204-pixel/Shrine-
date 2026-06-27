@@ -49,6 +49,25 @@ function apiUrl(path) {
   return `${API_BASE_URL}${path}`;
 }
 
+async function readApiJson(response, fallbackMessage) {
+  const text = await response.text();
+  if (!text) {
+    return {
+      success: false,
+      error: response.ok ? fallbackMessage : `${fallbackMessage} (${response.status})`
+    };
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {
+      success: false,
+      error: text || fallbackMessage
+    };
+  }
+}
+
 const countries = [
   { name: "Egypt", ar: "مصر", code: "+20", iso: "eg" },
   { name: "United States", ar: "الولايات المتحدة", code: "+1", iso: "us" },
@@ -1697,7 +1716,7 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone: user.otpPhone, codeLength: 6 })
       });
-      const data = await response.json();
+      const data = await readApiJson(response, t("couldNotSend"));
       if (!response.ok || data.success === false) {
         throw new Error(data.error || data.message || t("couldNotSend"));
       }
@@ -1724,7 +1743,7 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone: user.otpPhone, code })
       });
-      const data = await response.json();
+      const data = await readApiJson(response, t("couldNotVerify"));
       if (!response.ok) {
         throw new Error(data.error || t("couldNotVerify"));
       }
