@@ -281,8 +281,6 @@ function App() {
       {modal?.type === "verify" && (
         <VerifyModal
           user={modal.user}
-          selected={modal.selected}
-          setSelected={modal.setSelected}
           onCancel={() => setModal(null)}
           onProceed={() => {
             setModal(null);
@@ -387,7 +385,6 @@ function RegisterScreen({ state, updateState, onRegister, onLogin, onGuest, setM
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [verifyBy, setVerifyBy] = useState("email");
   const [errors, setErrors] = useState({});
 
   const setField = (field, value) => {
@@ -419,14 +416,13 @@ function RegisterScreen({ state, updateState, onRegister, onLogin, onGuest, setM
       ...form,
       phoneCountry: form.phoneCountry.name,
       phoneCode: form.phoneCountry.code,
-      phoneIso: form.phoneCountry.iso
+      phoneIso: form.phoneCountry.iso,
+      otpPhone: `${form.phoneCountry.code}${form.phone.replace(/^0+/, "")}`
     };
 
     setModal({
       type: "verify",
       user,
-      selected: verifyBy,
-      setSelected: setVerifyBy,
       onProceed: () => onRegister(user)
     });
   };
@@ -1306,15 +1302,71 @@ function Sheet({ children, onClose }) {
   );
 }
 
-function VerifyModal({ user, selected, setSelected, onProceed, onCancel }) {
+function VerifyModal({ user, onProceed, onCancel }) {
+  const [code, setCode] = useState("");
+  const [sent, setSent] = useState(false);
+  const [expiresAt, setExpiresAt] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  const sendCode = async () => {
+    setLoading(true);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch("/api/otp/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: user.otpPhone, codeLength: 6 })
+      });
+      const data = await response.json();
+      if (!response.ok || data.success === false) {
+        throw new Error(data.error || data.message || "Could not send WhatsApp code.");
+      }
+      setSent(true);
+      setExpiresAt(data.expiresAt || "");
+      setMessage(data.message || "WhatsApp code sent.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send WhatsApp code.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyCode = async () => {
+    if (!code.trim()) {
+      setError("Enter the WhatsApp code first.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: user.otpPhone, code })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Could not verify WhatsApp code.");
+      }
+      if (!data.valid) {
+        throw new Error(data.error || "The code is incorrect or expired.");
+      }
+      onProceed();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not verify WhatsApp code.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="modal-backdrop" onClick={onCancel}>
       <div className="verify-modal" onClick={(event) => event.stopPropagation()}>
-        <h2>Choose activation method</h2>
-        <button
-          className={`verify-option ${selected === "mobile" ? "selected" : ""}`}
-          onClick={() => setSelected("mobile")}
-        >
+        <h2>WhatsApp activation code</h2>
+        <div className="verify-option selected">
           <span className="radio" />
           <div>
             <strong>Mobile (WhatsApp)</strong>
@@ -1322,20 +1374,34 @@ function VerifyModal({ user, selected, setSelected, onProceed, onCancel }) {
               {user.phoneCode} {user.phone}
             </p>
           </div>
+        </div>
+        {sent && (
+          <label className="otp-code-field">
+            <span>Activation Code</span>
+            <input
+              inputMode="numeric"
+              maxLength={8}
+              placeholder="6-digit code"
+              value={code}
+              onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))}
+            />
+          </label>
+        )}
+        {message && <p className="verify-message">{message}</p>}
+        {expiresAt && (
+          <p className="verify-note">
+            Expires at {new Date(expiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          </p>
+        )}
+        {error && <p className="verify-error">{error}</p>}
+        <button className="primary-button" disabled={loading} onClick={sent ? verifyCode : sendCode}>
+          {loading ? "Please wait..." : sent ? "Verify & Proceed" : "Send WhatsApp Code"}
         </button>
-        <button
-          className={`verify-option ${selected === "email" ? "selected" : ""}`}
-          onClick={() => setSelected("email")}
-        >
-          <span className="radio" />
-          <div>
-            <strong>E-Mail</strong>
-            <p>{user.email}</p>
-          </div>
-        </button>
-        <button className="primary-button" onClick={onProceed}>
-          Verify & Proceed
-        </button>
+        {sent && (
+          <button className="ghost-link resend-link" disabled={loading} onClick={sendCode}>
+            Resend code
+          </button>
+        )}
       </div>
     </div>
   );
