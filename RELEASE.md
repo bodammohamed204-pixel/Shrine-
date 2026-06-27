@@ -96,7 +96,7 @@ $env:ANDROID_KEY_PASSWORD="your-key-password"
 
 ```powershell
 npm install
-$env:VITE_API_BASE_URL="https://book-of-heaven.bodammohamed204.workers.dev"
+$env:VITE_API_BASE_URL="https://book-of-heaven.onholding.workers.dev"
 $env:ANDROID_KEYSTORE_PATH="C:\secure\shrine-upload-key.p12"
 $env:ANDROID_KEYSTORE_PASSWORD="your-keystore-password"
 $env:ANDROID_KEY_ALIAS="shrine-upload"
@@ -215,7 +215,7 @@ Remaining release blockers:
 
 - [ ] Deploy Cloudflare Worker over HTTPS.
 - [ ] Configure `ONCALLOS_API_KEY` with `npx wrangler secret put ONCALLOS_API_KEY`.
-- [ ] Set `VITE_API_BASE_URL` to `https://book-of-heaven.bodammohamed204.workers.dev` for native builds.
+- [ ] Set `VITE_API_BASE_URL` to `https://book-of-heaven.onholding.workers.dev` for native builds.
 - [ ] Host privacy policy.
 - [ ] Add privacy policy URL in Google Play Console.
 - [ ] Configure Android upload signing env vars.

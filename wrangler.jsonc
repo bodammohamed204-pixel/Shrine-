@@ -11,7 +11,7 @@
     "run_worker_first": ["/api/*"]
   },
   "vars": {
-    "ALLOWED_ORIGINS": "https://book-of-heaven.bodammohamed204.workers.dev,http://localhost,capacitor://localhost"
+    "ALLOWED_ORIGINS": "https://book-of-heaven.onholding.workers.dev,https://book-of-heaven.bodammohamed204.workers.dev,http://localhost,capacitor://localhost"
   },
   "observability": {
     "enabled": true
