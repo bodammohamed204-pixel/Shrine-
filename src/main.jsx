@@ -37,26 +37,26 @@ function apiUrl(path) {
 }
 
 const countries = [
-  { name: "Egypt", code: "+20", iso: "eg" },
-  { name: "United States", code: "+1", iso: "us" },
-  { name: "Saudi Arabia", code: "+966", iso: "sa" },
-  { name: "United Arab Emirates", code: "+971", iso: "ae" },
-  { name: "Kuwait", code: "+965", iso: "kw" },
-  { name: "Qatar", code: "+974", iso: "qa" },
-  { name: "Jordan", code: "+962", iso: "jo" },
-  { name: "Morocco", code: "+212", iso: "ma" },
-  { name: "Algeria", code: "+213", iso: "dz" },
-  { name: "Tunisia", code: "+216", iso: "tn" },
-  { name: "Germany", code: "+49", iso: "de" },
-  { name: "France", code: "+33", iso: "fr" },
-  { name: "United Kingdom", code: "+44", iso: "gb" },
-  { name: "Canada", code: "+1", iso: "ca" },
-  { name: "Australia", code: "+61", iso: "au" },
-  { name: "Turkey", code: "+90", iso: "tr" },
-  { name: "Italy", code: "+39", iso: "it" },
-  { name: "Spain", code: "+34", iso: "es" },
-  { name: "Malaysia", code: "+60", iso: "my" },
-  { name: "Indonesia", code: "+62", iso: "id" }
+  { name: "Egypt", ar: "مصر", code: "+20", iso: "eg" },
+  { name: "United States", ar: "الولايات المتحدة", code: "+1", iso: "us" },
+  { name: "Saudi Arabia", ar: "السعودية", code: "+966", iso: "sa" },
+  { name: "United Arab Emirates", ar: "الإمارات", code: "+971", iso: "ae" },
+  { name: "Kuwait", ar: "الكويت", code: "+965", iso: "kw" },
+  { name: "Qatar", ar: "قطر", code: "+974", iso: "qa" },
+  { name: "Jordan", ar: "الأردن", code: "+962", iso: "jo" },
+  { name: "Morocco", ar: "المغرب", code: "+212", iso: "ma" },
+  { name: "Algeria", ar: "الجزائر", code: "+213", iso: "dz" },
+  { name: "Tunisia", ar: "تونس", code: "+216", iso: "tn" },
+  { name: "Germany", ar: "ألمانيا", code: "+49", iso: "de" },
+  { name: "France", ar: "فرنسا", code: "+33", iso: "fr" },
+  { name: "United Kingdom", ar: "المملكة المتحدة", code: "+44", iso: "gb" },
+  { name: "Canada", ar: "كندا", code: "+1", iso: "ca" },
+  { name: "Australia", ar: "أستراليا", code: "+61", iso: "au" },
+  { name: "Turkey", ar: "تركيا", code: "+90", iso: "tr" },
+  { name: "Italy", ar: "إيطاليا", code: "+39", iso: "it" },
+  { name: "Spain", ar: "إسبانيا", code: "+34", iso: "es" },
+  { name: "Malaysia", ar: "ماليزيا", code: "+60", iso: "my" },
+  { name: "Indonesia", ar: "إندونيسيا", code: "+62", iso: "id" }
 ];
 
 const initialState = {
@@ -70,33 +70,295 @@ const initialState = {
   guest: false
 };
 
-const termsSections = [
-  {
-    title: "1. Account Ownership",
-    body:
-      "Your account keeps the memorials, profile details, saved follows, and settings you add while using this application. Keep your login details private and update incorrect information when you notice it."
+const copy = {
+  EN: {
+    shrine: "Shrines",
+    registerTitle: "Start Your Shrine",
+    registerIntro: "Create a private account and keep every memorial under your own name.",
+    firstName: "First Name",
+    surname: "Surname",
+    mobileNumber: "Mobile Number",
+    emailAddress: "Email Address",
+    gender: "Gender",
+    country: "Country",
+    password: "Password",
+    confirmPassword: "Confirm Password",
+    continue: "Continue",
+    alreadyHaveAccount: "Already Have An Account?",
+    login: "Login",
+    continueBrowsing: "Continue browsing",
+    selectCallingCode: "Select calling code",
+    required: "Required",
+    startRequired: "Complete the required fields",
+    errFirstName: "First name is required",
+    errSurname: "Surname is required",
+    errPhone: "Enter a valid mobile number",
+    errEmail: "Enter a valid email",
+    errGender: "Gender is required",
+    errPassword: "Password is required",
+    errPasswordLength: "Use at least 8 characters",
+    errPasswordMatch: "Passwords do not match",
+    welcomeBack: "Welcome Back",
+    loginIntro: "Sign in with an account you created on this browser.",
+    back: "Back",
+    newHere: "New here?",
+    createAccount: "Create account",
+    badLogin: "Check your email and password",
+    success: "Success",
+    congrats: "Congrats!",
+    successBody: "Your account is ready. Start adding memorials and manage everything from your profile.",
+    letsStart: "Let's Start",
+    sponsor: "Sponsor",
+    follow: "Follow",
+    noMemorials: "No memorials yet",
+    noMemorialsBody: "Use the add button to create the first real entry from your own data.",
+    browseCountry: "Browse country",
+    add: "Add",
+    selected: "Selected",
+    fullName: "Full Name (including Surname)",
+    verifySurname: "Verify Surname",
+    dateOfDeath: "Date of Death",
+    dateOfBirth: "Date of Birth",
+    age: "Age",
+    information: "Information",
+    words: "words",
+    create: "Create",
+    memorialCreated: "Memorial created",
+    errFullName: "Full name is required",
+    errDeathDate: "Date of death is required",
+    errCountry: "Country is required",
+    errInfo: "Use 250 words or less",
+    search: "Search",
+    startTyping: "Start typing to search",
+    noResults: "No results found",
+    noResultsBody: "Try a name, country, or story word.",
+    settings: "Settings",
+    profile: "Profile",
+    language: "Language",
+    arabic: "العربية",
+    english: "English",
+    blockedUsers: "Blocked Users",
+    contactUs: "Contact Us",
+    terms: "Terms & Conditions",
+    logout: "Logout",
+    done: "Done",
+    myAccount: "My Account",
+    editProfile: "Edit Profile",
+    myInformation: "My Information",
+    guestAccount: "Guest account",
+    notSelected: "Not selected",
+    save: "Save",
+    profileUpdated: "Profile updated",
+    memorial: "Memorial",
+    entryNotFound: "Entry not found",
+    unknownBirth: "Unknown birth",
+    following: "Following",
+    block: "Block",
+    unblock: "Unblock",
+    noBlockedUsers: "No blocked users",
+    lastUpdated: "Last updated",
+    yourEmail: "Your Email",
+    message: "Message",
+    writeMessage: "Write your message",
+    send: "Send",
+    messageSaved: "Message saved locally",
+    home: "Home",
+    hidePassword: "Hide password",
+    showPassword: "Show password",
+    male: "Male",
+    female: "Female",
+    searchCountry: "Search country",
+    whatsappCode: "WhatsApp activation code",
+    mobileWhatsapp: "Mobile (WhatsApp)",
+    activationCode: "Activation Code",
+    sixDigitCode: "6-digit code",
+    codeSent: "WhatsApp code sent.",
+    enterCode: "Enter the WhatsApp code first.",
+    couldNotSend: "Could not send WhatsApp code.",
+    couldNotVerify: "Could not verify WhatsApp code.",
+    codeWrong: "The code is incorrect or expired.",
+    expiresAt: "Expires at",
+    pleaseWait: "Please wait...",
+    verifyProceed: "Verify & Proceed",
+    sendWhatsappCode: "Send WhatsApp Code",
+    resendCode: "Resend code",
+    accountPromptTitle: "Create an account to save your follows",
+    accountPromptBody: "Your following list belongs to your account, so it stays separate from guest browsing.",
+    signIn: "Sign in"
   },
-  {
-    title: "2. Memorial Entries",
-    body:
-      "Only add names, photos, dates, and stories that you are allowed to share. You can edit or remove your own entries at any time from this device."
-  },
-  {
-    title: "3. Respectful Use",
-    body:
-      "Do not add harmful, misleading, hateful, or private material about another person. Blocking and reporting tools should be used to protect your experience."
-  },
-  {
-    title: "4. Local Data",
-    body:
-      "This demo stores data in your browser storage. Clearing browser data or using another device can remove saved accounts and memorials unless a backend is later connected."
-  },
-  {
-    title: "5. Support",
-    body:
-      "For account help, content corrections, or feature requests, contact the project owner through the support screen."
+  AR: {
+    shrine: "المزارات",
+    registerTitle: "ابدأ حسابك",
+    registerIntro: "أنشئ حسابًا خاصًا واحفظ كل ذكرى باسمك.",
+    firstName: "الاسم الأول",
+    surname: "اسم العائلة",
+    mobileNumber: "رقم الهاتف",
+    emailAddress: "البريد الإلكتروني",
+    gender: "النوع",
+    country: "الدولة",
+    password: "كلمة المرور",
+    confirmPassword: "تأكيد كلمة المرور",
+    continue: "متابعة",
+    alreadyHaveAccount: "لديك حساب بالفعل؟",
+    login: "تسجيل الدخول",
+    continueBrowsing: "تصفح كزائر",
+    selectCallingCode: "اختر كود الدولة",
+    required: "مطلوب",
+    startRequired: "أكمل الحقول المطلوبة",
+    errFirstName: "الاسم الأول مطلوب",
+    errSurname: "اسم العائلة مطلوب",
+    errPhone: "أدخل رقم هاتف صحيح",
+    errEmail: "أدخل بريدًا إلكترونيًا صحيحًا",
+    errGender: "النوع مطلوب",
+    errPassword: "كلمة المرور مطلوبة",
+    errPasswordLength: "استخدم 8 أحرف على الأقل",
+    errPasswordMatch: "كلمتا المرور غير متطابقتين",
+    welcomeBack: "مرحبًا بعودتك",
+    loginIntro: "سجل الدخول بالحساب الذي أنشأته على هذا الجهاز.",
+    back: "رجوع",
+    newHere: "مستخدم جديد؟",
+    createAccount: "إنشاء حساب",
+    badLogin: "راجع البريد وكلمة المرور",
+    success: "تم بنجاح",
+    congrats: "تهانينا!",
+    successBody: "حسابك جاهز. ابدأ بإضافة الذكريات وإدارتها من ملفك.",
+    letsStart: "لنبدأ",
+    sponsor: "الداعمون",
+    follow: "المتابعة",
+    noMemorials: "لا توجد ذكريات بعد",
+    noMemorialsBody: "استخدم زر الإضافة لإنشاء أول إدخال من بياناتك.",
+    browseCountry: "تصفح حسب الدولة",
+    add: "إضافة",
+    selected: "تم الاختيار",
+    fullName: "الاسم الكامل (مع اسم العائلة)",
+    verifySurname: "تأكيد اسم العائلة",
+    dateOfDeath: "تاريخ الوفاة",
+    dateOfBirth: "تاريخ الميلاد",
+    age: "العمر",
+    information: "معلومات",
+    words: "كلمة",
+    create: "إنشاء",
+    memorialCreated: "تم إنشاء الذكرى",
+    errFullName: "الاسم الكامل مطلوب",
+    errDeathDate: "تاريخ الوفاة مطلوب",
+    errCountry: "الدولة مطلوبة",
+    errInfo: "استخدم 250 كلمة أو أقل",
+    search: "بحث",
+    startTyping: "ابدأ الكتابة للبحث",
+    noResults: "لا توجد نتائج",
+    noResultsBody: "جرب اسمًا أو دولة أو كلمة من الوصف.",
+    settings: "الإعدادات",
+    profile: "الملف الشخصي",
+    language: "اللغة",
+    arabic: "العربية",
+    english: "English",
+    blockedUsers: "المستخدمون المحظورون",
+    contactUs: "تواصل معنا",
+    terms: "الشروط والأحكام",
+    logout: "تسجيل الخروج",
+    done: "تم",
+    myAccount: "حسابي",
+    editProfile: "تعديل الملف",
+    myInformation: "معلوماتي",
+    guestAccount: "حساب زائر",
+    notSelected: "غير محدد",
+    save: "حفظ",
+    profileUpdated: "تم تحديث الملف",
+    memorial: "الذكرى",
+    entryNotFound: "الإدخال غير موجود",
+    unknownBirth: "تاريخ الميلاد غير معروف",
+    following: "تتم المتابعة",
+    block: "حظر",
+    unblock: "إلغاء الحظر",
+    noBlockedUsers: "لا يوجد مستخدمون محظورون",
+    lastUpdated: "آخر تحديث",
+    yourEmail: "بريدك الإلكتروني",
+    message: "الرسالة",
+    writeMessage: "اكتب رسالتك",
+    send: "إرسال",
+    messageSaved: "تم حفظ الرسالة محليًا",
+    home: "الرئيسية",
+    hidePassword: "إخفاء كلمة المرور",
+    showPassword: "إظهار كلمة المرور",
+    male: "ذكر",
+    female: "أنثى",
+    searchCountry: "ابحث عن دولة",
+    whatsappCode: "كود تفعيل واتساب",
+    mobileWhatsapp: "الهاتف (واتساب)",
+    activationCode: "كود التفعيل",
+    sixDigitCode: "كود من 6 أرقام",
+    codeSent: "تم إرسال كود واتساب.",
+    enterCode: "أدخل كود واتساب أولًا.",
+    couldNotSend: "تعذر إرسال كود واتساب.",
+    couldNotVerify: "تعذر التحقق من كود واتساب.",
+    codeWrong: "الكود غير صحيح أو انتهت صلاحيته.",
+    expiresAt: "ينتهي في",
+    pleaseWait: "برجاء الانتظار...",
+    verifyProceed: "تحقق وتابع",
+    sendWhatsappCode: "إرسال كود واتساب",
+    resendCode: "إعادة إرسال الكود",
+    accountPromptTitle: "أنشئ حسابًا لحفظ المتابعات",
+    accountPromptBody: "قائمة المتابعة مرتبطة بحسابك حتى تبقى منفصلة عن تصفح الزائر.",
+    signIn: "تسجيل الدخول"
   }
-];
+};
+
+const termsSections = {
+  EN: [
+    {
+      title: "1. Account Ownership",
+      body:
+        "Your account keeps the memorials, profile details, saved follows, and settings you add while using this application. Keep your login details private and update incorrect information when you notice it."
+    },
+    {
+      title: "2. Memorial Entries",
+      body:
+        "Only add names, photos, dates, and stories that you are allowed to share. You can edit or remove your own entries at any time from this device."
+    },
+    {
+      title: "3. Respectful Use",
+      body:
+        "Do not add harmful, misleading, hateful, or private material about another person. Blocking and reporting tools should be used to protect your experience."
+    },
+    {
+      title: "4. Local Data",
+      body:
+        "This demo stores data in your browser storage. Clearing browser data or using another device can remove saved accounts and memorials unless a backend is later connected."
+    },
+    {
+      title: "5. Support",
+      body:
+        "For account help, content corrections, or feature requests, contact the project owner through the support screen."
+    }
+  ],
+  AR: [
+    {
+      title: "1. ملكية الحساب",
+      body:
+        "يحفظ حسابك الذكريات وبيانات الملف الشخصي والمتابعات والإعدادات التي تضيفها داخل التطبيق. حافظ على بيانات الدخول الخاصة بك وحدث أي معلومات غير صحيحة."
+    },
+    {
+      title: "2. إدخالات الذكرى",
+      body:
+        "أضف فقط الأسماء والصور والتواريخ والقصص التي تملك حق مشاركتها. يمكنك تعديل أو حذف إدخالاتك من هذا الجهاز في أي وقت."
+    },
+    {
+      title: "3. الاستخدام باحترام",
+      body:
+        "لا تضف محتوى ضارًا أو مضللًا أو مسيئًا أو خاصًا عن أي شخص. استخدم أدوات الحظر والإبلاغ لحماية تجربتك."
+    },
+    {
+      title: "4. البيانات المحلية",
+      body:
+        "يحفظ هذا الإصدار البيانات في مساحة تخزين المتصفح أو التطبيق على جهازك. مسح بيانات التطبيق أو استخدام جهاز آخر قد يزيل الحسابات والذكريات المحفوظة."
+    },
+    {
+      title: "5. الدعم",
+      body:
+        "للمساعدة في الحساب أو تصحيح المحتوى أو طلب مزايا جديدة، تواصل مع مالك المشروع من شاشة الدعم."
+    }
+  ]
+};
 
 function loadState() {
   try {
@@ -129,11 +391,34 @@ function getUserName(user) {
 }
 
 function findCountry(name) {
-  return countries.find((country) => country.name === name) || countries[0];
+  return countries.find((country) => country.name === name || country.ar === name) || countries[0];
+}
+
+function normalizeLanguage(language) {
+  return language === "AR" ? "AR" : "EN";
+}
+
+function translator(language) {
+  const lang = normalizeLanguage(language);
+  return (key) => copy[lang][key] || copy.EN[key] || key;
+}
+
+function countryLabel(countryOrName, language) {
+  const country = typeof countryOrName === "string" ? findCountry(countryOrName) : countryOrName;
+  return normalizeLanguage(language) === "AR" ? country?.ar || country?.name || "" : country?.name || "";
+}
+
+function genderLabel(value, t) {
+  if (value === "Male") return t("male");
+  if (value === "Female") return t("female");
+  return value || "";
 }
 
 function App() {
   const [state, setState] = useState(loadState);
+  const language = normalizeLanguage(state.language);
+  const t = translator(language);
+  const isArabic = language === "AR";
   const startsOnHome = Boolean(state.currentUser || state.guest);
   const [screen, setScreen] = useState(() =>
     startsOnHome ? "home" : "register"
@@ -171,7 +456,7 @@ function App() {
       ...current,
       people: [{ ...person, id: uid(), createdBy: current.currentUser?.id || "guest" }, ...current.people]
     }));
-    setToast("Memorial created");
+    setToast(t("memorialCreated"));
     setScreen("home");
   };
 
@@ -190,7 +475,7 @@ function App() {
   const loginUser = (email, password) => {
     const user = state.users.find((item) => item.email === email && item.password === password);
     if (!user) {
-      setToast("Check your email and password");
+      setToast(t("badLogin"));
       return false;
     }
     updateState({ currentUser: user, guest: false, language: user.language || state.language });
@@ -208,6 +493,8 @@ function App() {
 
   const commonProps = {
     state,
+    language,
+    t,
     updateState,
     setScreen,
     setModal,
@@ -217,11 +504,13 @@ function App() {
   };
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell ${isArabic ? "rtl" : ""}`} dir={isArabic ? "rtl" : "ltr"} lang={isArabic ? "ar" : "en"}>
       {opening && <SplashIntro />}
       {screen === "register" && (
         <RegisterScreen
           state={state}
+          language={language}
+          t={t}
           updateState={updateState}
           onRegister={registerUser}
           onLogin={() => setScreen("login")}
@@ -236,12 +525,14 @@ function App() {
       {screen === "login" && (
         <LoginScreen
           state={state}
+          language={language}
+          t={t}
           onLogin={loginUser}
           onBack={() => setScreen("register")}
           setScreen={setScreen}
         />
       )}
-      {screen === "success" && <SuccessScreen state={state} setScreen={setScreen} />}
+      {screen === "success" && <SuccessScreen state={state} t={t} setScreen={setScreen} />}
       {screen === "home" && <HomeScreen {...commonProps} bootLoading={homeIntroLoading && !opening} />}
       {screen === "add" && <AddScreen {...commonProps} onCreate={addPerson} />}
       {screen === "search" && <SearchScreen {...commonProps} />}
@@ -254,12 +545,14 @@ function App() {
       {screen === "detail" && <DetailScreen {...commonProps} />}
 
       {["home", "add", "search", "settings"].includes(screen) && (
-        <BottomNav active={screen} setScreen={setScreen} />
+        <BottomNav active={screen} setScreen={setScreen} t={t} />
       )}
 
       {modal?.type === "country" && (
         <CountryModal
-          title={modal.title || "Country"}
+          title={modal.title || t("country")}
+          language={language}
+          t={t}
           onPick={(country) => {
             modal.onPick(country);
             setModal(null);
@@ -270,7 +563,7 @@ function App() {
       )}
       {modal?.type === "gender" && (
         <Sheet onClose={() => setModal(null)}>
-          <h2 className="sheet-title">Gender</h2>
+          <h2 className="sheet-title">{t("gender")}</h2>
           {["Male", "Female"].map((gender) => (
             <button
               key={gender}
@@ -280,7 +573,7 @@ function App() {
                 setModal(null);
               }}
             >
-              {gender}
+              {genderLabel(gender, t)}
             </button>
           ))}
         </Sheet>
@@ -288,6 +581,7 @@ function App() {
       {modal?.type === "age" && (
         <AgeModal
           value={modal.value}
+          t={t}
           onCancel={() => setModal(null)}
           onSave={(value) => {
             modal.onPick(value);
@@ -298,6 +592,7 @@ function App() {
       {modal?.type === "verify" && (
         <VerifyModal
           user={modal.user}
+          t={t}
           onCancel={() => setModal(null)}
           onProceed={() => {
             setModal(null);
@@ -307,6 +602,7 @@ function App() {
       )}
       {modal?.type === "accountPrompt" && (
         <AccountPrompt
+          t={t}
           onClose={() => setModal(null)}
           onCreate={() => {
             setModal(null);
@@ -332,18 +628,18 @@ function SplashIntro() {
   );
 }
 
-function Header({ title, back, action, compact = false, flagCountry, onFlag }) {
+function Header({ title, back, action, compact = false, flagCountry, onFlag, language = "EN", t = translator("EN") }) {
   return (
     <header className={`top-header ${compact ? "compact" : ""}`}>
       {back && (
-        <button className="header-icon left" onClick={back} aria-label="Back">
+        <button className="header-icon left" onClick={back} aria-label={t("back")}>
           <ArrowLeft size={32} />
         </button>
       )}
       <div className="rays" />
       <h1>{title}</h1>
       {flagCountry && (
-        <button className="flag-button" onClick={onFlag} aria-label="Choose country">
+        <button className="flag-button" onClick={onFlag} aria-label={t("country")}>
           <Flag country={flagCountry} large />
           <ChevronDown size={28} />
         </button>
@@ -362,7 +658,7 @@ function LanguageButton({ value, onClick }) {
   );
 }
 
-function RegisterScreen({ state, updateState, onRegister, onLogin, onGuest, setModal, setToast }) {
+function RegisterScreen({ state, language, t, updateState, onRegister, onLogin, onGuest, setModal, setToast }) {
   const [form, setForm] = useState({
     language: state.language || "EN",
     firstName: "",
@@ -383,24 +679,30 @@ function RegisterScreen({ state, updateState, onRegister, onLogin, onGuest, setM
     setForm((current) => ({ ...current, [field]: value }));
   };
 
+  const setLanguage = () => {
+    const nextLanguage = form.language === "EN" ? "AR" : "EN";
+    setField("language", nextLanguage);
+    updateState({ language: nextLanguage });
+  };
+
   const submit = () => {
     const nextErrors = {};
-    if (!form.firstName.trim()) nextErrors.firstName = "First name is required";
-    if (!form.surname.trim()) nextErrors.surname = "Surname is required";
-    if (!/^\d{7,14}$/.test(form.phone)) nextErrors.phone = "Enter a valid mobile number";
-    if (!/^\S+@\S+\.\S+$/.test(form.email)) nextErrors.email = "Enter a valid email";
-    if (!form.gender) nextErrors.gender = "Gender is required";
-    if (!form.password) nextErrors.password = "Password is required";
+    if (!form.firstName.trim()) nextErrors.firstName = t("errFirstName");
+    if (!form.surname.trim()) nextErrors.surname = t("errSurname");
+    if (!/^\d{7,14}$/.test(form.phone)) nextErrors.phone = t("errPhone");
+    if (!/^\S+@\S+\.\S+$/.test(form.email)) nextErrors.email = t("errEmail");
+    if (!form.gender) nextErrors.gender = t("errGender");
+    if (!form.password) nextErrors.password = t("errPassword");
     if (form.password.length > 0 && form.password.length < 8) {
-      nextErrors.password = "Use at least 8 characters";
+      nextErrors.password = t("errPasswordLength");
     }
     if (form.confirmPassword !== form.password) {
-      nextErrors.confirmPassword = "Passwords do not match";
+      nextErrors.confirmPassword = t("errPasswordMatch");
     }
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) {
-      setToast("Complete the required fields");
+      setToast(t("startRequired"));
       return;
     }
 
@@ -423,38 +725,38 @@ function RegisterScreen({ state, updateState, onRegister, onLogin, onGuest, setM
     <main className="auth-screen scroll-screen">
       <LanguageButton
         value={form.language}
-        onClick={() => setField("language", form.language === "EN" ? "AR" : "EN")}
+        onClick={setLanguage}
       />
       <section className="auth-intro">
-        <h1>Start Your Shrine</h1>
-        <p>Create a private account and keep every memorial under your own name.</p>
+        <h1>{t("registerTitle")}</h1>
+        <p>{t("registerIntro")}</p>
       </section>
 
       <div className="two-grid">
         <Input
-          label="First Name"
-          placeholder="First Name"
+          label={t("firstName")}
+          placeholder={t("firstName")}
           value={form.firstName}
           error={errors.firstName}
           onChange={(value) => setField("firstName", value)}
         />
         <Input
-          label="Surname"
-          placeholder="Surname"
+          label={t("surname")}
+          placeholder={t("surname")}
           value={form.surname}
           error={errors.surname}
           onChange={(value) => setField("surname", value)}
         />
       </div>
 
-      <label className="field-label">Mobile Number</label>
+      <label className="field-label">{t("mobileNumber")}</label>
       <div className={`phone-field ${errors.phone ? "has-error" : ""}`}>
         <button
           className="country-code-button"
           onClick={() =>
             setModal({
               type: "country",
-              title: "Select calling code",
+              title: t("selectCallingCode"),
               withCodes: true,
               onPick: (country) => setField("phoneCountry", country)
             })
@@ -477,7 +779,7 @@ function RegisterScreen({ state, updateState, onRegister, onLogin, onGuest, setM
       {errors.phone && <p className="error-text">* {errors.phone}</p>}
 
       <Input
-        label="Email Address"
+        label={t("emailAddress")}
         placeholder="email@example.com"
         type="email"
         value={form.email}
@@ -486,9 +788,9 @@ function RegisterScreen({ state, updateState, onRegister, onLogin, onGuest, setM
       />
 
       <SelectField
-        label="Gender"
-        placeholder="Gender"
-        value={form.gender}
+        label={t("gender")}
+        placeholder={t("gender")}
+        value={genderLabel(form.gender, t)}
         error={errors.gender}
         onClick={() =>
           setModal({
@@ -499,48 +801,50 @@ function RegisterScreen({ state, updateState, onRegister, onLogin, onGuest, setM
       />
 
       <SelectField
-        label="Country"
-        value={form.country}
+        label={t("country")}
+        value={countryLabel(form.country, language)}
         onClick={() =>
           setModal({
             type: "country",
-            title: "Country",
+            title: t("country"),
             onPick: (country) => setField("country", country.name)
           })
         }
       />
 
       <PasswordInput
-        label="Password"
+        label={t("password")}
         value={form.password}
         error={errors.password}
         visible={showPassword}
         onToggle={() => setShowPassword((value) => !value)}
         onChange={(value) => setField("password", value)}
+        t={t}
       />
       <PasswordInput
-        label="Confirm Password"
+        label={t("confirmPassword")}
         value={form.confirmPassword}
         error={errors.confirmPassword}
         visible={showConfirm}
         onToggle={() => setShowConfirm((value) => !value)}
         onChange={(value) => setField("confirmPassword", value)}
+        t={t}
       />
 
       <button className="primary-button" onClick={submit}>
-        Continue
+        {t("continue")}
       </button>
       <button className="text-link wide" onClick={onLogin}>
-        Already Have An Account? <span>Login</span>
+        {t("alreadyHaveAccount")} <span>{t("login")}</span>
       </button>
       <button className="ghost-link" onClick={onGuest}>
-        Continue browsing
+        {t("continueBrowsing")}
       </button>
     </main>
   );
 }
 
-function LoginScreen({ state, onLogin, onBack, setScreen }) {
+function LoginScreen({ state, t, onLogin, onBack, setScreen }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [visible, setVisible] = useState(false);
@@ -548,56 +852,57 @@ function LoginScreen({ state, onLogin, onBack, setScreen }) {
   return (
     <main className="auth-screen scroll-screen">
       <button className="back-text" onClick={onBack}>
-        <ArrowLeft size={24} /> Back
+        <ArrowLeft size={24} /> {t("back")}
       </button>
       <section className="auth-intro login">
-        <h1>Welcome Back</h1>
-        <p>Sign in with an account you created on this browser.</p>
+        <h1>{t("welcomeBack")}</h1>
+        <p>{t("loginIntro")}</p>
       </section>
       <Input
-        label="Email Address"
+        label={t("emailAddress")}
         placeholder="email@example.com"
         type="email"
         value={email}
         onChange={setEmail}
       />
       <PasswordInput
-        label="Password"
+        label={t("password")}
         value={password}
         visible={visible}
         onToggle={() => setVisible((value) => !value)}
         onChange={setPassword}
+        t={t}
       />
       <button className="primary-button" onClick={() => onLogin(email, password)}>
-        Login
+        {t("login")}
       </button>
       <button className="text-link wide" onClick={() => setScreen("register")}>
-        New here? <span>Create account</span>
+        {t("newHere")} <span>{t("createAccount")}</span>
       </button>
     </main>
   );
 }
 
-function SuccessScreen({ state, setScreen }) {
+function SuccessScreen({ state, t, setScreen }) {
   return (
     <main className="success-screen">
       <LanguageButton value={state.language || "EN"} onClick={() => {}} />
-      <h1>Success</h1>
+      <h1>{t("success")}</h1>
       <div className="success-mark">
         <div>
           <Check size={112} strokeWidth={4} />
         </div>
       </div>
-      <h2>Congrats!</h2>
-      <p>Your account is ready. Start adding memorials and manage everything from your profile.</p>
+      <h2>{t("congrats")}</h2>
+      <p>{t("successBody")}</p>
       <button className="primary-button" onClick={() => setScreen("home")}>
-        Let&apos;s Start
+        {t("letsStart")}
       </button>
     </main>
   );
 }
 
-function HomeScreen({ state, updateState, setModal, setScreen, activeUser, canUseAccount, bootLoading }) {
+function HomeScreen({ state, language, t, updateState, setModal, setScreen, activeUser, canUseAccount, bootLoading }) {
   const selectedCountry = findCountry(state.currentCountry || activeUser?.country || "Egypt");
   const filteredPeople = useMemo(() => {
     const people = state.people.filter((person) => !state.blocked.includes(person.id));
@@ -610,7 +915,11 @@ function HomeScreen({ state, updateState, setModal, setScreen, activeUser, canUs
     return people;
   }, [state.people, state.blocked, state.following, state.homeFilter]);
 
-  const tabs = ["Sponsor", "Follow", selectedCountry.name];
+  const tabs = [
+    { id: "Sponsor", label: t("sponsor") },
+    { id: "Follow", label: t("follow") },
+    { id: selectedCountry.name, label: countryLabel(selectedCountry, language) }
+  ];
 
   const setTab = (tab) => {
     if (tab === "Follow" && !canUseAccount) {
@@ -623,13 +932,15 @@ function HomeScreen({ state, updateState, setModal, setScreen, activeUser, canUs
   return (
     <main className="main-screen home-screen">
       <Header
-        title="Shrines"
+        title={t("shrine")}
         compact
         flagCountry={selectedCountry}
+        language={language}
+        t={t}
         onFlag={() =>
           setModal({
             type: "country",
-            title: "Browse country",
+            title: t("browseCountry"),
             onPick: (country) => updateState({ currentCountry: country.name, homeFilter: country.name })
           })
         }
@@ -637,11 +948,11 @@ function HomeScreen({ state, updateState, setModal, setScreen, activeUser, canUs
       <section className="segmented">
         {tabs.map((tab) => (
           <button
-            key={tab}
-            className={state.homeFilter === tab ? "active" : ""}
-            onClick={() => setTab(tab)}
+            key={tab.id}
+            className={state.homeFilter === tab.id ? "active" : ""}
+            onClick={() => setTab(tab.id)}
           >
-            {tab}
+            {tab.label}
           </button>
         ))}
       </section>
@@ -667,8 +978,8 @@ function HomeScreen({ state, updateState, setModal, setScreen, activeUser, canUs
       {!bootLoading && !filteredPeople.length && (
         <EmptyState
           icon={<Home size={56} />}
-          title="No memorials yet"
-          body="Use the add button to create the first real entry from your own data."
+          title={t("noMemorials")}
+          body={t("noMemorialsBody")}
         />
       )}
     </main>
@@ -686,7 +997,7 @@ function PersonCard({ person, onOpen }) {
   );
 }
 
-function AddScreen({ state, setModal, onCreate, activeUser }) {
+function AddScreen({ state, language, t, setModal, onCreate, activeUser }) {
   const [form, setForm] = useState({
     photo: "",
     fullName: "",
@@ -712,13 +1023,13 @@ function AddScreen({ state, setModal, onCreate, activeUser }) {
 
   const create = () => {
     const nextErrors = {};
-    if (!form.fullName.trim()) nextErrors.fullName = "Full name is required";
-    if (!form.surnameCheck.trim()) nextErrors.surnameCheck = "Surname is required";
-    if (!form.deathDate) nextErrors.deathDate = "Date of death is required";
-    if (!form.gender) nextErrors.gender = "Gender is required";
-    if (!form.country) nextErrors.country = "Country is required";
+    if (!form.fullName.trim()) nextErrors.fullName = t("errFullName");
+    if (!form.surnameCheck.trim()) nextErrors.surnameCheck = t("errSurname");
+    if (!form.deathDate) nextErrors.deathDate = t("errDeathDate");
+    if (!form.gender) nextErrors.gender = t("errGender");
+    if (!form.country) nextErrors.country = t("errCountry");
     if (form.info.trim().split(/\s+/).filter(Boolean).length > 250) {
-      nextErrors.info = "Use 250 words or less";
+      nextErrors.info = t("errInfo");
     }
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
@@ -729,10 +1040,10 @@ function AddScreen({ state, setModal, onCreate, activeUser }) {
 
   return (
     <main className="main-screen add-screen scroll-screen">
-      <Header title="Add" compact />
+      <Header title={t("add")} compact language={language} t={t} />
       <section className="add-form">
         <label className="photo-picker">
-          {form.photo ? <img src={form.photo} alt="Selected" /> : <AvatarSilhouette />}
+          {form.photo ? <img src={form.photo} alt={t("selected")} /> : <AvatarSilhouette />}
           <span>
             <ImageUp size={24} />
           </span>
@@ -740,37 +1051,40 @@ function AddScreen({ state, setModal, onCreate, activeUser }) {
         </label>
 
         <Input
-          label="Full Name (including Surname)"
+          label={t("fullName")}
           required
-          placeholder="Full Name (including Surname)"
+          requiredLabel={t("required")}
+          placeholder={t("fullName")}
           value={form.fullName}
           error={errors.fullName}
           onChange={(value) => setField("fullName", value)}
         />
         <Input
-          label="Verify Surname"
+          label={t("verifySurname")}
           required
-          placeholder="Verify Surname"
+          requiredLabel={t("required")}
+          placeholder={t("verifySurname")}
           value={form.surnameCheck}
           error={errors.surnameCheck}
           onChange={(value) => setField("surnameCheck", value)}
         />
         <DateField
-          label="Date of Death"
+          label={t("dateOfDeath")}
           required
+          requiredLabel={t("required")}
           value={form.deathDate}
           error={errors.deathDate}
           onChange={(value) => setField("deathDate", value)}
         />
         <DateField
-          label="Date of Birth"
+          label={t("dateOfBirth")}
           value={form.birthDate}
           onChange={(value) => setField("birthDate", value)}
         />
         <div className="two-grid">
           <SelectField
-            label="Age"
-            placeholder="Age"
+            label={t("age")}
+            placeholder={t("age")}
             value={form.age}
             onClick={() =>
               setModal({
@@ -781,10 +1095,11 @@ function AddScreen({ state, setModal, onCreate, activeUser }) {
             }
           />
           <SelectField
-            label="Gender"
+            label={t("gender")}
             required
-            placeholder="Gender"
-            value={form.gender}
+            requiredLabel={t("required")}
+            placeholder={t("gender")}
+            value={genderLabel(form.gender, t)}
             error={errors.gender}
             onClick={() =>
               setModal({
@@ -795,36 +1110,37 @@ function AddScreen({ state, setModal, onCreate, activeUser }) {
           />
         </div>
         <SelectField
-          label="Country"
+          label={t("country")}
           required
-          value={form.country}
+          requiredLabel={t("required")}
+          value={countryLabel(form.country, language)}
           error={errors.country}
           onClick={() =>
             setModal({
-              type: "country",
-              title: "Country",
+            type: "country",
+              title: t("country"),
               onPick: (country) => setField("country", country.name)
             })
           }
         />
-        <label className="field-label">Information</label>
+        <label className="field-label">{t("information")}</label>
         <textarea
           className={`text-area ${errors.info ? "has-error" : ""}`}
-          placeholder="Information"
+          placeholder={t("information")}
           value={form.info}
           onChange={(event) => setField("info", event.target.value)}
         />
-        <div className="counter left">{infoWords}/250 words</div>
+        <div className="counter left">{infoWords}/250 {t("words")}</div>
         {errors.info && <p className="error-text">* {errors.info}</p>}
         <button className="primary-button" onClick={create}>
-          Create
+          {t("create")}
         </button>
       </section>
     </main>
   );
 }
 
-function SearchScreen({ state, updateState, setScreen }) {
+function SearchScreen({ state, language, t, updateState, setScreen }) {
   const [query, setQuery] = useState("");
   const results = state.people.filter((person) => {
     const value = `${person.fullName} ${person.country} ${person.info}`.toLowerCase();
@@ -833,18 +1149,18 @@ function SearchScreen({ state, updateState, setScreen }) {
 
   return (
     <main className="main-screen search-screen">
-      <Header title="Search" compact />
+      <Header title={t("search")} compact language={language} t={t} />
       <section className="search-box">
         <Search size={30} />
         <input
           autoComplete="off"
-          placeholder="Search"
+          placeholder={t("search")}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
       </section>
-      {!query && <EmptyState title="Start typing to search" />}
-      {query && !results.length && <EmptyState title="No results found" body="Try a name, country, or story word." />}
+      {!query && <EmptyState title={t("startTyping")} />}
+      {query && !results.length && <EmptyState title={t("noResults")} body={t("noResultsBody")} />}
       <section className="people-grid search-results">
         {results.map((person) => (
           <PersonCard
@@ -861,40 +1177,40 @@ function SearchScreen({ state, updateState, setScreen }) {
   );
 }
 
-function SettingsScreen({ state, updateState, setScreen, logout }) {
+function SettingsScreen({ state, t, updateState, setScreen, logout }) {
   const [languageOpen, setLanguageOpen] = useState(false);
 
   return (
     <main className="main-screen settings-screen scroll-screen">
-      <h1 className="plain-title">Settings</h1>
+      <h1 className="plain-title">{t("settings")}</h1>
       <div className="settings-list">
-        <SettingsItem icon={<UserRound />} label="Profile" onClick={() => setScreen("profile")} />
+        <SettingsItem icon={<UserRound />} label={t("profile")} onClick={() => setScreen("profile")} />
         <div className={`settings-card language-card ${languageOpen ? "open" : ""}`}>
           <button className="settings-row" onClick={() => setLanguageOpen((value) => !value)}>
             <span className="setting-icon">
               <Flag country={countries.find((country) => country.iso === "gb")} />
             </span>
-            <span>Language</span>
+            <span>{t("language")}</span>
             {languageOpen ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
           </button>
           {languageOpen && (
             <div className="language-options">
               <button onClick={() => updateState({ language: "AR" })}>
-                <Flag country={countries.find((country) => country.iso === "kw")} /> العربية
+                <Flag country={countries.find((country) => country.iso === "kw")} /> {t("arabic")}
               </button>
               <button onClick={() => updateState({ language: "EN" })}>
-                <Flag country={countries.find((country) => country.iso === "gb")} /> English
+                <Flag country={countries.find((country) => country.iso === "gb")} /> {t("english")}
               </button>
             </div>
           )}
         </div>
-        <SettingsItem icon={<Ban />} label="Blocked Users" onClick={() => setScreen("blocked")} />
-        <SettingsItem icon={<Headphones />} label="Contact Us" onClick={() => setScreen("contact")} />
-        <SettingsItem icon={<FileText />} label="Terms & Conditions" onClick={() => setScreen("terms")} />
-        <SettingsItem icon={<DoorOpen />} label="Logout" onClick={logout} />
+        <SettingsItem icon={<Ban />} label={t("blockedUsers")} onClick={() => setScreen("blocked")} />
+        <SettingsItem icon={<Headphones />} label={t("contactUs")} onClick={() => setScreen("contact")} />
+        <SettingsItem icon={<FileText />} label={t("terms")} onClick={() => setScreen("terms")} />
+        <SettingsItem icon={<DoorOpen />} label={t("logout")} onClick={logout} />
       </div>
       <button className="primary-button settings-done" onClick={() => setScreen("home")}>
-        Done
+        {t("done")}
       </button>
     </main>
   );
@@ -909,33 +1225,33 @@ function SettingsItem({ icon, label, onClick }) {
   );
 }
 
-function ProfileScreen({ activeUser, setScreen }) {
+function ProfileScreen({ activeUser, language, t, setScreen }) {
   const user = activeUser;
 
   return (
     <main className="profile-screen main-screen">
-      <button className="header-icon profile-back" onClick={() => setScreen("settings")} aria-label="Back">
+      <button className="header-icon profile-back" onClick={() => setScreen("settings")} aria-label={t("back")}>
         <ArrowLeft size={34} />
       </button>
-      <button className="profile-edit" onClick={() => setScreen("editProfile")} aria-label="Edit profile">
+      <button className="profile-edit" onClick={() => setScreen("editProfile")} aria-label={t("editProfile")}>
         <CircleUserRound size={30} />
         <Pencil size={20} />
       </button>
-      <h1>My Account</h1>
+      <h1>{t("myAccount")}</h1>
       <div className="profile-avatar">
         <AvatarSilhouette />
       </div>
       <h2>{getUserName(user)}</h2>
       <section className="info-panel">
-        <h3>My Information</h3>
-        <InfoLine icon={<Mail />} label="Email Address" value={user?.email || "Guest account"} />
-        <InfoLine icon={<MapPin />} label="Country" value={user?.country || "Not selected"} />
+        <h3>{t("myInformation")}</h3>
+        <InfoLine icon={<Mail />} label={t("emailAddress")} value={user?.email || t("guestAccount")} />
+        <InfoLine icon={<MapPin />} label={t("country")} value={user?.country ? countryLabel(user.country, language) : t("notSelected")} />
       </section>
     </main>
   );
 }
 
-function EditProfileScreen({ activeUser, state, updateState, setScreen, setModal, setToast }) {
+function EditProfileScreen({ activeUser, state, language, t, updateState, setScreen, setModal, setToast }) {
   const [form, setForm] = useState({
     firstName: activeUser?.firstName || "",
     surname: activeUser?.surname || "",
@@ -953,45 +1269,45 @@ function EditProfileScreen({ activeUser, state, updateState, setScreen, setModal
       currentUser: updated,
       users: state.users.map((user) => (user.id === updated.id ? updated : user))
     });
-    setToast("Profile updated");
+    setToast(t("profileUpdated"));
     setScreen("profile");
   };
 
   return (
     <main className="main-screen scroll-screen edit-screen">
-      <Header title="Edit Profile" back={() => setScreen("profile")} />
+      <Header title={t("editProfile")} back={() => setScreen("profile")} language={language} t={t} />
       <section className="add-form">
         <Input
-          label="First Name"
-          placeholder="First Name"
+          label={t("firstName")}
+          placeholder={t("firstName")}
           value={form.firstName}
           onChange={(value) => setForm((current) => ({ ...current, firstName: value }))}
         />
         <Input
-          label="Surname"
-          placeholder="Surname"
+          label={t("surname")}
+          placeholder={t("surname")}
           value={form.surname}
           onChange={(value) => setForm((current) => ({ ...current, surname: value }))}
         />
         <Input
-          label="Email Address"
+          label={t("emailAddress")}
           placeholder="email@example.com"
           value={form.email}
           onChange={(value) => setForm((current) => ({ ...current, email: value }))}
         />
         <SelectField
-          label="Country"
-          value={form.country}
+          label={t("country")}
+          value={countryLabel(form.country, language)}
           onClick={() =>
             setModal({
               type: "country",
-              title: "Country",
+              title: t("country"),
               onPick: (country) => setForm((current) => ({ ...current, country: country.name }))
             })
           }
         />
         <button className="primary-button" onClick={save}>
-          Save
+          {t("save")}
         </button>
       </section>
     </main>
@@ -1010,13 +1326,13 @@ function InfoLine({ icon, label, value }) {
   );
 }
 
-function DetailScreen({ state, updateState, setScreen, setModal, canUseAccount }) {
+function DetailScreen({ state, language, t, updateState, setScreen, setModal, canUseAccount }) {
   const person = state.people.find((item) => item.id === state.selectedPersonId);
   if (!person) {
     return (
       <main className="main-screen">
-        <Header title="Memorial" back={() => setScreen("home")} />
-        <EmptyState title="Entry not found" />
+        <Header title={t("memorial")} back={() => setScreen("home")} language={language} t={t} />
+        <EmptyState title={t("entryNotFound")} />
       </main>
     );
   }
@@ -1044,25 +1360,25 @@ function DetailScreen({ state, updateState, setScreen, setModal, canUseAccount }
 
   return (
     <main className="main-screen detail-screen scroll-screen">
-      <Header title="Shrine" back={() => setScreen("home")} />
+      <Header title={t("memorial")} back={() => setScreen("home")} language={language} t={t} />
       <section className="detail-card">
         <div className="detail-photo">
           {person.photo ? <img src={person.photo} alt={person.fullName} /> : <AvatarSilhouette />}
         </div>
         <h2>{person.fullName}</h2>
         <p className="detail-dates">
-          {person.birthDate || "Unknown birth"} - {person.deathDate}
+          {person.birthDate || t("unknownBirth")} - {person.deathDate}
         </p>
         <p className="detail-country">
-          <Flag country={findCountry(person.country)} /> {person.country}
+          <Flag country={findCountry(person.country)} /> {countryLabel(person.country, language)}
         </p>
         {person.info && <p className="detail-info">{person.info}</p>}
         <div className="detail-actions">
           <button className={followed ? "primary-button small active" : "primary-button small"} onClick={toggleFollow}>
-            <UserRoundPlus size={20} /> {followed ? "Following" : "Follow"}
+            <UserRoundPlus size={20} /> {followed ? t("following") : t("follow")}
           </button>
           <button className="outline-button small" onClick={toggleBlock}>
-            <Ban size={20} /> {blocked ? "Unblock" : "Block"}
+            <Ban size={20} /> {blocked ? t("unblock") : t("block")}
           </button>
         </div>
       </section>
@@ -1070,12 +1386,12 @@ function DetailScreen({ state, updateState, setScreen, setModal, canUseAccount }
   );
 }
 
-function BlockedUsersScreen({ state, updateState, setScreen }) {
+function BlockedUsersScreen({ state, language, t, updateState, setScreen }) {
   const blockedPeople = state.people.filter((person) => state.blocked.includes(person.id));
   return (
     <main className="main-screen blocked-screen">
-      <Header title="Blocked Users" compact back={() => setScreen("settings")} />
-      {!blockedPeople.length && <EmptyState title="No blocked users" />}
+      <Header title={t("blockedUsers")} compact back={() => setScreen("settings")} language={language} t={t} />
+      {!blockedPeople.length && <EmptyState title={t("noBlockedUsers")} />}
       <section className="blocked-list">
         {blockedPeople.map((person) => (
           <div className="blocked-row" key={person.id}>
@@ -1084,7 +1400,7 @@ function BlockedUsersScreen({ state, updateState, setScreen }) {
             <button
               onClick={() => updateState({ blocked: state.blocked.filter((id) => id !== person.id) })}
             >
-              Unblock
+              {t("unblock")}
             </button>
           </div>
         ))}
@@ -1093,13 +1409,13 @@ function BlockedUsersScreen({ state, updateState, setScreen }) {
   );
 }
 
-function TermsScreen({ setScreen }) {
+function TermsScreen({ language, t, setScreen }) {
   return (
     <main className="main-screen terms-screen scroll-screen">
-      <Header title="Terms & Conditions" compact back={() => setScreen("settings")} />
+      <Header title={t("terms")} compact back={() => setScreen("settings")} language={language} t={t} />
       <section className="terms-content">
-        <p className="updated">Last updated: {today()}</p>
-        {termsSections.map((section) => (
+        <p className="updated">{t("lastUpdated")}: {today()}</p>
+        {termsSections[language].map((section) => (
           <article key={section.title}>
             <h2>{section.title}</h2>
             <p>{section.body}</p>
@@ -1110,18 +1426,18 @@ function TermsScreen({ setScreen }) {
   );
 }
 
-function ContactScreen({ setScreen, setToast }) {
+function ContactScreen({ language, t, setScreen, setToast }) {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   return (
     <main className="main-screen contact-screen scroll-screen">
-      <Header title="Contact Us" back={() => setScreen("settings")} />
+      <Header title={t("contactUs")} back={() => setScreen("settings")} language={language} t={t} />
       <section className="add-form">
-        <Input label="Your Email" placeholder="email@example.com" value={email} onChange={setEmail} />
-        <label className="field-label">Message</label>
+        <Input label={t("yourEmail")} placeholder="email@example.com" value={email} onChange={setEmail} />
+        <label className="field-label">{t("message")}</label>
         <textarea
           className="text-area"
-          placeholder="Write your message"
+          placeholder={t("writeMessage")}
           value={message}
           onChange={(event) => setMessage(event.target.value)}
         />
@@ -1129,22 +1445,22 @@ function ContactScreen({ setScreen, setToast }) {
           className="primary-button"
           onClick={() => {
             setMessage("");
-            setToast("Message saved locally");
+            setToast(t("messageSaved"));
           }}
         >
-          Send
+          {t("send")}
         </button>
       </section>
     </main>
   );
 }
 
-function BottomNav({ active, setScreen }) {
+function BottomNav({ active, setScreen, t }) {
   const items = [
-    { id: "home", label: "Home", icon: <ContactRound size={36} /> },
-    { id: "add", label: "Add", icon: <Plus size={42} /> },
-    { id: "search", label: "Search", icon: <Search size={42} /> },
-    { id: "settings", label: "Settings", icon: <Settings size={42} /> }
+    { id: "home", label: t("home"), icon: <ContactRound size={36} /> },
+    { id: "add", label: t("add"), icon: <Plus size={42} /> },
+    { id: "search", label: t("search"), icon: <Search size={42} /> },
+    { id: "settings", label: t("settings"), icon: <Settings size={42} /> }
   ];
   return (
     <nav className="bottom-nav">
@@ -1163,12 +1479,12 @@ function BottomNav({ active, setScreen }) {
   );
 }
 
-function Input({ label, required, placeholder, value = "", type = "text", error, onChange }) {
+function Input({ label, required, requiredLabel = "Required", placeholder, value = "", type = "text", error, onChange }) {
   return (
     <label className="field-wrap">
       <span className="field-label">
         {label}
-        {required && <em>Required</em>}
+        {required && <em>{requiredLabel}</em>}
       </span>
       <input
         className={error ? "has-error" : ""}
@@ -1182,7 +1498,7 @@ function Input({ label, required, placeholder, value = "", type = "text", error,
   );
 }
 
-function PasswordInput({ label, value = "", error, visible, onToggle, onChange }) {
+function PasswordInput({ label, value = "", error, visible, onToggle, onChange, t = translator("EN") }) {
   return (
     <label className="field-wrap">
       <span className="field-label">{label}</span>
@@ -1193,7 +1509,7 @@ function PasswordInput({ label, value = "", error, visible, onToggle, onChange }
           value={value}
           onChange={(event) => onChange(event.target.value)}
         />
-        <button type="button" onClick={onToggle} aria-label={visible ? "Hide password" : "Show password"}>
+        <button type="button" onClick={onToggle} aria-label={visible ? t("hidePassword") : t("showPassword")}>
           {visible ? <EyeOff size={30} /> : <Eye size={30} />}
         </button>
       </span>
@@ -1202,12 +1518,12 @@ function PasswordInput({ label, value = "", error, visible, onToggle, onChange }
   );
 }
 
-function SelectField({ label, required, placeholder, value, error, onClick }) {
+function SelectField({ label, required, requiredLabel = "Required", placeholder, value, error, onClick }) {
   return (
     <label className="field-wrap">
       <span className="field-label">
         {label}
-        {required && <em>Required</em>}
+        {required && <em>{requiredLabel}</em>}
       </span>
       <button className={`select-field ${error ? "has-error" : ""}`} onClick={onClick}>
         <span className={value ? "" : "muted"}>{value || placeholder}</span>
@@ -1218,12 +1534,12 @@ function SelectField({ label, required, placeholder, value, error, onClick }) {
   );
 }
 
-function DateField({ label, required, value, error, onChange }) {
+function DateField({ label, required, requiredLabel = "Required", value, error, onChange }) {
   return (
     <label className="field-wrap">
       <span className="field-label">
         {label}
-        {required && <em>Required</em>}
+        {required && <em>{requiredLabel}</em>}
       </span>
       <span className="date-field">
         <span className={value ? "" : "muted"}>{value || label}</span>
@@ -1240,39 +1556,39 @@ function DateField({ label, required, value, error, onChange }) {
   );
 }
 
-function AgeModal({ value, onSave, onCancel }) {
+function AgeModal({ value, t, onSave, onCancel }) {
   const [age, setAge] = useState(value || "");
 
   return (
     <div className="modal-backdrop" onClick={onCancel}>
       <div className="age-modal" onClick={(event) => event.stopPropagation()}>
-        <h2>Age</h2>
+        <h2>{t("age")}</h2>
         <input
           autoFocus
           inputMode="numeric"
-          placeholder="Age"
+          placeholder={t("age")}
           value={age}
           onChange={(event) => setAge(event.target.value.replace(/\D/g, "").slice(0, 3))}
         />
         <button className="primary-button" onClick={() => onSave(age)}>
-          Save
+          {t("save")}
         </button>
       </div>
     </div>
   );
 }
 
-function CountryModal({ title, onPick, onClose, withCodes }) {
+function CountryModal({ title, language, t, onPick, onClose, withCodes }) {
   const [query, setQuery] = useState("");
   const results = countries.filter((country) =>
-    `${country.name} ${country.code}`.toLowerCase().includes(query.toLowerCase())
+    `${country.name} ${country.ar} ${country.code}`.toLowerCase().includes(query.toLowerCase())
   );
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="country-modal" onClick={(event) => event.stopPropagation()}>
         <div className="country-search">
-          <input placeholder={withCodes ? "Search country" : "Search"} value={query} onChange={(event) => setQuery(event.target.value)} />
+          <input placeholder={withCodes ? t("searchCountry") : t("search")} value={query} onChange={(event) => setQuery(event.target.value)} />
           <Search size={26} />
         </div>
         <div className="modal-title">{title}</div>
@@ -1280,7 +1596,7 @@ function CountryModal({ title, onPick, onClose, withCodes }) {
           {results.map((country) => (
             <button key={`${country.name}-${country.code}`} onClick={() => onPick(country)}>
               <Flag country={country} />
-              <strong>{country.name}</strong>
+              <strong>{countryLabel(country, language)}</strong>
               {withCodes && <em>{country.code}</em>}
             </button>
           ))}
@@ -1300,7 +1616,7 @@ function Sheet({ children, onClose }) {
   );
 }
 
-function VerifyModal({ user, onProceed, onCancel }) {
+function VerifyModal({ user, t, onProceed, onCancel }) {
   const [code, setCode] = useState("");
   const [sent, setSent] = useState(false);
   const [expiresAt, setExpiresAt] = useState("");
@@ -1320,13 +1636,13 @@ function VerifyModal({ user, onProceed, onCancel }) {
       });
       const data = await response.json();
       if (!response.ok || data.success === false) {
-        throw new Error(data.error || data.message || "Could not send WhatsApp code.");
+        throw new Error(data.error || data.message || t("couldNotSend"));
       }
       setSent(true);
       setExpiresAt(data.expiresAt || "");
-      setMessage(data.message || "WhatsApp code sent.");
+      setMessage(data.message || t("codeSent"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not send WhatsApp code.");
+      setError(err instanceof Error ? err.message : t("couldNotSend"));
     } finally {
       setLoading(false);
     }
@@ -1334,7 +1650,7 @@ function VerifyModal({ user, onProceed, onCancel }) {
 
   const verifyCode = async () => {
     if (!code.trim()) {
-      setError("Enter the WhatsApp code first.");
+      setError(t("enterCode"));
       return;
     }
     setLoading(true);
@@ -1347,14 +1663,14 @@ function VerifyModal({ user, onProceed, onCancel }) {
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || "Could not verify WhatsApp code.");
+        throw new Error(data.error || t("couldNotVerify"));
       }
       if (!data.valid) {
-        throw new Error(data.error || "The code is incorrect or expired.");
+        throw new Error(data.error || t("codeWrong"));
       }
       onProceed();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not verify WhatsApp code.");
+      setError(err instanceof Error ? err.message : t("couldNotVerify"));
     } finally {
       setLoading(false);
     }
@@ -1363,11 +1679,11 @@ function VerifyModal({ user, onProceed, onCancel }) {
   return (
     <div className="modal-backdrop" onClick={onCancel}>
       <div className="verify-modal" onClick={(event) => event.stopPropagation()}>
-        <h2>WhatsApp activation code</h2>
+        <h2>{t("whatsappCode")}</h2>
         <div className="verify-option selected">
           <span className="radio" />
           <div>
-            <strong>Mobile (WhatsApp)</strong>
+            <strong>{t("mobileWhatsapp")}</strong>
             <p>
               {user.phoneCode} {user.phone}
             </p>
@@ -1375,11 +1691,11 @@ function VerifyModal({ user, onProceed, onCancel }) {
         </div>
         {sent && (
           <label className="otp-code-field">
-            <span>Activation Code</span>
+            <span>{t("activationCode")}</span>
             <input
               inputMode="numeric"
               maxLength={8}
-              placeholder="6-digit code"
+              placeholder={t("sixDigitCode")}
               value={code}
               onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))}
             />
@@ -1388,16 +1704,16 @@ function VerifyModal({ user, onProceed, onCancel }) {
         {message && <p className="verify-message">{message}</p>}
         {expiresAt && (
           <p className="verify-note">
-            Expires at {new Date(expiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            {t("expiresAt")} {new Date(expiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </p>
         )}
         {error && <p className="verify-error">{error}</p>}
         <button className="primary-button" disabled={loading} onClick={sent ? verifyCode : sendCode}>
-          {loading ? "Please wait..." : sent ? "Verify & Proceed" : "Send WhatsApp Code"}
+          {loading ? t("pleaseWait") : sent ? t("verifyProceed") : t("sendWhatsappCode")}
         </button>
         {sent && (
           <button className="ghost-link resend-link" disabled={loading} onClick={sendCode}>
-            Resend code
+            {t("resendCode")}
           </button>
         )}
       </div>
@@ -1405,7 +1721,7 @@ function VerifyModal({ user, onProceed, onCancel }) {
   );
 }
 
-function AccountPrompt({ onCreate, onLogin, onClose }) {
+function AccountPrompt({ t, onCreate, onLogin, onClose }) {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="account-prompt" onClick={(event) => event.stopPropagation()}>
@@ -1413,16 +1729,16 @@ function AccountPrompt({ onCreate, onLogin, onClose }) {
         <div className="prompt-icon">
           <LockKeyhole size={34} />
         </div>
-        <h2>Create an account to save your follows</h2>
-        <p>Your following list belongs to your account, so it stays separate from guest browsing.</p>
+        <h2>{t("accountPromptTitle")}</h2>
+        <p>{t("accountPromptBody")}</p>
         <button className="primary-button" onClick={onCreate}>
-          <UserRoundPlus size={20} /> Create account
+          <UserRoundPlus size={20} /> {t("createAccount")}
         </button>
         <button className="outline-button" onClick={onLogin}>
-          <DoorOpen size={20} /> Sign in
+          <DoorOpen size={20} /> {t("signIn")}
         </button>
         <button className="ghost-link" onClick={onClose}>
-          Continue browsing
+          {t("continueBrowsing")}
         </button>
       </div>
     </div>
