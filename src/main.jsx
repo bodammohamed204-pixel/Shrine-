@@ -59,15 +59,32 @@ const countries = [
   { name: "Indonesia", ar: "إندونيسيا", code: "+62", iso: "id" }
 ];
 
+const defaultPeople = [
+  {
+    id: "sample-ronald-reagan",
+    photo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Ronald_Reagan_1981_presidential_portrait.jpg/500px-Ronald_Reagan_1981_presidential_portrait.jpg",
+    fullName: "Ronald Wilson Reagan",
+    surnameCheck: "Reagan",
+    deathDate: "2004-06-05",
+    birthDate: "1911-02-06",
+    age: "93",
+    gender: "Male",
+    country: "United States",
+    info: "40th President of the United States.",
+    createdBy: "sample"
+  }
+];
+
 const initialState = {
   currentUser: null,
   users: [],
-  people: [],
+  people: defaultPeople,
   following: [],
   blocked: [],
   language: "EN",
-  homeFilter: "Sponsor",
-  guest: false
+  currentCountry: "United States",
+  homeFilter: "United States",
+  guest: true
 };
 
 const copy = {
@@ -103,7 +120,7 @@ const copy = {
     back: "Back",
     newHere: "New here?",
     createAccount: "Create account",
-    badLogin: "Check your email and password",
+    badLogin: "Check your email or mobile number and password",
     success: "Success",
     congrats: "Congrats!",
     successBody: "Your account is ready. Start adding memorials and manage everything from your profile.",
@@ -182,8 +199,12 @@ const copy = {
     verifyProceed: "Verify & Proceed",
     sendWhatsappCode: "Send WhatsApp Code",
     resendCode: "Resend code",
+    emailOrPhone: "Email or mobile number",
+    emailOrPhonePlaceholder: "email@example.com or mobile number",
     accountPromptTitle: "Create an account to save your follows",
     accountPromptBody: "Your following list belongs to your account, so it stays separate from guest browsing.",
+    accountPromptAddTitle: "Create an account to add a shrine",
+    accountPromptAddBody: "Add a shrine, preserve details, and manage it safely from your own account.",
     signIn: "Sign in"
   },
   AR: {
@@ -218,7 +239,7 @@ const copy = {
     back: "رجوع",
     newHere: "مستخدم جديد؟",
     createAccount: "إنشاء حساب",
-    badLogin: "راجع البريد وكلمة المرور",
+    badLogin: "راجع البريد الإلكتروني أو رقم الهاتف وكلمة المرور",
     success: "تم بنجاح",
     congrats: "تهانينا!",
     successBody: "حسابك جاهز. ابدأ بإضافة الذكريات وإدارتها من ملفك.",
@@ -297,8 +318,12 @@ const copy = {
     verifyProceed: "تحقق وتابع",
     sendWhatsappCode: "إرسال كود واتساب",
     resendCode: "إعادة إرسال الكود",
+    emailOrPhone: "البريد الإلكتروني أو رقم الهاتف",
+    emailOrPhonePlaceholder: "email@example.com أو رقم الهاتف",
     accountPromptTitle: "أنشئ حسابًا لحفظ المتابعات",
     accountPromptBody: "قائمة المتابعة مرتبطة بحسابك حتى تبقى منفصلة عن تصفح الزائر.",
+    accountPromptAddTitle: "أنشئ حسابًا لإضافة مزار",
+    accountPromptAddBody: "أضف مزارًا، واحفظ التفاصيل، وتحكم فيه بأمان من حسابك.",
     signIn: "تسجيل الدخول"
   }
 };
@@ -363,7 +388,20 @@ const termsSections = {
 function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    return saved ? { ...initialState, ...saved } : initialState;
+    const merged = saved ? { ...initialState, ...saved } : initialState;
+    const savedPeople = Array.isArray(merged.people) ? merged.people : [];
+    const people = [
+      ...defaultPeople,
+      ...savedPeople.filter((person) => !defaultPeople.some((sample) => sample.id === person.id))
+    ];
+
+    return {
+      ...merged,
+      people,
+      guest: merged.currentUser ? false : true,
+      currentCountry: merged.currentCountry || initialState.currentCountry,
+      homeFilter: merged.homeFilter || initialState.homeFilter
+    };
   } catch {
     return initialState;
   }
@@ -419,12 +457,9 @@ function App() {
   const language = normalizeLanguage(state.language);
   const t = translator(language);
   const isArabic = language === "AR";
-  const startsOnHome = Boolean(state.currentUser || state.guest);
-  const [screen, setScreen] = useState(() =>
-    startsOnHome ? "home" : "register"
-  );
+  const [screen, setScreen] = useState("home");
   const [opening, setOpening] = useState(true);
-  const [homeIntroLoading, setHomeIntroLoading] = useState(startsOnHome);
+  const [homeIntroLoading, setHomeIntroLoading] = useState(true);
   const [modal, setModal] = useState(null);
   const [toast, setToast] = useState("");
 
@@ -472,8 +507,15 @@ function App() {
     setScreen("success");
   };
 
-  const loginUser = (email, password) => {
-    const user = state.users.find((item) => item.email === email && item.password === password);
+  const loginUser = (identifier, password) => {
+    const normalizedIdentifier = identifier.trim().toLowerCase();
+    const identifierDigits = identifier.replace(/\D/g, "");
+    const user = state.users.find((item) => {
+      const emailMatches = item.email?.toLowerCase() === normalizedIdentifier;
+      const phoneDigits = `${item.phoneCode || ""}${item.phone || ""}`.replace(/\D/g, "");
+      const mobileMatches = Boolean(identifierDigits && phoneDigits.endsWith(identifierDigits));
+      return item.password === password && (emailMatches || mobileMatches);
+    });
     if (!user) {
       setToast(t("badLogin"));
       return false;
@@ -484,8 +526,8 @@ function App() {
   };
 
   const logout = () => {
-    updateState({ currentUser: null, guest: false });
-    setScreen("register");
+    updateState({ currentUser: null, guest: true });
+    setScreen("home");
   };
 
   const activeUser = state.currentUser;
@@ -528,7 +570,7 @@ function App() {
           language={language}
           t={t}
           onLogin={loginUser}
-          onBack={() => setScreen("register")}
+          onBack={() => setScreen("home")}
           setScreen={setScreen}
         />
       )}
@@ -545,7 +587,7 @@ function App() {
       {screen === "detail" && <DetailScreen {...commonProps} />}
 
       {["home", "add", "search", "settings"].includes(screen) && (
-        <BottomNav active={screen} setScreen={setScreen} t={t} />
+        <BottomNav active={screen} setScreen={setScreen} setModal={setModal} canUseAccount={canUseAccount} t={t} />
       )}
 
       {modal?.type === "country" && (
@@ -603,6 +645,7 @@ function App() {
       {modal?.type === "accountPrompt" && (
         <AccountPrompt
           t={t}
+          intent={modal.intent}
           onClose={() => setModal(null)}
           onCreate={() => {
             setModal(null);
@@ -845,7 +888,7 @@ function RegisterScreen({ state, language, t, updateState, onRegister, onLogin, 
 }
 
 function LoginScreen({ state, t, onLogin, onBack, setScreen }) {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [visible, setVisible] = useState(false);
 
@@ -859,11 +902,10 @@ function LoginScreen({ state, t, onLogin, onBack, setScreen }) {
         <p>{t("loginIntro")}</p>
       </section>
       <Input
-        label={t("emailAddress")}
-        placeholder="email@example.com"
-        type="email"
-        value={email}
-        onChange={setEmail}
+        label={t("emailOrPhone")}
+        placeholder={t("emailOrPhonePlaceholder")}
+        value={identifier}
+        onChange={setIdentifier}
       />
       <PasswordInput
         label={t("password")}
@@ -873,7 +915,7 @@ function LoginScreen({ state, t, onLogin, onBack, setScreen }) {
         onChange={setPassword}
         t={t}
       />
-      <button className="primary-button" onClick={() => onLogin(email, password)}>
+      <button className="primary-button" onClick={() => onLogin(identifier, password)}>
         {t("login")}
       </button>
       <button className="text-link wide" onClick={() => setScreen("register")}>
@@ -1455,20 +1497,28 @@ function ContactScreen({ language, t, setScreen, setToast }) {
   );
 }
 
-function BottomNav({ active, setScreen, t }) {
+function BottomNav({ active, setScreen, setModal, canUseAccount, t }) {
   const items = [
     { id: "home", label: t("home"), icon: <ContactRound size={36} /> },
     { id: "add", label: t("add"), icon: <Plus size={42} /> },
     { id: "search", label: t("search"), icon: <Search size={42} /> },
     { id: "settings", label: t("settings"), icon: <Settings size={42} /> }
   ];
+  const go = (id) => {
+    if (id === "add" && !canUseAccount) {
+      setModal({ type: "accountPrompt", intent: "add" });
+      return;
+    }
+    setScreen(id);
+  };
+
   return (
     <nav className="bottom-nav">
       {items.map((item) => (
         <button
           key={item.id}
           className={active === item.id ? "nav-active" : ""}
-          onClick={() => setScreen(item.id)}
+          onClick={() => go(item.id)}
         >
           {item.icon}
           <span>{item.label}</span>
@@ -1721,16 +1771,17 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
   );
 }
 
-function AccountPrompt({ t, onCreate, onLogin, onClose }) {
+function AccountPrompt({ t, intent = "follow", onCreate, onLogin, onClose }) {
+  const isAdd = intent === "add";
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop bottom" onClick={onClose}>
       <div className="account-prompt" onClick={(event) => event.stopPropagation()}>
         <span className="drag-handle" />
         <div className="prompt-icon">
           <LockKeyhole size={34} />
         </div>
-        <h2>{t("accountPromptTitle")}</h2>
-        <p>{t("accountPromptBody")}</p>
+        <h2>{isAdd ? t("accountPromptAddTitle") : t("accountPromptTitle")}</h2>
+        <p>{isAdd ? t("accountPromptAddBody") : t("accountPromptBody")}</p>
         <button className="primary-button" onClick={onCreate}>
           <UserRoundPlus size={20} /> {t("createAccount")}
         </button>
