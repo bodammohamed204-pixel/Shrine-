@@ -42,57 +42,67 @@ button {
   box-shadow: 0 0 34px rgba(31, 45, 67, 0.14);
 }
 
-.status-bar {
+.splash-intro {
   position: fixed;
   top: 0;
+  bottom: 0;
   left: 50%;
-  z-index: 40;
+  z-index: 120;
   width: min(100vw, 430px);
-  height: 34px;
   transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  color: #111;
-  background: rgba(255, 255, 255, 0.9);
-  font-size: 0.9rem;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 49%, #fff 0 13%, rgba(255, 255, 255, 0.95) 17%, rgba(219, 248, 255, 0.82) 34%, rgba(78, 205, 239, 0.95) 100%);
+  animation: splash-fade 2.6s ease forwards;
 }
 
-.status-left,
-.status-right {
-  display: flex;
-  gap: 8px;
-  align-items: center;
+.splash-rays {
+  position: absolute;
+  inset: -22%;
+  background:
+    repeating-conic-gradient(
+      from -6deg at 50% 49%,
+      rgba(255, 255, 255, 0.82) 0 5deg,
+      rgba(87, 204, 235, 0.42) 5deg 11deg,
+      rgba(255, 255, 255, 0.72) 11deg 17deg,
+      rgba(43, 177, 226, 0.55) 17deg 24deg
+    );
+  animation: splash-rays-zoom 2.6s ease-out forwards;
 }
 
-.mini-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: #111;
+.splash-glow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 49%, #fff 0 19%, rgba(255, 255, 255, 0.9) 24%, rgba(255, 255, 255, 0) 47%),
+    linear-gradient(180deg, rgba(231, 252, 255, 0.38), rgba(255, 255, 255, 0) 38%, rgba(18, 181, 228, 0.22));
 }
 
-.mini-pill {
-  width: 18px;
-  height: 10px;
-  border-radius: 999px;
-  background: #2b9be8;
+@keyframes splash-rays-zoom {
+  0% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  78% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.04);
+    opacity: 0.18;
+  }
 }
 
-.mini-pill.second {
-  background: #18bd8e;
-}
-
-.signal-bars {
-  width: 22px;
-  height: 16px;
-  background: linear-gradient(to right, #111 20%, transparent 20% 34%, #111 34% 54%, transparent 54% 68%, #111 68%);
-  clip-path: polygon(0 100%, 0 55%, 25% 55%, 25% 100%, 38% 100%, 38% 35%, 63% 35%, 63% 100%, 75% 100%, 75% 0, 100% 0, 100% 100%);
-}
-
-.battery {
-  font-weight: 800;
+@keyframes splash-fade {
+  0%,
+  78% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
 }
 
 .scroll-screen {
@@ -104,7 +114,6 @@ button {
 .auth-screen,
 .success-screen {
   min-height: 100vh;
-  padding-top: 34px;
 }
 
 .main-screen {
@@ -851,6 +860,28 @@ button {
   grid-template-columns: repeat(2, minmax(0, 132px));
   gap: 14px;
   padding: 0 18px 20px;
+}
+
+.home-boot-loader {
+  display: grid;
+  place-items: center;
+  min-height: calc(100vh - 286px);
+  background: var(--soft);
+}
+
+.home-boot-loader span {
+  width: 42px;
+  height: 42px;
+  border: 5px solid rgba(43, 155, 232, 0.18);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.82s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .person-card {

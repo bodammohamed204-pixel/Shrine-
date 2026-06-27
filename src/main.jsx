@@ -30,6 +30,11 @@ import {
 import "./styles.css";
 
 const STORAGE_KEY = "shrine_mobile_state_v1";
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+
+function apiUrl(path) {
+  return `${API_BASE_URL}${path}`;
+}
 
 const countries = [
   { name: "Egypt", code: "+20", iso: "eg" },
@@ -129,11 +134,23 @@ function findCountry(name) {
 
 function App() {
   const [state, setState] = useState(loadState);
+  const startsOnHome = Boolean(state.currentUser || state.guest);
   const [screen, setScreen] = useState(() =>
-    state.currentUser || state.guest ? "home" : "register"
+    startsOnHome ? "home" : "register"
   );
+  const [opening, setOpening] = useState(true);
+  const [homeIntroLoading, setHomeIntroLoading] = useState(startsOnHome);
   const [modal, setModal] = useState(null);
   const [toast, setToast] = useState("");
+
+  useEffect(() => {
+    const splashTimer = setTimeout(() => setOpening(false), 2600);
+    const loaderTimer = setTimeout(() => setHomeIntroLoading(false), 3600);
+    return () => {
+      clearTimeout(splashTimer);
+      clearTimeout(loaderTimer);
+    };
+  }, []);
 
   useEffect(() => {
     saveState(state);
@@ -201,7 +218,7 @@ function App() {
 
   return (
     <div className="app-shell">
-      <StatusBar />
+      {opening && <SplashIntro />}
       {screen === "register" && (
         <RegisterScreen
           state={state}
@@ -225,7 +242,7 @@ function App() {
         />
       )}
       {screen === "success" && <SuccessScreen state={state} setScreen={setScreen} />}
-      {screen === "home" && <HomeScreen {...commonProps} />}
+      {screen === "home" && <HomeScreen {...commonProps} bootLoading={homeIntroLoading && !opening} />}
       {screen === "add" && <AddScreen {...commonProps} onCreate={addPerson} />}
       {screen === "search" && <SearchScreen {...commonProps} />}
       {screen === "settings" && <SettingsScreen {...commonProps} logout={logout} />}
@@ -306,36 +323,11 @@ function App() {
   );
 }
 
-function StatusBar() {
-  const [time, setTime] = useState("");
-
-  useEffect(() => {
-    const update = () => {
-      setTime(
-        new Date().toLocaleTimeString([], {
-          hour: "numeric",
-          minute: "2-digit"
-        })
-      );
-    };
-    update();
-    const timer = setInterval(update, 30000);
-    return () => clearInterval(timer);
-  }, []);
-
+function SplashIntro() {
   return (
-    <div className="status-bar" aria-hidden="true">
-      <div className="status-left">
-        <strong>{time}</strong>
-        <span className="mini-dot" />
-        <span className="mini-pill" />
-        <span className="mini-pill second" />
-      </div>
-      <div className="status-right">
-        <span>Wi-Fi</span>
-        <span className="signal-bars" />
-        <span className="battery">84%</span>
-      </div>
+    <div className="splash-intro" aria-hidden="true">
+      <div className="splash-rays" />
+      <div className="splash-glow" />
     </div>
   );
 }
@@ -605,7 +597,7 @@ function SuccessScreen({ state, setScreen }) {
   );
 }
 
-function HomeScreen({ state, updateState, setModal, setScreen, activeUser, canUseAccount }) {
+function HomeScreen({ state, updateState, setModal, setScreen, activeUser, canUseAccount, bootLoading }) {
   const selectedCountry = findCountry(state.currentCountry || activeUser?.country || "Egypt");
   const filteredPeople = useMemo(() => {
     const people = state.people.filter((person) => !state.blocked.includes(person.id));
@@ -653,20 +645,26 @@ function HomeScreen({ state, updateState, setModal, setScreen, activeUser, canUs
           </button>
         ))}
       </section>
-      <section className="people-grid">
-        {filteredPeople.map((person) => (
-          <PersonCard
-            key={person.id}
-            person={person}
-            followed={state.following.includes(person.id)}
-            onOpen={() => {
-              updateState({ selectedPersonId: person.id });
-              setScreen("detail");
-            }}
-          />
-        ))}
-      </section>
-      {!filteredPeople.length && (
+      {bootLoading ? (
+        <section className="home-boot-loader" aria-label="Loading memorials">
+          <span />
+        </section>
+      ) : (
+        <section className="people-grid">
+          {filteredPeople.map((person) => (
+            <PersonCard
+              key={person.id}
+              person={person}
+              followed={state.following.includes(person.id)}
+              onOpen={() => {
+                updateState({ selectedPersonId: person.id });
+                setScreen("detail");
+              }}
+            />
+          ))}
+        </section>
+      )}
+      {!bootLoading && !filteredPeople.length && (
         <EmptyState
           icon={<Home size={56} />}
           title="No memorials yet"
@@ -1315,7 +1313,7 @@ function VerifyModal({ user, onProceed, onCancel }) {
     setError("");
     setMessage("");
     try {
-      const response = await fetch("/api/otp/send", {
+      const response = await fetch(apiUrl("/api/otp/send"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone: user.otpPhone, codeLength: 6 })
@@ -1342,7 +1340,7 @@ function VerifyModal({ user, onProceed, onCancel }) {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch("/api/otp/verify", {
+      const response = await fetch(apiUrl("/api/otp/verify"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone: user.otpPhone, code })
