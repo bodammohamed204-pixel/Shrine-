@@ -30,7 +30,20 @@ import {
 import "./styles.css";
 
 const STORAGE_KEY = "shrine_mobile_state_v1";
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+
+function defaultApiBaseUrl() {
+  if (typeof window === "undefined" || !import.meta.env.DEV) return "";
+  const { hostname, port, protocol } = window.location;
+  const localHosts = new Set(["localhost", "127.0.0.1", "0.0.0.0"]);
+
+  if ((protocol === "http:" || protocol === "https:") && localHosts.has(hostname) && port !== "5184") {
+    return `http://${hostname === "localhost" ? "localhost" : "127.0.0.1"}:5184`;
+  }
+
+  return "";
+}
+
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || defaultApiBaseUrl()).replace(/\/$/, "");
 
 function apiUrl(path) {
   return `${API_BASE_URL}${path}`;

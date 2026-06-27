@@ -40,7 +40,7 @@ The current AAB is **not ready for store upload** because it is unsigned and no 
 : Server port. Local default is `5184`.
 
 `ALLOWED_ORIGINS`
-: Comma-separated list of allowed browser/WebView origins for OTP API calls. Android Capacitor usually needs `http://localhost`; iOS Capacitor commonly needs `capacitor://localhost`.
+: Comma-separated list of allowed browser/WebView origins for OTP API calls. Use exact hosted web origins in production; Android/iOS Capacitor commonly needs `capacitor://localhost`. Local development allows localhost ports automatically.
 
 `NODE_ENV`
 : Use `production` on the hosted backend so the server serves the built app and skips Vite development middleware.

@@ -25,9 +25,25 @@ const allowedOrigins = new Set(
 
 app.use(express.json({ limit: "32kb" }));
 
+function isAllowedOrigin(origin) {
+  if (!origin) return false;
+  if (allowedOrigins.has(origin)) return true;
+
+  if (process.env.NODE_ENV !== "production") {
+    try {
+      const url = new URL(origin);
+      return ["localhost", "127.0.0.1", "0.0.0.0"].includes(url.hostname);
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+}
+
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (origin && allowedOrigins.has(origin)) {
+  if (origin && isAllowedOrigin(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS");
@@ -131,6 +147,13 @@ app.post("/api/otp/send", async (req, res) => {
   }
 });
 
+app.all("/api/otp/send", (_req, res) => {
+  return res.status(405).json({
+    success: false,
+    error: "Use POST /api/otp/send with a JSON body."
+  });
+});
+
 app.post("/api/otp/verify", async (req, res) => {
   try {
     const phone = normalizePhone(req.body.phone);
@@ -151,6 +174,13 @@ app.post("/api/otp/verify", async (req, res) => {
       error: error instanceof Error ? error.message : "Could not verify OTP."
     });
   }
+});
+
+app.all("/api/otp/verify", (_req, res) => {
+  return res.status(405).json({
+    valid: false,
+    error: "Use POST /api/otp/verify with a JSON body."
+  });
 });
 
 if (process.env.NODE_ENV === "production") {

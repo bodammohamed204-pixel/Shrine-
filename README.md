@@ -17,11 +17,11 @@ Create `.env.local` from `.env.example` and add your Oncallos API key:
 
 ```bash
 ONCALLOS_API_KEY=oc_live_your_key_here
-ALLOWED_ORIGINS=http://localhost,capacitor://localhost
+ALLOWED_ORIGINS=http://localhost:5184,http://127.0.0.1:5184,http://localhost:5173,http://127.0.0.1:5173,capacitor://localhost
 PORT=5184
 ```
 
-The key is used only by the local Express server. It is not shipped to the browser.
+The key is used only by the local Express server. It is not shipped to the browser. If you open Vite directly on `5173`, the frontend automatically sends OTP requests to the local Express API on `5184`.
 
 ## Build
 
