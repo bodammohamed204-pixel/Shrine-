@@ -4801,13 +4801,30 @@ function EmptyState({ icon, title, body }) {
 function Flag({ country, large = false }) {
   const code = country?.iso || "xx";
   const flag = country?.flag || code.toUpperCase();
+  const [imageFailed, setImageFailed] = useState(false);
+  const imageSrc = /^[a-z]{2}$/.test(code) ? `https://flagcdn.com/${code}.svg` : "";
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [code]);
+
   return (
     <span
       className={`flag-visual flag-${code} ${large ? "large" : ""}`}
       aria-label={`${country?.name || "Country"} flag`}
       role="img"
     >
-      <span>{flag}</span>
+      {imageSrc && !imageFailed ? (
+        <img
+          src={imageSrc}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          onError={() => setImageFailed(true)}
+        />
+      ) : (
+        <span>{flag}</span>
+      )}
     </span>
   );
 }
