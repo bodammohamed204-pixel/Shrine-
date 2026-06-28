@@ -231,7 +231,7 @@ const copy = {
     mobileWhatsapp: "Mobile (WhatsApp)",
     emailCode: "E-Mail",
     activationCode: "Activation Code",
-    sixDigitCode: "6-digit code",
+    sixDigitCode: "8-digit code",
     codeSent: "Activation code sent.",
     emailCodeSent: "Email code sent.",
     enterCode: "Enter the activation code first.",
@@ -357,7 +357,7 @@ const copy = {
     mobileWhatsapp: "الهاتف (واتساب)",
     emailCode: "البريد الإلكتروني",
     activationCode: "كود التفعيل",
-    sixDigitCode: "كود من 6 أرقام",
+    sixDigitCode: "كود من 8 أرقام",
     codeSent: "تم إرسال كود التفعيل.",
     emailCodeSent: "تم إرسال كود البريد الإلكتروني.",
     enterCode: "أدخل كود التفعيل أولًا.",
@@ -1894,13 +1894,13 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
   const requestBody = () => {
     if (selectedChannel?.id === "email") {
       return {
-        send: { email: user.email, codeLength: 6 },
+        send: { email: user.email, codeLength: 8 },
         verify: { email: user.email, code, challenge }
       };
     }
 
     return {
-      send: { phone: user.otpPhone, codeLength: 6 },
+      send: { phone: user.otpPhone, codeLength: 8 },
       verify: { phone: user.otpPhone, code }
     };
   };

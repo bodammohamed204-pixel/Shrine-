@@ -102,7 +102,7 @@ function safeEqual(a, b) {
 }
 
 function generateNumericCode(codeLength) {
-  const length = Math.min(8, Math.max(4, Number(codeLength || 6)));
+  const length = Math.min(8, Math.max(4, Number(codeLength || 8)));
   const min = 10 ** (length - 1);
   const max = 10 ** length;
   return String(crypto.randomInt(min, max));
@@ -232,7 +232,7 @@ async function forwardOtpRequest(pathname, payload) {
 app.post("/api/otp/send", async (req, res) => {
   try {
     const phone = normalizePhone(req.body.phone);
-    const codeLength = Number(req.body.codeLength || 6);
+    const codeLength = Number(req.body.codeLength || 8);
 
     if (!/^\+\d{7,15}$/.test(phone)) {
       return res.status(400).json({
@@ -298,7 +298,7 @@ app.all("/api/otp/verify", (_req, res) => {
 app.post("/api/otp/email/send", async (req, res) => {
   try {
     const email = normalizeEmail(req.body.email);
-    const codeLength = Number(req.body.codeLength || 6);
+    const codeLength = Number(req.body.codeLength || 8);
 
     if (!/^\S+@\S+\.\S+$/.test(email)) {
       return res.status(400).json({
