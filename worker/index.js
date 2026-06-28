@@ -237,6 +237,21 @@ function isHttpUrl(value) {
   }
 }
 
+function cleanShareId(value) {
+  return String(value || "").trim().replace(/[^a-zA-Z0-9_-]/g, "");
+}
+
+function isLongGeneratedShrineId(value) {
+  return /^\d{10,}-[a-zA-Z0-9_-]+$/.test(String(value || "").trim());
+}
+
+function isShortPublicIdCandidate(value) {
+  const text = cleanShareId(value);
+  if (!text) return false;
+  if (/^\d+$/.test(text)) return true;
+  return text.length <= 24 && !isLongGeneratedShrineId(text);
+}
+
 function shrineInfoPath(personId) {
   return `/shrines/${encodeURIComponent(personId)}/info`;
 }
@@ -254,11 +269,12 @@ function shrineCommentApiPath(personId, commentId) {
 }
 
 function shrineInfoMatch(pathname) {
-  return String(pathname || "").match(/^\/shrines\/([^/]+)\/info\/?$/i);
+  return String(pathname || "").match(/^\/shrines\/([^/]+)\/(?:info|comments\/info)\/?$/i);
 }
 
 function shrineCommentMatch(pathname) {
-  return String(pathname || "").match(/^\/shrines\/([^/]+)\/comments\/([^/]+)\/?$/i);
+  const match = String(pathname || "").match(/^\/shrines\/([^/]+)\/comments\/([^/]+)\/?$/i);
+  return match && String(match[2] || "").toLowerCase() !== "info" ? match : null;
 }
 
 function shrineApiMatch(pathname) {
@@ -301,13 +317,44 @@ function httpsImageUrl(value, env) {
       ? new URL(`https:${text}`)
       : /^https?:\/\//i.test(text)
         ? new URL(text)
-        : new URL(text, `${appBaseUrl(env)}/`);
+        : new URL(text, `${PRODUCTION_APP_URL}/`);
     if (url.protocol !== "http:" && url.protocol !== "https:") return "";
     url.protocol = "https:";
     return url.toString();
   } catch {
     return "";
   }
+}
+
+function publicShrineIdFromSource(source, fallbackId) {
+  const explicitId = firstText(
+    source.publicId,
+    source.public_id,
+    source.shareId,
+    source.share_id,
+    source.shortId,
+    source.short_id,
+    source.shortSlug,
+    source.short_slug,
+    source.slug,
+    source.numericId,
+    source.numeric_id,
+    source.shrineNumber,
+    source.shrine_number
+  );
+  const cleanExplicitId = cleanShareId(explicitId);
+  if (cleanExplicitId) return cleanExplicitId;
+
+  const sourceId = firstText(source.id);
+  if (
+    sourceId &&
+    cleanShareId(sourceId) !== cleanShareId(fallbackId) &&
+    isShortPublicIdCandidate(sourceId)
+  ) {
+    return cleanShareId(sourceId);
+  }
+
+  return "";
 }
 
 function normalizeShrineApiData(data, fallbackId) {
@@ -319,9 +366,29 @@ function normalizeShrineApiData(data, fallbackId) {
 
   return {
     id: firstText(source.id, source._id, source.shrineId, source.shrine_id, fallbackId),
-    publicId: firstText(source.publicId, source.public_id, source.shortId, source.short_id, source.slug, source.numericId, source.numeric_id),
+    publicId: publicShrineIdFromSource(source, fallbackId),
     fullName,
-    photo: firstText(source.photo, source.photoUrl, source.photo_url, source.image, source.imageUrl, source.image_url),
+    photo: firstText(
+      source.photo,
+      source.photoUrl,
+      source.photo_url,
+      source.photoPath,
+      source.photo_path,
+      source.image,
+      source.imageUrl,
+      source.image_url,
+      source.imagePath,
+      source.image_path,
+      source.avatar,
+      source.avatarUrl,
+      source.avatar_url,
+      source.avatarPath,
+      source.avatar_path,
+      source.profilePhoto,
+      source.profile_photo,
+      source.profilePhotoPath,
+      source.profile_photo_path
+    ),
     birthDate: firstText(source.birthDate, source.birth_date, source.birth),
     deathDate: firstText(source.deathDate, source.death_date, source.death),
     info: firstText(source.info, source.description, source.bio),
@@ -335,7 +402,23 @@ function normalizeCommentApiData(data, fallbackId) {
   if (!source || typeof source !== "object" || Array.isArray(source)) return null;
 
   const text = firstText(source.text, source.body, source.content, source.message, source.description);
-  const attachment = firstText(source.attachment, source.attachmentUrl, source.attachment_url, source.image, source.imageUrl, source.image_url);
+  const attachment = firstText(
+    source.attachment,
+    source.attachmentUrl,
+    source.attachment_url,
+    source.attachmentPath,
+    source.attachment_path,
+    source.image,
+    source.imageUrl,
+    source.image_url,
+    source.imagePath,
+    source.image_path,
+    source.media,
+    source.mediaUrl,
+    source.media_url,
+    source.mediaPath,
+    source.media_path
+  );
   if (!text && !attachment) return null;
 
   const user = source.user && typeof source.user === "object" ? source.user : {};
@@ -361,18 +444,51 @@ function normalizeCommentApiData(data, fallbackId) {
       source.userPhoto,
       source.userPhotoUrl,
       source.user_photo_url,
+      source.userPhotoPath,
+      source.user_photo_path,
       source.avatar,
       source.avatarUrl,
+      source.avatar_url,
+      source.avatarPath,
+      source.avatar_path,
       source.profilePhoto,
       source.profile_photo,
+      source.profilePhotoPath,
+      source.profile_photo_path,
       user.photo,
       user.photoUrl,
+      user.photo_url,
+      user.photoPath,
+      user.photo_path,
       user.avatar,
+      user.avatarUrl,
+      user.avatar_url,
+      user.avatarPath,
+      user.avatar_path,
       user.profilePhoto,
+      user.profile_photo,
+      user.profilePhotoPath,
+      user.profile_photo_path,
       author.photo,
+      author.photoUrl,
+      author.photo_url,
+      author.photoPath,
+      author.photo_path,
       author.avatar,
+      author.avatarUrl,
+      author.avatar_url,
+      author.avatarPath,
+      author.avatar_path,
       commenter.photo,
-      commenter.avatar
+      commenter.photoUrl,
+      commenter.photo_url,
+      commenter.photoPath,
+      commenter.photo_path,
+      commenter.avatar,
+      commenter.avatarUrl,
+      commenter.avatar_url,
+      commenter.avatarPath,
+      commenter.avatar_path
     )
   };
 }
@@ -507,7 +623,7 @@ function shrineCommentPreviewMeta(personId, commentId, shrine, comment, env) {
   return {
     title: titleParts.join(" - "),
     description: previewText(comment?.text || shrine?.info || DEFAULT_META_DESCRIPTION),
-    url: sharePersonId ? `${appBaseUrl(env)}${shrineInfoPath(sharePersonId)}` : appBaseUrl(env),
+    url: sharePersonId ? `${appBaseUrl(env)}${shrineCommentPath(sharePersonId, commentId || "info")}` : appBaseUrl(env),
     image
   };
 }

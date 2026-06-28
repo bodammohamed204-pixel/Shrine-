@@ -47,7 +47,7 @@ import "./styles.css";
 
 const STORAGE_KEY = "shrine_mobile_state_v1";
 const PRODUCTION_API_BASE_URL = "https://book-of-heaven.onholding.workers.dev";
-const PRODUCTION_APP_URL = "https://book-of-heaven.onholding.workers.dev";
+const PRODUCTION_APP_URL = "https://app.shrine-app.com";
 const SAME_ORIGIN_API_HOSTS = new Set(["book-of-heaven.onholding.workers.dev"]);
 const DEFAULT_META_DESCRIPTION = "Create and share memorial shrines.";
 const SHRINE_API_PATH_PREFIX = "/api/shrines/";
@@ -102,12 +102,19 @@ function shrineInfoPath(personId) {
   return `/shrines/${encodeURIComponent(personId)}/info`;
 }
 
-function shrineCommentPath(personId, commentId) {
-  return `/shrines/${encodeURIComponent(personId)}/comments/${encodeURIComponent(commentId)}`;
-}
-
 function cleanShareId(value) {
   return String(value || "").trim().replace(/[^a-zA-Z0-9_-]/g, "");
+}
+
+function isLongGeneratedShrineId(value) {
+  return /^\d{10,}-[a-zA-Z0-9_-]+$/.test(String(value || "").trim());
+}
+
+function isShortPublicIdCandidate(value) {
+  const text = cleanShareId(value);
+  if (!text) return false;
+  if (/^\d+$/.test(text)) return true;
+  return text.length <= 24 && !isLongGeneratedShrineId(text);
 }
 
 function compactShrineId(value) {
@@ -134,13 +141,31 @@ function publicShrineIdFromSource(source, fallbackId = "") {
   const explicitId = firstText(
     source?.publicId,
     source?.public_id,
+    source?.shareId,
+    source?.share_id,
     source?.shortId,
     source?.short_id,
+    source?.shortSlug,
+    source?.short_slug,
     source?.slug,
     source?.numericId,
-    source?.numeric_id
+    source?.numeric_id,
+    source?.shrineNumber,
+    source?.shrine_number
   );
-  return cleanShareId(explicitId) || compactShrineId(firstText(source?.id, fallbackId)) || cleanShareId(firstText(source?.id, fallbackId));
+  const cleanExplicitId = cleanShareId(explicitId);
+  if (cleanExplicitId) return cleanExplicitId;
+
+  const sourceId = firstText(source?.id);
+  if (
+    sourceId &&
+    cleanShareId(sourceId) !== cleanShareId(fallbackId) &&
+    isShortPublicIdCandidate(sourceId)
+  ) {
+    return cleanShareId(sourceId);
+  }
+
+  return compactShrineId(firstText(source?.id, fallbackId)) || cleanShareId(firstText(source?.id, fallbackId));
 }
 
 function personShareId(personOrId) {
@@ -156,11 +181,17 @@ function personMatchesShareId(person, shareId) {
     person.id,
     person.publicId,
     person.public_id,
+    person.shareId,
+    person.share_id,
     person.shortId,
     person.short_id,
+    person.shortSlug,
+    person.short_slug,
     person.slug,
     person.numericId,
     person.numeric_id,
+    person.shrineNumber,
+    person.shrine_number,
     compactShrineId(person.id)
   ].some((value) => cleanShareId(value) === target);
 }
@@ -291,27 +322,38 @@ function shareBaseUrl() {
   return appBaseUrl();
 }
 
-function buildShareUrl(personOrId) {
+function buildShareUrl(personOrId, options = {}) {
   const person = personOrId && typeof personOrId === "object" ? personOrId : null;
   const personId = person ? personShareId(person) : String(personOrId || "");
   if (!personId) return "";
 
-  return new URL(`${shareBaseUrl()}${shrineInfoPath(personId)}`).toString();
+  const shareOptions = options && typeof options === "object" ? options : { view: options };
+  const commentId = String(shareOptions.commentId || "").trim();
+  const isCommentShare = shareOptions.view === "comment" || shareOptions.type === "comment" || Boolean(commentId);
+  const path = isCommentShare ? shrineCommentPath(personId, commentId || "info") : shrineInfoPath(personId);
+
+  return new URL(`${shareBaseUrl()}${path}`).toString();
 }
 
 function getSharedTargetFromLocation() {
   if (typeof window === "undefined") return null;
 
   const params = new URLSearchParams(window.location.search);
-  const pathCommentMatch = window.location.pathname.match(/^\/shrines\/([^/]+)\/comments\/([^/]+)\/?$/i);
+  const pathEntryInfoMatch = window.location.pathname.match(/^\/shrines\/([^/]+)\/comments\/info\/?$/i);
+  const pathCommentMatch = pathEntryInfoMatch ? null : window.location.pathname.match(/^\/shrines\/([^/]+)\/comments\/([^/]+)\/?$/i);
   const pathShrineMatch = window.location.pathname.match(/^\/shrines\/([^/]+)\/info\/?$/i);
+  const pathEntryInfoShrineId = pathEntryInfoMatch ? safeDecodeURIComponent(pathEntryInfoMatch[1]) : "";
   const pathCommentShrineId = pathCommentMatch ? safeDecodeURIComponent(pathCommentMatch[1]) : "";
   const pathCommentId = pathCommentMatch ? safeDecodeURIComponent(pathCommentMatch[2]) : "";
   const pathShrineId = pathShrineMatch ? safeDecodeURIComponent(pathShrineMatch[1]) : "";
-  const shrineId = params.get("shrine") || params.get("person") || pathCommentShrineId || pathShrineId;
+  const shrineId = params.get("shrine") || params.get("person") || pathEntryInfoShrineId || pathCommentShrineId || pathShrineId;
   const directCommentId = params.get("comment") || params.get("message") || "";
   const view = String(params.get("view") || "").toLowerCase();
   const hash = window.location.hash.replace(/^#/, "").toLowerCase();
+
+  if (pathEntryInfoShrineId) {
+    return { type: "comment", personId: pathEntryInfoShrineId, commentId: "info" };
+  }
 
   if (pathCommentShrineId) {
     return { type: "comment", personId: pathCommentShrineId, commentId: pathCommentId };
@@ -550,7 +592,27 @@ function normalizeShrineApiPerson(data, fallbackId) {
     id: firstText(source.id, source._id, source.shrineId, source.shrine_id, fallbackId),
     publicId: publicShrineIdFromSource(source, fallbackId),
     fullName,
-    photo: firstText(source.photo, source.photoUrl, source.photo_url, source.image, source.imageUrl, source.image_url),
+    photo: firstText(
+      source.photo,
+      source.photoUrl,
+      source.photo_url,
+      source.photoPath,
+      source.photo_path,
+      source.image,
+      source.imageUrl,
+      source.image_url,
+      source.imagePath,
+      source.image_path,
+      source.avatar,
+      source.avatarUrl,
+      source.avatar_url,
+      source.avatarPath,
+      source.avatar_path,
+      source.profilePhoto,
+      source.profile_photo,
+      source.profilePhotoPath,
+      source.profile_photo_path
+    ),
     birthDate: firstText(source.birthDate, source.birth_date, source.birth),
     deathDate: firstText(source.deathDate, source.death_date, source.death),
     fatherName: firstText(source.fatherName, source.father_name),
@@ -1243,7 +1305,23 @@ function normalizePersonMessages(messages) {
       const author = message?.author && typeof message.author === "object" ? message.author : {};
       const commenter = message?.commenter && typeof message.commenter === "object" ? message.commenter : {};
       const text = firstText(message?.text, message?.body, message?.content, message?.message, message?.description);
-      const attachment = firstText(message?.attachment, message?.attachmentUrl, message?.attachment_url, message?.image, message?.imageUrl, message?.image_url);
+      const attachment = firstText(
+        message?.attachment,
+        message?.attachmentUrl,
+        message?.attachment_url,
+        message?.attachmentPath,
+        message?.attachment_path,
+        message?.image,
+        message?.imageUrl,
+        message?.image_url,
+        message?.imagePath,
+        message?.image_path,
+        message?.media,
+        message?.mediaUrl,
+        message?.media_url,
+        message?.mediaPath,
+        message?.media_path
+      );
       if (!text && !attachment) return null;
 
       const rawCreatedAt = firstText(message?.createdAt, message?.created_at, message?.date);
@@ -1261,18 +1339,51 @@ function normalizePersonMessages(messages) {
           message?.userPhoto,
           message?.userPhotoUrl,
           message?.user_photo_url,
+          message?.userPhotoPath,
+          message?.user_photo_path,
           message?.avatar,
           message?.avatarUrl,
+          message?.avatar_url,
+          message?.avatarPath,
+          message?.avatar_path,
           message?.profilePhoto,
           message?.profile_photo,
+          message?.profilePhotoPath,
+          message?.profile_photo_path,
           user.photo,
           user.photoUrl,
+          user.photo_url,
+          user.photoPath,
+          user.photo_path,
           user.avatar,
+          user.avatarUrl,
+          user.avatar_url,
+          user.avatarPath,
+          user.avatar_path,
           user.profilePhoto,
+          user.profile_photo,
+          user.profilePhotoPath,
+          user.profile_photo_path,
           author.photo,
+          author.photoUrl,
+          author.photo_url,
+          author.photoPath,
+          author.photo_path,
           author.avatar,
+          author.avatarUrl,
+          author.avatar_url,
+          author.avatarPath,
+          author.avatar_path,
           commenter.photo,
-          commenter.avatar
+          commenter.photoUrl,
+          commenter.photo_url,
+          commenter.photoPath,
+          commenter.photo_path,
+          commenter.avatar,
+          commenter.avatarUrl,
+          commenter.avatar_url,
+          commenter.avatarPath,
+          commenter.avatar_path
         ),
         createdAt: isoCreatedAt
       };
@@ -3842,18 +3953,17 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
     shareContent({
       title: person.fullName,
       text: shrinePreviewDescription(person),
-      url: buildShareUrl(person, "shrine")
+      url: buildShareUrl(person)
     });
   };
 
   const shareMessage = (message) => {
     const messageText = String(message?.text || "").trim();
-    const commentId = message?.id || "info";
     const commenterName = message?.userName || creatorName || t("guestAccount");
     shareContent({
       title: `${person.fullName} - ${commenterName}`,
       text: previewText(messageText || detailInfo || person.fullName),
-      url: buildShareUrl(person, { view: "comment", commentId })
+      url: buildShareUrl(person)
     });
   };
 
