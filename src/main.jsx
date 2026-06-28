@@ -2394,7 +2394,7 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
 
   return (
     <main className="main-screen detail-screen scroll-screen">
-      <Header title={t("memorial")} back={() => setScreen("home")} language={language} t={t} />
+      <Header title="" back={() => setScreen("home")} language={language} t={t} />
       <section className="detail-card">
         <div className="detail-hero">
           <div className="detail-photo">
