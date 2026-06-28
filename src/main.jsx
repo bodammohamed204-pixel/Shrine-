@@ -29,12 +29,15 @@ import {
   MapPin,
   MoreVertical,
   Pencil,
+  Plus,
   Search,
   Settings,
   Share2,
   ShieldCheck,
   Sparkles,
+  Trash2,
   UserRound,
+  UsersRound,
   UserRoundPlus,
   X
 } from "lucide-react";
@@ -1537,7 +1540,7 @@ function RegisterScreen({ state, language, t, updateState, onRegister, onCancelR
 }
 
 function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setScreen, setModal }) {
-  const loginCountry = findCountryExact("Australia") || findCountry(state.currentCountry || initialState.currentCountry);
+  const loginCountry = findCountry(state.currentCountry || initialState.currentCountry);
   const [phoneCountry, setPhoneCountry] = useState(loginCountry);
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -1561,7 +1564,7 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setS
   };
 
   const setPhoneValue = (value) => {
-    const cleanValue = value.replace(/\D/g, "").slice(0, 9);
+    const cleanValue = value.replace(/\D/g, "").slice(0, 14);
     setPhone(cleanValue);
     setErrors((current) => ({
       ...current,
@@ -1581,7 +1584,7 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setS
     const nextErrors = {};
     if (!phone) {
       nextErrors.phone = phoneRequiredMessage;
-    } else if (!/^\d{7,9}$/.test(phone)) {
+    } else if (!/^\d{7,14}$/.test(phone)) {
       nextErrors.phone = "Enter a valid mobile number";
     }
     if (!password) nextErrors.password = passwordRequiredMessage;
@@ -1621,12 +1624,12 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setS
           type="tel"
           inputMode="numeric"
           placeholder="1234567891"
-          maxLength={9}
+          maxLength={14}
           value={phone}
           onChange={(event) => setPhoneValue(event.target.value)}
         />
       </div>
-      <div className="counter">{phone.length}/9</div>
+      <div className="counter">{phone.length}/14</div>
       {errors.phone && <p className="error-text">* {errors.phone}</p>}
       <PasswordInput
         label="Password"
@@ -2422,7 +2425,7 @@ function ContactScreen({ language, t, setScreen, setToast }) {
 function BottomNav({ active, setScreen, setModal, canUseAccount, t }) {
   const items = [
     { id: "home", label: t("home"), icon: <ContactRound size={36} /> },
-    { id: "add", label: t("add"), icon: <CirclePlus size={34} />, featured: true },
+    { id: "add", label: t("add"), icon: <Plus size={30} />, featured: true },
     { id: "search", label: t("search"), icon: <Search size={42} /> },
     { id: "settings", label: t("settings"), icon: <Settings size={42} /> }
   ];

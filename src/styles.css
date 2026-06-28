@@ -1069,11 +1069,11 @@ button {
 }
 
 .home-screen {
-  padding-bottom: 112px;
+  padding-bottom: 86px;
 }
 
 .home-screen .top-header.compact {
-  min-height: 72px;
+  min-height: 112px;
 }
 
 .home-screen .top-header.compact h1 {
@@ -1833,25 +1833,71 @@ button {
   font-size: 1.13rem;
 }
 
-.detail-actions {
+.detail-quick-actions {
   direction: ltr;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: 44px 84px 44px;
+  justify-content: start;
+  gap: 6px;
   width: 100%;
-  margin: 22px 0 18px;
+  margin: 78px 0 0;
 }
 
-.detail-actions .primary-button.small,
-.detail-actions .outline-button.small {
-  min-height: 52px;
+.detail-action-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 44px;
+  height: 48px;
+  min-width: 0;
+  border: 1px solid #e2e7ee;
   border-radius: 8px;
-  font-size: 1.05rem;
+  color: var(--blue);
+  background: #fff;
+  box-shadow: var(--shadow-sm);
 }
 
-.detail-actions svg {
-  width: 20px;
-  height: 20px;
+.detail-action-tile svg {
+  width: 23px;
+  height: 23px;
+  stroke-width: 2.45;
+}
+
+.detail-action-tile .rose-graphic.small {
+  width: 25px;
+  filter: drop-shadow(0 2px 3px rgba(110, 18, 28, 0.15));
+}
+
+.detail-action-tile.rose-tile {
+  width: 84px;
+}
+
+.rose-tile {
+  color: #247fbd;
+}
+
+.rose-tile svg {
+  color: #cc2442;
+}
+
+.rose-tile span {
+  color: var(--blue);
+  font-size: 0.9rem;
+  font-weight: 850;
+}
+
+.rose-tile.selected {
+  border-color: rgba(36, 148, 232, 0.45);
+  background: #eef8ff;
+}
+
+.ai-tile {
+  color: #3457c9;
+}
+
+.detail-block-action {
+  display: none;
 }
 
 .flower-offerings {
@@ -2226,7 +2272,7 @@ button {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   align-items: start;
-  padding-top: 8px;
+  padding-top: 18px;
   background: var(--blue);
   box-shadow: 0 -8px 28px rgba(15, 23, 42, 0.08);
 }
@@ -2235,7 +2281,7 @@ button {
   display: grid;
   place-items: center;
   gap: 2px;
-  min-height: 56px;
+  min-height: 72px;
   border: 0;
   color: #fff;
   background: transparent;
