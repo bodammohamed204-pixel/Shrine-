@@ -660,7 +660,7 @@ const copy = {
     errSurname: "Surname is required",
     errPhone: "Enter a valid mobile number",
     errEmail: "Enter a valid email",
-    errEmailOrPhone: "Enter a valid email or mobile number",
+    errEmailOrPhone: "Enter a valid mobile number",
     phoneAlreadyExists: "This mobile number is already used. Try logging in or use another number.",
     emailAlreadyExists: "This email address is already used. Try logging in or use another email.",
     errGender: "Gender is required",
@@ -686,12 +686,12 @@ const copy = {
     dontHaveAccount: "Don't Have An Account?",
     createNew: "Create New",
     phoneRequired: "Phone is Required",
-    identifierRequired: "Email or mobile number is required",
+    identifierRequired: "Mobile number is required",
     passwordRequired: "Password is Required",
     back: "Back",
     newHere: "New here?",
     createAccount: "Create account",
-    badLogin: "Check your email or mobile number and password",
+    badLogin: "Check your mobile number and password",
     success: "Success",
     congrats: "Congrats!",
     successBody: "Your account is ready. Start adding memorials and manage everything from your profile.",
@@ -802,8 +802,8 @@ const copy = {
     resendCodeIn: "Resend Code in {time} seconds",
     codeSentToEmail: "We sent an activation code to your email:",
     codeSentToMobile: "We sent an activation code to your mobile:",
-    emailOrPhone: "Email or mobile number",
-    emailOrPhonePlaceholder: "email@example.com or mobile number",
+    emailOrPhone: "Mobile number",
+    emailOrPhonePlaceholder: "Mobile number",
     accountPromptTitle: "Create an account to save your follows",
     accountPromptBody: "Your following list belongs to your account, so it stays separate from guest browsing.",
     accountPromptAddTitle: "Create an account to add a shrine",
@@ -854,7 +854,7 @@ const copy = {
     errSurname: "اسم العائلة مطلوب",
     errPhone: "أدخل رقم هاتف صحيحًا",
     errEmail: "أدخل بريدًا إلكترونيًا صحيحًا",
-    errEmailOrPhone: "أدخل بريدًا إلكترونيًا أو رقم هاتف صحيحًا",
+    errEmailOrPhone: "أدخل رقم هاتف صحيحًا",
     phoneAlreadyExists: "رقم الهاتف مستخدم بالفعل. حاول تسجيل الدخول أو استخدم رقمًا آخر.",
     emailAlreadyExists: "البريد الإلكتروني مستخدم بالفعل. حاول تسجيل الدخول أو استخدم بريدًا آخر.",
     errGender: "النوع مطلوب",
@@ -880,12 +880,12 @@ const copy = {
     dontHaveAccount: "ليس لديك حساب؟",
     createNew: "إنشاء حساب جديد",
     phoneRequired: "رقم الهاتف مطلوب",
-    identifierRequired: "البريد الإلكتروني أو رقم الهاتف مطلوب",
+    identifierRequired: "رقم الهاتف مطلوب",
     passwordRequired: "كلمة المرور مطلوبة",
     back: "رجوع",
     newHere: "مستخدم جديد؟",
     createAccount: "إنشاء حساب",
-    badLogin: "تحقق من البريد الإلكتروني أو رقم الهاتف وكلمة المرور",
+    badLogin: "تحقق من رقم الهاتف وكلمة المرور",
     success: "تم بنجاح",
     congrats: "مبروك!",
     successBody: "حسابك جاهز. ابدأ بإضافة الشراين وإدارتها من ملفك.",
@@ -996,8 +996,8 @@ const copy = {
     resendCodeIn: "إعادة إرسال الكود بعد {time} ثانية",
     codeSentToEmail: "أرسلنا كود التفعيل إلى بريدك الإلكتروني:",
     codeSentToMobile: "أرسلنا كود التفعيل إلى هاتفك:",
-    emailOrPhone: "البريد الإلكتروني أو رقم الهاتف",
-    emailOrPhonePlaceholder: "email@example.com أو رقم الهاتف",
+    emailOrPhone: "رقم الهاتف",
+    emailOrPhonePlaceholder: "رقم الهاتف",
     accountPromptTitle: "أنشئ حسابًا لحفظ المتابعات",
     accountPromptBody: "قائمة المتابعة مرتبطة بحسابك، وتظل منفصلة عن تصفح الزائر.",
     accountPromptAddTitle: "أنشئ حسابًا لإضافة مزار",
@@ -1819,10 +1819,8 @@ function App() {
   };
 
   const loginUser = (identifier, password) => {
-    const normalizedIdentifier = identifier.trim().toLowerCase();
     const identifierDigits = normalizePhoneDigits(identifier);
     const user = state.users.find((item) => {
-      const emailMatches = item.email?.toLowerCase() === normalizedIdentifier;
       const mobileMatches = Boolean(
         identifierDigits &&
           userPhoneCandidates(item).some(
@@ -1830,7 +1828,7 @@ function App() {
               savedDigits === identifierDigits || savedDigits.endsWith(identifierDigits) || identifierDigits.endsWith(savedDigits)
           )
       );
-      return item.password === password && (emailMatches || mobileMatches);
+      return item.password === password && mobileMatches;
     });
     if (!user) {
       showToast(t("badLogin"));
@@ -2716,12 +2714,11 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onForgotPass
   const submit = () => {
     const cleanIdentifier = identifier.trim();
     const phoneDigits = normalizePhoneDigits(cleanIdentifier);
-    const emailValid = /^\S+@\S+\.\S+$/.test(cleanIdentifier);
     const phoneValid = /^[+\d\s().-]+$/.test(cleanIdentifier) && /^\d{7,15}$/.test(phoneDigits);
     const nextErrors = {};
     if (!cleanIdentifier) {
       nextErrors.identifier = "identifierRequired";
-    } else if (!emailValid && !phoneValid) {
+    } else if (!phoneValid) {
       nextErrors.identifier = "errEmailOrPhone";
     }
     if (!password) nextErrors.password = "passwordRequired";
@@ -2729,7 +2726,7 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onForgotPass
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
 
-    onLogin(emailValid ? normalizeAccountEmail(cleanIdentifier) : phoneDigits, password);
+    onLogin(phoneDigits, password);
   };
 
   const openReset = () => {
@@ -2753,9 +2750,9 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onForgotPass
       <label className="field-label">{t("emailOrPhone")}</label>
       <div className={`phone-field identity-field ${errors.identifier ? "has-error" : ""}`}>
         <input
-          type="text"
-          inputMode="email"
-          autoComplete="username"
+          type="tel"
+          inputMode="tel"
+          autoComplete="tel"
           placeholder={t("emailOrPhonePlaceholder")}
           value={identifier}
           onChange={(event) => setIdentifierValue(event.target.value)}
