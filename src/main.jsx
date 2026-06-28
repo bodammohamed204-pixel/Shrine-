@@ -424,7 +424,7 @@ const copy = {
     settings: "Settings",
     profile: "Profile",
     language: "Language",
-    arabic: "العربية",
+    arabic: "Arabic",
     english: "English",
     userDashboard: "User Dashboard",
     dashboardIntro: "Edit or delete saved users on this device.",
@@ -511,7 +511,7 @@ const copy = {
     flowerCount: "{count} flowers"
   },
   AR: {
-    shrine: "مزارات",
+    shrine: "المزارات",
     registerTitle: "ابدأ حسابك",
     registerIntro: "أنشئ حسابك واحفظ كل مزار باسمك.",
     firstName: "الاسم الأول",
@@ -548,11 +548,11 @@ const copy = {
     successBody: "حسابك جاهز. ابدأ بإضافة المزارات وإدارتها من ملفك.",
     letsStart: "ابدأ",
     sponsor: "الداعمون",
-    follow: "المتابعين",
-    sponsorTab: "الرعاية",
+    follow: "متابعة",
+    sponsorTab: "الرعاة",
     followersTab: "المتابعون",
     noMemorials: "لا توجد مزارات حتى الآن",
-    noMemorialsBody: "اضغط على زر الإضافة لإضافة أول مزار ببياناتك.",
+    noMemorialsBody: "اضغط على زر الإضافة لإضافة مزارك الأول.",
     browseCountry: "تصفح حسب الدولة",
     add: "إضافة",
     selected: "تم الاختيار",
@@ -579,7 +579,7 @@ const copy = {
     profile: "الملف الشخصي",
     language: "اللغة",
     arabic: "العربية",
-    english: "English",
+    english: "الإنجليزية",
     userDashboard: "لوحة المستخدمين",
     dashboardIntro: "عدّل أو احذف المستخدمين المحفوظين على هذا الجهاز.",
     noUsers: "لا يوجد مستخدمون حتى الآن",
@@ -605,7 +605,7 @@ const copy = {
     memorial: "المزار",
     entryNotFound: "المزار غير موجود",
     unknownBirth: "تاريخ الميلاد غير معروف",
-    following: "تتم متابعته",
+    following: "تتم المتابعة",
     block: "حظر",
     unblock: "إلغاء الحظر",
     noBlockedUsers: "لا يوجد مستخدمون محظورون",
@@ -1718,7 +1718,7 @@ function HomeScreen({ state, language, t, updateState, setModal, setScreen, acti
 
   const tabs = [
     { id: "Sponsor", label: t("sponsorTab") },
-    { id: "Follow", label: t("follow") },
+    { id: "Follow", label: t("followersTab") },
     { id: selectedCountry.name, label: countryLabel(selectedCountry, language) }
   ];
 

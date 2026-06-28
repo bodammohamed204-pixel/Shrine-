@@ -1,5 +1,7 @@
 :root {
+  --font-latin: Roboto, Arial, sans-serif;
   --font-arabic: 'Noto Sans Arabic', sans-serif;
+  --font-app: var(--font-latin);
   --blue: #2494e8;
   --blue-dark: #1675bd;
   --ink: #172033;
@@ -19,7 +21,7 @@
 body,
 * {
   box-sizing: border-box;
-  font-family: var(--font-arabic);
+  font-family: var(--font-app);
 }
 
 body {
@@ -51,11 +53,21 @@ button {
 }
 
 .app-shell.ios-font {
+  --font-latin: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
   --font-arabic: 'SF Arabic', 'San Francisco Arabic', -apple-system, BlinkMacSystemFont, 'Noto Sans Arabic', sans-serif;
 }
 
 .app-shell.android-font {
-  --font-arabic: 'Noto Sans Arabic', sans-serif;
+  --font-latin: Roboto, Arial, sans-serif;
+  --font-arabic: 'Noto Sans Arabic', Roboto, Arial, sans-serif;
+}
+
+.app-shell:not(.rtl) {
+  --font-app: var(--font-latin);
+}
+
+.app-shell.rtl {
+  --font-app: var(--font-arabic);
 }
 
 .splash-intro {
