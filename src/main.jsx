@@ -20,6 +20,8 @@ import {
   Home,
   Image as ImageIcon,
   ImageUp,
+  LayoutGrid,
+  LayoutList,
   LockKeyhole,
   LogOut,
   Mail,
@@ -464,6 +466,7 @@ const copy = {
     accountPromptFlowerTitle: "Create an account to give a flower",
     accountPromptFlowerBody: "Each user can give one flower per day, so your daily flower needs to belong to your account.",
     signIn: "Sign in",
+    gallery: "Gallary",
     giveFlower: "Give Flower",
     flower: "Flower",
     flowerAdded: "Flower added to the shrine",
@@ -604,6 +607,7 @@ const copy = {
     accountPromptFlowerTitle: "اعمل حساب عشان تهدي وردة",
     accountPromptFlowerBody: "كل مستخدم ليه وردة واحدة في اليوم، فخليها محفوظة على حسابك.",
     signIn: "تسجيل الدخول",
+    gallery: "المعرض",
     giveFlower: "إهداء وردة",
     flower: "وردة",
     flowerAdded: "تمت إضافة الوردة إلى المزار",
@@ -1111,6 +1115,7 @@ function App() {
       {screen === "terms" && <TermsScreen {...commonProps} />}
       {screen === "contact" && <ContactScreen {...commonProps} />}
       {screen === "detail" && <DetailScreen {...commonProps} />}
+      {screen === "gallery" && <GalleryScreen {...commonProps} />}
 
       {["home", "add", "search", "settings", "detail"].includes(screen) && (
         <BottomNav active={screen} setScreen={setScreen} setModal={setModal} canUseAccount={canUseAccount} t={t} />
@@ -1983,6 +1988,61 @@ function InfoLine({ icon, label, value }) {
   );
 }
 
+function GalleryScreen({ state, t, setScreen }) {
+  const [viewMode, setViewMode] = useState("list");
+  const person = state.people.find((item) => item.id === state.selectedPersonId);
+
+  if (!person) {
+    return (
+      <main className="main-screen gallery-screen scroll-screen">
+        <Header title={t("gallery")} back={() => setScreen("home")} t={t} />
+        <EmptyState title={t("entryNotFound")} />
+      </main>
+    );
+  }
+
+  const galleryItems = Array.isArray(person.gallery) ? person.gallery : [];
+
+  return (
+    <main className="main-screen gallery-screen scroll-screen">
+      <Header title={t("gallery")} back={() => setScreen("detail")} t={t} />
+      <section className="gallery-owner-row">
+        <div className="gallery-owner-avatar">
+          {person.photo ? <img src={person.photo} alt={person.fullName} /> : <AvatarSilhouette />}
+        </div>
+        <strong>{person.fullName}</strong>
+        <div className="gallery-view-toggle" aria-label={t("gallery")}>
+          <button
+            type="button"
+            className={viewMode === "grid" ? "active" : ""}
+            aria-label="Grid"
+            aria-pressed={viewMode === "grid"}
+            onClick={() => setViewMode("grid")}
+          >
+            <LayoutGrid size={31} />
+          </button>
+          <button
+            type="button"
+            className={viewMode === "list" ? "active" : ""}
+            aria-label="List"
+            aria-pressed={viewMode === "list"}
+            onClick={() => setViewMode("list")}
+          >
+            <LayoutList size={33} />
+          </button>
+        </div>
+      </section>
+      <section className={`gallery-content ${viewMode}`}>
+        {galleryItems.map((item) => (
+          <div className="gallery-item" key={item.id || item.src}>
+            <img src={item.src} alt={item.alt || person.fullName} />
+          </div>
+        ))}
+      </section>
+    </main>
+  );
+}
+
 function DetailScreen({ state, language, t, updateState, setScreen, setModal, canUseAccount }) {
   const [commentMenuOpen, setCommentMenuOpen] = useState(false);
   const person = state.people.find((item) => item.id === state.selectedPersonId);
@@ -2095,7 +2155,7 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
           </div>
         </div>
         <div className="detail-quick-actions">
-          <button className="detail-action-tile" type="button" aria-label={t("information")}>
+          <button className="detail-action-tile" type="button" aria-label={t("gallery")} onClick={() => setScreen("gallery")}>
             <ImageIcon size={30} />
           </button>
           <button
