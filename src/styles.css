@@ -58,8 +58,7 @@ button {
   transform: translateX(-50%);
   overflow: hidden;
   pointer-events: none;
-  background:
-    radial-gradient(circle at 50% 49%, #fff 0 13%, rgba(255, 255, 255, 0.95) 17%, rgba(219, 248, 255, 0.82) 34%, rgba(78, 205, 239, 0.95) 100%);
+  background: linear-gradient(180deg, #dff8ff 0%, #55cdea 42%, #26b7df 100%);
   animation: splash-fade 2.6s ease forwards;
 }
 
@@ -80,9 +79,7 @@ button {
 .splash-glow {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at 50% 49%, #fff 0 19%, rgba(255, 255, 255, 0.9) 24%, rgba(255, 255, 255, 0) 47%),
-    linear-gradient(180deg, rgba(231, 252, 255, 0.38), rgba(255, 255, 255, 0) 38%, rgba(18, 181, 228, 0.22));
+  background: linear-gradient(180deg, rgba(231, 252, 255, 0.34), rgba(255, 255, 255, 0) 42%, rgba(18, 181, 228, 0.18));
 }
 
 @keyframes splash-rays-zoom {
