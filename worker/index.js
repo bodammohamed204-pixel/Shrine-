@@ -1,4 +1,8 @@
 const ONCALLOS_BASE_URL = "https://public.oncallos.com";
+const PRODUCTION_APP_URL = "https://app.shrine-app.com";
+const DEFAULT_META_DESCRIPTION = "Create and share memorial shrines.";
+const SHARE_META_START = "<!-- Shrine share preview meta:start -->";
+const SHARE_META_END = "<!-- Shrine share preview meta:end -->";
 const EMAIL_OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_RATE_LIMIT_FALLBACK_SECONDS = 60 * 60;
 const COUNTRY_HEADER_NAMES = [
@@ -194,6 +198,150 @@ function escapeHtml(value) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function normalizeBaseUrl(value) {
+  const text = String(value || "").trim().replace(/\/$/, "");
+  if (!text) return "";
+  return /^https?:\/\//i.test(text) ? text : `https://${text}`;
+}
+
+function isWorkersDevUrl(value) {
+  try {
+    return new URL(value).hostname.toLowerCase().endsWith(".workers.dev");
+  } catch {
+    return false;
+  }
+}
+
+function appBaseUrl(env) {
+  const configuredBase = normalizeBaseUrl(env.VITE_APP_URL || env.APP_URL || env.VITE_SHARE_BASE_URL);
+  return configuredBase && !isWorkersDevUrl(configuredBase) ? configuredBase : PRODUCTION_APP_URL;
+}
+
+function safeDecodeURIComponent(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function isHttpUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function shrineInfoPath(personId) {
+  return `/shrines/${encodeURIComponent(personId)}/info`;
+}
+
+function shrineInfoMatch(pathname) {
+  return String(pathname || "").match(/^\/shrines\/([^/]+)\/info\/?$/i);
+}
+
+function shrinePreviewDescription(name, birthDate, deathDate) {
+  const previewName = name || "this shrine";
+  const dateText = [birthDate, deathDate].filter(Boolean).join(" - ");
+  return `In loving memory of ${previewName}.${dateText ? ` ${dateText}` : ""}`;
+}
+
+function shrinePreviewMeta(url, env) {
+  const match = shrineInfoMatch(url.pathname);
+  const personId = match ? safeDecodeURIComponent(match[1]) : "";
+  const name = (url.searchParams.get("name") || url.searchParams.get("title") || "").trim();
+  const birthDate = (url.searchParams.get("birth") || url.searchParams.get("birthDate") || "").trim();
+  const deathDate = (url.searchParams.get("death") || url.searchParams.get("deathDate") || "").trim();
+  const imageParam = (url.searchParams.get("image") || url.searchParams.get("photo") || "").trim();
+  const fallbackImage = String(env.SHARE_IMAGE_URL || "").trim();
+  const image = isHttpUrl(imageParam) ? imageParam : isHttpUrl(fallbackImage) ? fallbackImage : "";
+
+  return {
+    title: name || "Shrine",
+    description: name ? shrinePreviewDescription(name, birthDate, deathDate) : DEFAULT_META_DESCRIPTION,
+    url: personId ? `${appBaseUrl(env)}${shrineInfoPath(personId)}` : appBaseUrl(env),
+    image
+  };
+}
+
+function openGraphTags(meta) {
+  const tags = [
+    `<meta property="og:type" content="website" />`,
+    `<meta property="og:site_name" content="Shrine" />`,
+    `<meta property="og:title" content="${escapeHtml(meta.title)}" />`,
+    `<meta property="og:description" content="${escapeHtml(meta.description)}" />`,
+    `<meta property="og:url" content="${escapeHtml(meta.url)}" />`
+  ];
+
+  if (meta.image) {
+    tags.push(`<meta property="og:image" content="${escapeHtml(meta.image)}" />`);
+  }
+
+  return tags.map((tag) => `    ${tag}`).join("\n");
+}
+
+function replaceOrAppend(html, pattern, replacement, beforeNeedle) {
+  if (pattern.test(html)) return html.replace(pattern, replacement);
+  return html.replace(beforeNeedle, `${replacement}\n    ${beforeNeedle}`);
+}
+
+function injectSharePreviewMeta(html, meta) {
+  const metaBlock = `${SHARE_META_START}\n${openGraphTags(meta)}\n    ${SHARE_META_END}`;
+  const escapedStart = SHARE_META_START.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const escapedEnd = SHARE_META_END.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const metaBlockPattern = new RegExp(`${escapedStart}[\\s\\S]*?${escapedEnd}`, "i");
+
+  let nextHtml = metaBlockPattern.test(html) ? html.replace(metaBlockPattern, metaBlock) : html.replace("</head>", `${metaBlock}\n    </head>`);
+  nextHtml = replaceOrAppend(
+    nextHtml,
+    /<title>[\s\S]*?<\/title>/i,
+    `<title>${escapeHtml(meta.title)}</title>`,
+    "</head>"
+  );
+  nextHtml = replaceOrAppend(
+    nextHtml,
+    /<meta\s+name=["']description["'][^>]*>/i,
+    `<meta name="description" content="${escapeHtml(meta.description)}" />`,
+    "</head>"
+  );
+  nextHtml = replaceOrAppend(
+    nextHtml,
+    /<link\s+rel=["']canonical["'][^>]*>/i,
+    `<link rel="canonical" href="${escapeHtml(meta.url)}" />`,
+    "</head>"
+  );
+
+  return nextHtml;
+}
+
+async function shrineInfoPage(request, env, url) {
+  const assetUrl = new URL(request.url);
+  assetUrl.pathname = "/";
+  assetUrl.search = "";
+
+  const assetResponse = await env.ASSETS.fetch(
+    new Request(assetUrl.toString(), {
+      method: "GET",
+      headers: request.headers
+    })
+  );
+  const contentType = assetResponse.headers.get("Content-Type") || "";
+  if (!contentType.includes("text/html")) return assetResponse;
+
+  const html = await assetResponse.text();
+  const headers = new Headers(assetResponse.headers);
+  headers.set("Content-Type", "text/html; charset=utf-8");
+  headers.delete("Content-Length");
+
+  return new Response(injectSharePreviewMeta(html, shrinePreviewMeta(url, env)), {
+    status: assetResponse.status,
+    statusText: assetResponse.statusText,
+    headers
+  });
 }
 
 async function parseJson(request) {
@@ -423,6 +571,10 @@ function methodNotAllowed(request, env, message) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    if (request.method === "GET" && shrineInfoMatch(url.pathname)) {
+      return shrineInfoPage(request, env, url);
+    }
 
     if (request.method === "OPTIONS" && url.pathname === "/api/geo/country") {
       return new Response(null, { status: 204, headers: publicGeoCorsHeaders(request, env) });

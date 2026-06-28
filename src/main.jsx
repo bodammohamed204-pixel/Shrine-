@@ -43,10 +43,12 @@ import "./styles.css";
 
 const STORAGE_KEY = "shrine_mobile_state_v1";
 const PRODUCTION_API_BASE_URL = "https://book-of-heaven.bodammohamed204.workers.dev";
+const PRODUCTION_APP_URL = "https://app.shrine-app.com";
 const SAME_ORIGIN_API_HOSTS = new Set([
   "book-of-heaven.bodammohamed204.workers.dev",
   "shrine-the-book-of-heaven.bodammohamed204.workers.dev"
 ]);
+const DEFAULT_META_DESCRIPTION = "Create and share memorial shrines.";
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
 const FLOWER_LIFETIME_DAYS = 7;
 const FLOWER_LIFETIME_MS = FLOWER_LIFETIME_DAYS * 24 * 60 * 60 * 1000;
@@ -74,6 +76,119 @@ function apiUrl(path) {
   return `${API_BASE_URL}${path}`;
 }
 
+function normalizeBaseUrl(value) {
+  const text = String(value || "").trim().replace(/\/$/, "");
+  if (!text) return "";
+  return /^https?:\/\//i.test(text) ? text : `https://${text}`;
+}
+
+function safeDecodeURIComponent(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function isWorkersDevUrl(value) {
+  try {
+    return new URL(value).hostname.toLowerCase().endsWith(".workers.dev");
+  } catch {
+    return false;
+  }
+}
+
+function appBaseUrl() {
+  const configuredBase = normalizeBaseUrl(import.meta.env.VITE_APP_URL || import.meta.env.VITE_SHARE_BASE_URL);
+  return configuredBase && !isWorkersDevUrl(configuredBase) ? configuredBase : PRODUCTION_APP_URL;
+}
+
+function shrineInfoPath(personId) {
+  return `/shrines/${encodeURIComponent(personId)}/info`;
+}
+
+function isHttpUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function shrinePreviewDescription(person) {
+  const name = person?.fullName || "this shrine";
+  const birthDate = String(person?.birthDate || "").trim();
+  const deathDate = String(person?.deathDate || "").trim();
+  const dateText = [birthDate, deathDate].filter(Boolean).join(" - ");
+  return `In loving memory of ${name}.${dateText ? ` ${dateText}` : ""}`;
+}
+
+function shrinePreviewMeta(personOrId) {
+  const person = personOrId && typeof personOrId === "object" ? personOrId : null;
+  const personId = person?.id || String(personOrId || "");
+  const url = personId ? `${appBaseUrl()}${shrineInfoPath(personId)}` : appBaseUrl();
+  const image = isHttpUrl(person?.photo) ? person.photo : "";
+
+  return {
+    title: person?.fullName || "Shrine",
+    description: person ? shrinePreviewDescription(person) : DEFAULT_META_DESCRIPTION,
+    url,
+    image
+  };
+}
+
+function setMetaContent(attribute, key, content) {
+  if (typeof document === "undefined") return;
+
+  let tag = document.head.querySelector(`meta[${attribute}="${key}"]`);
+  if (!tag) {
+    tag = document.createElement("meta");
+    tag.setAttribute(attribute, key);
+    document.head.appendChild(tag);
+  }
+
+  tag.setAttribute("content", content);
+}
+
+function removeMetaContent(attribute, key) {
+  if (typeof document === "undefined") return;
+  document.head.querySelector(`meta[${attribute}="${key}"]`)?.remove();
+}
+
+function setCanonicalUrl(url) {
+  if (typeof document === "undefined") return;
+
+  let tag = document.head.querySelector('link[rel="canonical"]');
+  if (!tag) {
+    tag = document.createElement("link");
+    tag.setAttribute("rel", "canonical");
+    document.head.appendChild(tag);
+  }
+
+  tag.setAttribute("href", url);
+}
+
+function updateDocumentPreviewMeta(person) {
+  if (typeof document === "undefined") return;
+
+  const meta = shrinePreviewMeta(person || "");
+  document.title = meta.title;
+  setMetaContent("name", "description", meta.description);
+  setMetaContent("property", "og:type", "website");
+  setMetaContent("property", "og:site_name", "Shrine");
+  setMetaContent("property", "og:title", meta.title);
+  setMetaContent("property", "og:description", meta.description);
+  setMetaContent("property", "og:url", meta.url);
+  setCanonicalUrl(meta.url);
+
+  if (meta.image) {
+    setMetaContent("property", "og:image", meta.image);
+  } else {
+    removeMetaContent("property", "og:image");
+  }
+}
+
 function shareContent({ title, text, url }) {
   if (typeof navigator === "undefined") return;
 
@@ -94,28 +209,23 @@ function shareContent({ title, text, url }) {
 }
 
 function shareBaseUrl() {
-  const configuredBase = String(import.meta.env.VITE_SHARE_BASE_URL || "").replace(/\/$/, "");
-  if (configuredBase) return configuredBase;
-  if (typeof window === "undefined") return PRODUCTION_API_BASE_URL;
-
-  const { hostname, protocol } = window.location;
-  const localHosts = new Set(["localhost", "127.0.0.1", "0.0.0.0"]);
-  const localWebView = protocol === "capacitor:" || localHosts.has(hostname);
-
-  if (!import.meta.env.DEV && localWebView && API_BASE_URL) {
-    return API_BASE_URL;
-  }
-
-  return window.location.href;
+  return appBaseUrl();
 }
 
-function buildShareUrl(personId, view = "shrine") {
-  if (typeof window === "undefined" || !personId) return "";
+function buildShareUrl(personOrId, view = "shrine") {
+  const person = personOrId && typeof personOrId === "object" ? personOrId : null;
+  const personId = person?.id || String(personOrId || "");
+  if (!personId) return "";
 
-  const url = new URL(shareBaseUrl());
-  url.search = "";
-  url.hash = "";
-  url.searchParams.set("shrine", personId);
+  const meta = shrinePreviewMeta(person || personId);
+  const url = new URL(`${shareBaseUrl()}${shrineInfoPath(personId)}`);
+
+  if (person) {
+    url.searchParams.set("name", meta.title);
+    if (person.birthDate) url.searchParams.set("birth", person.birthDate);
+    if (person.deathDate) url.searchParams.set("death", person.deathDate);
+    if (meta.image) url.searchParams.set("image", meta.image);
+  }
 
   if (view === "comment") {
     url.searchParams.set("view", "comment");
@@ -129,7 +239,9 @@ function getSharedTargetFromLocation() {
   if (typeof window === "undefined") return null;
 
   const params = new URLSearchParams(window.location.search);
-  const shrineId = params.get("shrine") || params.get("person") || "";
+  const pathShrineMatch = window.location.pathname.match(/^\/shrines\/([^/]+)\/info\/?$/i);
+  const pathShrineId = pathShrineMatch ? safeDecodeURIComponent(pathShrineMatch[1]) : "";
+  const shrineId = params.get("shrine") || params.get("person") || pathShrineId;
   const directCommentId = params.get("comment") || params.get("message") || "";
   const view = String(params.get("view") || "").toLowerCase();
   const hash = window.location.hash.replace(/^#/, "").toLowerCase();
@@ -1112,6 +1224,11 @@ function App() {
   useEffect(() => {
     screenRef.current = screen;
   }, [screen]);
+
+  useEffect(() => {
+    const selectedPerson = screen === "detail" ? state.people.find((person) => person.id === state.selectedPersonId) : null;
+    updateDocumentPreviewMeta(selectedPerson);
+  }, [screen, state.people, state.selectedPersonId]);
 
   const setScreen = (nextScreen, options = {}) => {
     const targetScreen = typeof nextScreen === "function" ? nextScreen(screenRef.current) : nextScreen;
@@ -2938,8 +3055,8 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
   const shareShrine = () => {
     shareContent({
       title: person.fullName,
-      text: [person.fullName, lifeYears].filter(Boolean).join(" "),
-      url: buildShareUrl(person.id, "shrine")
+      text: shrinePreviewDescription(person),
+      url: buildShareUrl(person, "shrine")
     });
   };
 
@@ -2947,7 +3064,7 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
     shareContent({
       title: `${person.fullName} - ${t("message")}`,
       text: detailInfo || person.fullName,
-      url: buildShareUrl(person.id, "comment")
+      url: buildShareUrl(person, "comment")
     });
   };
 
