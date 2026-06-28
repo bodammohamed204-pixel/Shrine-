@@ -385,6 +385,20 @@ const copy = {
     errPasswordMatch: "Passwords do not match",
     welcomeBack: "Welcome Back",
     loginIntro: "Sign in with an account you created on this browser.",
+    loginTitle: "Let's Sign you in.",
+    forgotPassword: "Forgot Password ?",
+    resetPasswordTitle: "Reset Password",
+    resetPasswordIntro: "Enter the mobile number linked to your account and we will send a verification code.",
+    sendResetCode: "Send Reset Code",
+    resetAccountNotFound: "No account was found with this mobile number.",
+    newPasswordTitle: "Create New Password",
+    newPasswordIntro: "Choose a new password for your account.",
+    newPassword: "New Password",
+    passwordResetSuccess: "Password updated. Sign in with your new password.",
+    dontHaveAccount: "Don't Have An Account?",
+    createNew: "Create New",
+    phoneRequired: "Phone is Required",
+    passwordRequired: "Password is Required",
     back: "Back",
     newHere: "New here?",
     createAccount: "Create account",
@@ -516,7 +530,7 @@ const copy = {
     registerIntro: "أنشئ حسابك واحفظ كل مزار باسمك.",
     firstName: "الاسم الأول",
     surname: "اسم العائلة",
-    mobileNumber: "رقم الهاتف",
+    mobileNumber: "رقم الهاتف المحمول",
     emailAddress: "البريد الإلكتروني",
     gender: "النوع",
     country: "الدولة",
@@ -539,6 +553,20 @@ const copy = {
     errPasswordMatch: "كلمتا المرور غير متطابقتين",
     welcomeBack: "أهلًا بعودتك",
     loginIntro: "سجّل الدخول بالحساب الذي أنشأته على هذا الجهاز.",
+    loginTitle: "دعنا نقوم بتسجيل دخولك.",
+    forgotPassword: "نسيت كلمة المرور؟",
+    resetPasswordTitle: "إعادة تعيين كلمة المرور",
+    resetPasswordIntro: "أدخل رقم الهاتف المرتبط بحسابك وسنرسل لك كود تحقق.",
+    sendResetCode: "إرسال كود الاسترجاع",
+    resetAccountNotFound: "لم يتم العثور على حساب بهذا الرقم.",
+    newPasswordTitle: "إنشاء كلمة مرور جديدة",
+    newPasswordIntro: "اختر كلمة مرور جديدة لحسابك.",
+    newPassword: "كلمة المرور الجديدة",
+    passwordResetSuccess: "تم تحديث كلمة المرور. سجّل الدخول بكلمة المرور الجديدة.",
+    dontHaveAccount: "ليس لديك حساب؟",
+    createNew: "إنشاء حساب جديد",
+    phoneRequired: "رقم الهاتف مطلوب",
+    passwordRequired: "كلمة المرور مطلوبة",
     back: "رجوع",
     newHere: "مستخدم جديد؟",
     createAccount: "إنشاء حساب",
@@ -882,6 +910,41 @@ function getUserName(user) {
   return `${user.firstName || ""} ${user.surname || ""}`.trim() || user.email;
 }
 
+function normalizePhoneDigits(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function resetPhoneCandidates(countryCode, phone) {
+  const localDigits = normalizePhoneDigits(phone).replace(/^0+/, "");
+  const countryDigits = normalizePhoneDigits(countryCode);
+  return [...new Set([countryDigits && localDigits ? `${countryDigits}${localDigits}` : "", localDigits].filter(Boolean))];
+}
+
+function userPhoneCandidates(user) {
+  const localDigits = normalizePhoneDigits(user?.phone).replace(/^0+/, "");
+  const countryDigits = normalizePhoneDigits(user?.phoneCode);
+  const otpDigits = normalizePhoneDigits(user?.otpPhone);
+  return [
+    ...new Set([
+      otpDigits,
+      countryDigits && localDigits ? `${countryDigits}${localDigits}` : "",
+      localDigits
+    ].filter(Boolean))
+  ];
+}
+
+function findUserByResetPhone(users, countryCode, phone) {
+  const inputCandidates = resetPhoneCandidates(countryCode, phone);
+  if (!inputCandidates.length) return null;
+
+  return users.find((user) => {
+    const savedCandidates = userPhoneCandidates(user);
+    return savedCandidates.some((savedDigits) =>
+      inputCandidates.some((inputDigits) => savedDigits === inputDigits || savedDigits.endsWith(inputDigits) || inputDigits.endsWith(savedDigits))
+    );
+  }) || null;
+}
+
 function findCountry(name) {
   return findCountryExact(name) || countries[0];
 }
@@ -1019,8 +1082,8 @@ function App() {
     });
   };
 
-  const toggleLanguage = () => {
-    updateState({ language: getNextLanguage(language) });
+  const toggleLanguage = (requestedLanguage) => {
+    updateState({ language: requestedLanguage ? normalizeLanguage(requestedLanguage) : getNextLanguage(language) });
   };
 
   const addPerson = (person) => {
@@ -1099,10 +1162,10 @@ function App() {
 
   const loginUser = (identifier, password) => {
     const normalizedIdentifier = identifier.trim().toLowerCase();
-    const identifierDigits = identifier.replace(/\D/g, "");
+    const identifierDigits = normalizePhoneDigits(identifier);
     const user = state.users.find((item) => {
       const emailMatches = item.email?.toLowerCase() === normalizedIdentifier;
-      const phoneDigits = `${item.phoneCode || ""}${item.phone || ""}`.replace(/\D/g, "");
+      const phoneDigits = normalizePhoneDigits(`${item.phoneCode || ""}${item.phone || ""}`);
       const mobileMatches = Boolean(identifierDigits && phoneDigits.endsWith(identifierDigits));
       return item.password === password && (emailMatches || mobileMatches);
     });
@@ -1130,6 +1193,57 @@ function App() {
       }
     });
     return true;
+  };
+
+  const openPasswordReset = ({ phoneCountry, phone } = {}) => {
+    setModal({
+      type: "resetPassword",
+      phoneCountry: phoneCountry || findCountry(state.currentCountry || initialState.currentCountry),
+      phone: phone || ""
+    });
+  };
+
+  const verifyPasswordResetUser = (user) => {
+    const accountCountry = findCountry(user.phoneCountry || user.country || state.currentCountry || initialState.currentCountry);
+    const phoneDigits = normalizePhoneDigits(user.phone).replace(/^0+/, "");
+    const userForOtp = {
+      ...user,
+      phoneCountry: user.phoneCountry || accountCountry.name,
+      phoneCode: user.phoneCode || accountCountry.code,
+      phoneIso: user.phoneIso || accountCountry.iso,
+      otpPhone: user.otpPhone || (phoneDigits ? `${accountCountry.code}${phoneDigits}` : "")
+    };
+
+    setModal({
+      type: "verify",
+      user: userForOtp,
+      onProceed: () => {
+        setModal({ type: "newPassword", user: userForOtp });
+      }
+    });
+  };
+
+  const resetUserPassword = (user, password) => {
+    setState((current) => {
+      let updatedCurrentUser = current.currentUser;
+      const users = current.users.map((item) => {
+        if (item.id !== user.id) return item;
+        const updatedUser = { ...item, password };
+        if (current.currentUser?.id === item.id) {
+          updatedCurrentUser = updatedUser;
+        }
+        return updatedUser;
+      });
+
+      return {
+        ...current,
+        users,
+        currentUser: updatedCurrentUser
+      };
+    });
+    setModal(null);
+    setScreen("login");
+    setToast(t("passwordResetSuccess"));
   };
 
   const logout = () => {
@@ -1182,6 +1296,7 @@ function App() {
           t={t}
           toggleLanguage={toggleLanguage}
           onLogin={loginUser}
+          onForgotPassword={openPasswordReset}
           onBack={() => setScreen("home")}
           setScreen={setScreen}
           setModal={setModal}
@@ -1270,6 +1385,25 @@ function App() {
           }}
         />
       )}
+      {modal?.type === "resetPassword" && (
+        <ResetPasswordModal
+          state={state}
+          language={language}
+          t={t}
+          initialPhoneCountry={modal.phoneCountry}
+          initialPhone={modal.phone}
+          onClose={() => setModal(null)}
+          onContinue={verifyPasswordResetUser}
+        />
+      )}
+      {modal?.type === "newPassword" && (
+        <NewPasswordModal
+          user={modal.user}
+          t={t}
+          onClose={() => setModal(null)}
+          onSave={resetUserPassword}
+        />
+      )}
       {modal?.type === "flower" && (
         <FlowerModal
           t={t}
@@ -1337,12 +1471,59 @@ function Header({ title, back, action, compact = false, flagCountry, onFlag, lan
 function LanguageButton({ value, onClick }) {
   const language = normalizeLanguage(value);
   const ariaLabel = language === "AR" ? "تغيير اللغة" : "Change language";
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const closeMenu = (event) => {
+      if (!menuRef.current?.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", closeMenu);
+    return () => document.removeEventListener("pointerdown", closeMenu);
+  }, [open]);
+
+  const selectLanguage = (nextLanguage) => {
+    setOpen(false);
+    if (nextLanguage !== language) {
+      onClick?.(nextLanguage);
+    }
+  };
 
   return (
-    <button type="button" className="language-mini" onClick={onClick} aria-label={ariaLabel}>
-      <span>{language}</span>
-      <ChevronDown size={18} />
-    </button>
+    <div className={`language-picker ${open ? "open" : ""}`} ref={menuRef}>
+      <button
+        type="button"
+        className="language-mini"
+        onClick={() => setOpen((value) => !value)}
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span>{language}</span>
+        <ChevronDown size={18} />
+      </button>
+      {open && (
+        <div className="language-menu" role="listbox" aria-label={ariaLabel}>
+          {["EN", "AR"].map((option) => (
+            <button
+              type="button"
+              key={option}
+              className={option === language ? "selected" : ""}
+              role="option"
+              aria-selected={option === language}
+              onClick={() => selectLanguage(option)}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1398,8 +1579,8 @@ function RegisterScreen({ state, language, t, updateState, onRegister, onCancelR
     }));
   };
 
-  const setLanguage = () => {
-    const nextLanguage = getNextLanguage(form.language);
+  const setLanguage = (requestedLanguage) => {
+    const nextLanguage = requestedLanguage ? normalizeLanguage(requestedLanguage) : getNextLanguage(form.language);
     setField("language", nextLanguage);
     updateState({ language: nextLanguage });
   };
@@ -1570,18 +1751,157 @@ function RegisterScreen({ state, language, t, updateState, onRegister, onCancelR
   );
 }
 
-function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setScreen, setModal }) {
+function ResetPasswordModal({ state, language, t, initialPhoneCountry, initialPhone = "", onContinue, onClose }) {
+  const startingCountry = findCountry(initialPhoneCountry?.name || initialPhoneCountry || state.currentCountry || initialState.currentCountry);
+  const [phoneCountry, setPhoneCountry] = useState(startingCountry);
+  const [phone, setPhone] = useState(() => normalizePhoneDigits(initialPhone).slice(0, 14));
+  const [error, setError] = useState("");
+  const [countryPickerOpen, setCountryPickerOpen] = useState(false);
+
+  const setPhoneValue = (value) => {
+    setPhone(normalizePhoneDigits(value).slice(0, 14));
+    setError("");
+  };
+
+  const submit = (event) => {
+    event.preventDefault();
+    const cleanPhone = normalizePhoneDigits(phone);
+    if (!/^\d{7,14}$/.test(cleanPhone)) {
+      setError(t("errPhone"));
+      return;
+    }
+
+    const user = findUserByResetPhone(state.users, phoneCountry.code, cleanPhone);
+    if (!user) {
+      setError(t("resetAccountNotFound"));
+      return;
+    }
+
+    onContinue(user);
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <form className="reset-modal" onSubmit={submit} onClick={(event) => event.stopPropagation()}>
+        <button type="button" className="modal-close-button" onClick={onClose} aria-label={t("cancel")}>
+          <X size={24} />
+        </button>
+        <h2>{t("resetPasswordTitle")}</h2>
+        <p>{t("resetPasswordIntro")}</p>
+        <label className="field-label">{t("mobileNumber")}</label>
+        <div className={`phone-field ${error ? "has-error" : ""}`}>
+          <button type="button" className="country-code-button" onClick={() => setCountryPickerOpen(true)}>
+            <ChevronDown size={18} />
+            <Flag country={phoneCountry} />
+            <span>{phoneCountry.code}</span>
+          </button>
+          <input
+            type="tel"
+            inputMode="numeric"
+            placeholder="1234567891"
+            maxLength={14}
+            value={phone}
+            onChange={(event) => setPhoneValue(event.target.value)}
+          />
+        </div>
+        <div className="counter">{phone.length}/14</div>
+        {error && <p className="error-text">* {error}</p>}
+        <button className="primary-button" type="submit">
+          {t("sendResetCode")}
+        </button>
+        <button type="button" className="ghost-link reset-cancel-link" onClick={onClose}>
+          {t("cancel")}
+        </button>
+        {countryPickerOpen && (
+          <div onClick={(event) => event.stopPropagation()}>
+            <CountryModal
+              title={t("selectCallingCode")}
+              language={language}
+              t={t}
+              withCodes
+              selectedCountry={phoneCountry.name}
+              onPick={(country) => {
+                setPhoneCountry(country);
+                setCountryPickerOpen(false);
+                setError("");
+              }}
+              onClose={() => setCountryPickerOpen(false)}
+            />
+          </div>
+        )}
+      </form>
+    </div>
+  );
+}
+
+function NewPasswordModal({ user, t, onSave, onClose }) {
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  const submit = (event) => {
+    event.preventDefault();
+    const nextErrors = {};
+    if (!password) {
+      nextErrors.password = t("errPassword");
+    } else if (password.length < 8) {
+      nextErrors.password = t("errPasswordLength");
+    }
+    if (confirmPassword !== password) {
+      nextErrors.confirmPassword = t("errPasswordMatch");
+    }
+
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) return;
+    onSave(user, password);
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <form className="reset-modal" onSubmit={submit} onClick={(event) => event.stopPropagation()}>
+        <button type="button" className="modal-close-button" onClick={onClose} aria-label={t("cancel")}>
+          <X size={24} />
+        </button>
+        <h2>{t("newPasswordTitle")}</h2>
+        <p>{t("newPasswordIntro")}</p>
+        <PasswordInput
+          label={t("newPassword")}
+          value={password}
+          error={errors.password}
+          visible={showPassword}
+          onToggle={() => setShowPassword((value) => !value)}
+          onChange={setPassword}
+          t={t}
+        />
+        <PasswordInput
+          label={t("confirmPassword")}
+          value={confirmPassword}
+          error={errors.confirmPassword}
+          visible={showConfirmPassword}
+          onToggle={() => setShowConfirmPassword((value) => !value)}
+          onChange={setConfirmPassword}
+          t={t}
+        />
+        <button className="primary-button" type="submit">
+          {t("save")}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+function LoginScreen({ state, language, t, toggleLanguage, onLogin, onForgotPassword, onBack, setScreen, setModal }) {
   const loginCountry = findCountryExact("Australia") || findCountry(state.currentCountry || initialState.currentCountry);
   const [phoneCountry, setPhoneCountry] = useState(loginCountry);
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [visible, setVisible] = useState(false);
   const [countryTouched, setCountryTouched] = useState(false);
-  const phoneRequiredMessage = "Phone is Required";
-  const passwordRequiredMessage = "Password is Required";
   const [errors, setErrors] = useState({
-    phone: phoneRequiredMessage,
-    password: passwordRequiredMessage
+    phone: "phoneRequired",
+    password: "passwordRequired"
   });
 
   useEffect(() => {
@@ -1589,17 +1909,24 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setS
     setPhoneCountry(loginCountry);
   }, [countryTouched, loginCountry]);
 
+  useEffect(() => {
+    setErrors((current) => ({
+      phone: phone ? current.phone : "phoneRequired",
+      password: password ? current.password : "passwordRequired"
+    }));
+  }, [language, password, phone]);
+
   const pickPhoneCountry = (country) => {
     setCountryTouched(true);
     setPhoneCountry(country);
   };
 
   const setPhoneValue = (value) => {
-    const cleanValue = value.replace(/\D/g, "").slice(0, 9);
+    const cleanValue = normalizePhoneDigits(value).slice(0, 14);
     setPhone(cleanValue);
     setErrors((current) => ({
       ...current,
-      phone: cleanValue ? "" : phoneRequiredMessage
+      phone: cleanValue ? "" : "phoneRequired"
     }));
   };
 
@@ -1607,18 +1934,18 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setS
     setPassword(value);
     setErrors((current) => ({
       ...current,
-      password: value ? "" : passwordRequiredMessage
+      password: value ? "" : "passwordRequired"
     }));
   };
 
   const submit = () => {
     const nextErrors = {};
     if (!phone) {
-      nextErrors.phone = phoneRequiredMessage;
-    } else if (!/^\d{7,9}$/.test(phone)) {
-      nextErrors.phone = "Enter a valid mobile number";
+      nextErrors.phone = "phoneRequired";
+    } else if (!/^\d{7,14}$/.test(phone)) {
+      nextErrors.phone = "errPhone";
     }
-    if (!password) nextErrors.password = passwordRequiredMessage;
+    if (!password) nextErrors.password = "passwordRequired";
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
@@ -1630,9 +1957,9 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setS
     <main className="auth-screen login-screen scroll-screen">
       <LanguageButton value={language} onClick={toggleLanguage} />
       <section className="auth-intro login">
-        <h1>Let's Sign you in.</h1>
+        <h1>{t("loginTitle")}</h1>
       </section>
-      <label className="field-label">Mobile Number</label>
+      <label className="field-label">{t("mobileNumber")}</label>
       <div className="phone-field">
         <button
           type="button"
@@ -1655,30 +1982,30 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setS
           type="tel"
           inputMode="numeric"
           placeholder="1234567891"
-          maxLength={9}
+          maxLength={14}
           value={phone}
           onChange={(event) => setPhoneValue(event.target.value)}
         />
       </div>
-      <div className="counter">{phone.length}/9</div>
-      {errors.phone && <p className="error-text">* {errors.phone}</p>}
+      <div className="counter">{phone.length}/14</div>
+      {errors.phone && <p className="error-text">* {t(errors.phone)}</p>}
       <PasswordInput
-        label="Password"
+        label={t("password")}
         value={password}
-        error={errors.password}
+        error={errors.password ? t(errors.password) : ""}
         visible={visible}
         onToggle={() => setVisible((value) => !value)}
         onChange={setPasswordValue}
         t={t}
       />
-      <button type="button" className="forgot-password-link">
-        Forgot Password ?
+      <button type="button" className="forgot-password-link" onClick={() => onForgotPassword({ phoneCountry, phone })}>
+        {t("forgotPassword")}
       </button>
       <button className="primary-button" onClick={submit}>
-        Continue
+        {t("continue")}
       </button>
       <button className="text-link wide" onClick={() => setScreen("register")}>
-        Don't Have An Account? <span>Create New</span>
+        {t("dontHaveAccount")} <span>{t("createNew")}</span>
       </button>
     </main>
   );

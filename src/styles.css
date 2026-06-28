@@ -161,17 +161,32 @@ button {
   background: #fff;
 }
 
+.language-picker {
+  position: relative;
+  z-index: 20;
+  width: fit-content;
+}
+
+.rtl .language-picker {
+  margin-left: auto;
+}
+
 .login-screen .language-mini {
   min-width: 64px;
   height: 31px;
   padding: 0 10px;
+  border: 0;
   gap: 8px;
+  background: #fffaf8;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
   font-size: 0.86rem;
 }
 
 .login-screen .language-mini svg {
   width: 16px;
   height: 16px;
+  color: #111;
+  stroke-width: 3;
 }
 
 .language-mini {
@@ -190,6 +205,45 @@ button {
   font-size: 1rem;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.language-menu {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 25;
+  width: 106px;
+  overflow: hidden;
+  border-radius: 22px;
+  background: #fff8ff;
+  box-shadow: 0 18px 30px rgba(15, 23, 42, 0.22);
+}
+
+.rtl .language-menu {
+  right: 0;
+  left: auto;
+}
+
+.language-menu button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 62px;
+  padding: 0 22px;
+  border: 0;
+  color: var(--blue);
+  background: transparent;
+  text-align: left;
+  font-size: 1.08rem;
+  font-weight: 800;
+}
+
+.language-menu button.selected {
+  background: #e0dce2;
+}
+
+.rtl .language-menu button {
+  text-align: right;
 }
 
 .auth-topbar {
@@ -654,6 +708,12 @@ button {
   font-size: 1rem;
   font-weight: 400;
   text-align: right;
+}
+
+.rtl .forgot-password-link {
+  margin-right: auto;
+  margin-left: 24px;
+  text-align: left;
 }
 
 .login-screen .error-text {
@@ -2643,6 +2703,7 @@ button {
 .verify-modal,
 .account-prompt,
 .age-modal,
+.reset-modal,
 .sheet {
   width: min(100%, 336px);
   max-height: 82vh;
@@ -2756,6 +2817,78 @@ button {
 
 .sheet-row:first-of-type {
   background: #e4e4e4;
+}
+
+.reset-modal {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  width: min(100%, 360px);
+  padding: 28px 22px 24px;
+  background: #fff;
+}
+
+.reset-modal h2 {
+  margin: 0 34px 0 0;
+  color: #111827;
+  font-size: 1.45rem;
+  line-height: 1.16;
+}
+
+.rtl .reset-modal h2 {
+  margin: 0 0 0 34px;
+}
+
+.reset-modal > p {
+  margin: 0 0 8px;
+  color: #5d6675;
+  font-size: 0.96rem;
+  line-height: 1.42;
+}
+
+.reset-modal .field-label {
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
+.reset-modal .counter {
+  margin-bottom: 4px;
+}
+
+.reset-modal .error-text {
+  margin-top: -2px;
+  margin-bottom: 4px;
+}
+
+.reset-modal .field-wrap {
+  margin-bottom: 0;
+}
+
+.reset-modal .primary-button {
+  margin-top: 4px;
+}
+
+.reset-cancel-link {
+  margin-top: 2px;
+}
+
+.modal-close-button {
+  position: absolute;
+  top: 16px;
+  right: 14px;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 8px;
+  color: #111827;
+  background: transparent;
+}
+
+.rtl .modal-close-button {
+  right: auto;
+  left: 14px;
 }
 
 .verify-modal {
