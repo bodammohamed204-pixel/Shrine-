@@ -615,6 +615,13 @@ button {
   left: 22px;
 }
 
+.home-screen .flag-button,
+.rtl .home-screen .flag-button {
+  right: 22px;
+  left: auto;
+  direction: ltr;
+}
+
 .flag-visual {
   position: relative;
   display: inline-grid;
