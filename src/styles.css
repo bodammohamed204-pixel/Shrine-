@@ -1,6 +1,5 @@
-@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap");
-
 :root {
+  --font-arabic: 'Noto Sans Arabic', 'SF Arabic', sans-serif;
   --blue: #2494e8;
   --blue-dark: #1675bd;
   --ink: #172033;
@@ -11,13 +10,14 @@
   --error: #d97834;
   --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
   --shadow-md: 0 10px 28px rgba(16, 24, 40, 0.08);
-  font-family: "Segoe UI", Inter, system-ui, -apple-system, BlinkMacSystemFont, Arial, sans-serif;
   color: var(--ink);
   background: #eef2f7;
 }
 
+body,
 * {
   box-sizing: border-box;
+  font-family: var(--font-arabic);
 }
 
 body {
@@ -44,10 +44,6 @@ button {
   overflow: hidden;
   background: #fff;
   box-shadow: 0 0 28px rgba(15, 23, 42, 0.08);
-}
-
-.app-shell.rtl {
-  font-family: "Cairo", "Segoe UI", Tahoma, Arial, sans-serif;
 }
 
 .splash-intro {
