@@ -11,7 +11,6 @@ import {
   ChevronRight,
   ChevronUp,
   CircleUserRound,
-  ContactRound,
   DoorOpen,
   Eye,
   EyeOff,
@@ -37,6 +36,7 @@ import {
   ShieldCheck,
   Sparkles,
   SquarePen,
+  SquareUserRound,
   Trash2,
   UserRound,
   UserRoundPlus,
@@ -4295,13 +4295,13 @@ function BottomNav({ active, variant = "main", canEditShrine = false, setScreen,
   const isDetail = variant === "detail";
   const items = isDetail
     ? [
-        { id: "home", label: t("home"), icon: <ContactRound size={36} /> },
+        { id: "home", label: t("home"), icon: <SquareUserRound size={36} /> },
         { id: "message", label: t("message"), icon: <MessageSquare size={38} /> },
         { id: "editShrine", label: t("update"), icon: <SquarePen size={38} />, disabled: !canEditShrine },
         { id: "settings", label: t("settings"), icon: <Settings size={42} /> }
       ]
     : [
-        { id: "home", label: t("home"), icon: <ContactRound size={36} /> },
+        { id: "home", label: t("home"), icon: <SquareUserRound size={36} /> },
         { id: "add", label: t("add"), icon: <Plus size={30} />, featured: true },
         { id: "search", label: t("search"), icon: <Search size={42} /> },
         { id: "settings", label: t("settings"), icon: <Settings size={42} /> }
