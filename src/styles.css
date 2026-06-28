@@ -471,6 +471,7 @@ button {
 }
 
 .login-screen .phone-field input {
+  padding: 0 16px;
   color: #111;
   font-size: 1rem;
   letter-spacing: 0;
@@ -3588,6 +3589,7 @@ button {
 
 .logout-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 16px;
 }
@@ -3595,11 +3597,13 @@ button {
 .logout-actions button {
   min-width: 86px;
   min-height: 48px;
+  padding: 0 18px;
   border: 0;
   border-radius: 999px;
   color: #fff;
   font-size: 1rem;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .logout-cancel-button {

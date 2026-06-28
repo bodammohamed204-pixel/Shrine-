@@ -1561,9 +1561,13 @@ function App() {
       showToast(t("badLogin"));
       return false;
     }
-    const accountCountry = findCountry(user.country || state.currentCountry);
+    const authenticatedUser = {
+      ...user,
+      otpPhone: user.otpPhone || `${user.phoneCode || ""}${String(user.phone || "").replace(/^0+/, "")}`
+    };
+    const accountCountry = findCountry(authenticatedUser.country || state.currentCountry);
     updateState({
-      currentUser: user,
+      currentUser: authenticatedUser,
       guest: false,
       language: user.language || state.language,
       currentCountry: accountCountry.name,
@@ -2371,41 +2375,27 @@ function NewPasswordModal({ user, t, onSave, onClose }) {
   );
 }
 
-function LoginScreen({ state, language, t, toggleLanguage, onLogin, onForgotPassword, onBack, setScreen, setModal }) {
-  const loginCountry = findCountryExact("Australia") || findCountry(state.currentCountry || initialState.currentCountry);
-  const [phoneCountry, setPhoneCountry] = useState(loginCountry);
-  const [phone, setPhone] = useState("");
+function LoginScreen({ state, language, t, toggleLanguage, onLogin, onForgotPassword, onBack, setScreen }) {
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [visible, setVisible] = useState(false);
-  const [countryTouched, setCountryTouched] = useState(false);
   const [errors, setErrors] = useState({
-    phone: "phoneRequired",
+    identifier: "identifierRequired",
     password: "passwordRequired"
   });
 
   useEffect(() => {
-    if (countryTouched) return;
-    setPhoneCountry(loginCountry);
-  }, [countryTouched, loginCountry]);
-
-  useEffect(() => {
     setErrors((current) => ({
-      phone: phone ? current.phone : "phoneRequired",
+      identifier: identifier ? current.identifier : "identifierRequired",
       password: password ? current.password : "passwordRequired"
     }));
-  }, [language, password, phone]);
+  }, [identifier, language, password]);
 
-  const pickPhoneCountry = (country) => {
-    setCountryTouched(true);
-    setPhoneCountry(country);
-  };
-
-  const setPhoneValue = (value) => {
-    const cleanValue = normalizePhoneDigits(value).slice(0, 14);
-    setPhone(cleanValue);
+  const setIdentifierValue = (value) => {
+    setIdentifier(value);
     setErrors((current) => ({
       ...current,
-      phone: cleanValue ? "" : "phoneRequired"
+      identifier: value.trim() ? "" : "identifierRequired"
     }));
   };
 
@@ -2418,18 +2408,29 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onForgotPass
   };
 
   const submit = () => {
+    const cleanIdentifier = identifier.trim();
+    const phoneDigits = normalizePhoneDigits(cleanIdentifier);
+    const emailValid = /^\S+@\S+\.\S+$/.test(cleanIdentifier);
+    const phoneValid = /^[+\d\s().-]+$/.test(cleanIdentifier) && /^\d{7,15}$/.test(phoneDigits);
     const nextErrors = {};
-    if (!phone) {
-      nextErrors.phone = "phoneRequired";
-    } else if (!/^\d{7,14}$/.test(phone)) {
-      nextErrors.phone = "errPhone";
+    if (!cleanIdentifier) {
+      nextErrors.identifier = "identifierRequired";
+    } else if (!emailValid && !phoneValid) {
+      nextErrors.identifier = "errEmailOrPhone";
     }
     if (!password) nextErrors.password = "passwordRequired";
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
 
-    onLogin(`${phoneCountry.code}${phone}`, password);
+    onLogin(emailValid ? normalizeAccountEmail(cleanIdentifier) : phoneDigits, password);
+  };
+
+  const openReset = () => {
+    const phoneDigits = normalizePhoneDigits(identifier);
+    const phoneCountry = findCountry(state.currentCountry || initialState.currentCountry);
+    const phone = /^[+\d\s().-]+$/.test(identifier.trim()) ? phoneDigits.slice(0, 14) : "";
+    onForgotPassword({ phoneCountry, phone });
   };
 
   return (
@@ -2443,36 +2444,18 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onForgotPass
       <section className="auth-intro login">
         <h1>{t("loginTitle")}</h1>
       </section>
-      <label className="field-label">{t("mobileNumber")}</label>
-      <div className="phone-field">
-        <button
-          type="button"
-          className="country-code-button"
-          onClick={() =>
-            setModal({
-              type: "country",
-              title: t("selectCallingCode"),
-              withCodes: true,
-              selectedCountry: phoneCountry.name,
-              onPick: pickPhoneCountry
-            })
-          }
-        >
-          <ChevronDown size={18} />
-          <Flag country={phoneCountry} />
-          <span>{phoneCountry.code}</span>
-        </button>
+      <label className="field-label">{t("emailOrPhone")}</label>
+      <div className={`phone-field identity-field ${errors.identifier ? "has-error" : ""}`}>
         <input
-          type="tel"
-          inputMode="numeric"
-          placeholder="1234567891"
-          maxLength={14}
-          value={phone}
-          onChange={(event) => setPhoneValue(event.target.value)}
+          type="text"
+          inputMode="email"
+          autoComplete="username"
+          placeholder={t("emailOrPhonePlaceholder")}
+          value={identifier}
+          onChange={(event) => setIdentifierValue(event.target.value)}
         />
       </div>
-      <div className="counter">{phone.length}/14</div>
-      {errors.phone && <p className="error-text">* {t(errors.phone)}</p>}
+      {errors.identifier && <p className="error-text">* {t(errors.identifier)}</p>}
       <PasswordInput
         label={t("password")}
         value={password}
@@ -2482,7 +2465,7 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onForgotPass
         onChange={setPasswordValue}
         t={t}
       />
-      <button type="button" className="forgot-password-link" onClick={() => onForgotPassword({ phoneCountry, phone })}>
+      <button type="button" className="forgot-password-link" onClick={openReset}>
         {t("forgotPassword")}
       </button>
       <button className="primary-button" onClick={submit}>
