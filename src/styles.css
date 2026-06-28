@@ -1257,8 +1257,10 @@ button {
   position: relative;
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
   min-height: 100vh;
-  padding: calc(22px + env(safe-area-inset-top)) 0 calc(92px + env(safe-area-inset-bottom));
+  min-height: 100dvh;
+  padding: calc(clamp(88px, 18vh, 176px) + env(safe-area-inset-top)) 0 calc(76px + env(safe-area-inset-bottom));
   background: #fff;
 }
 
@@ -1281,46 +1283,47 @@ button {
 }
 
 .settings-screen .plain-title {
-  margin: 0 0 25px;
-  font-size: 1.28rem;
+  margin: 0 0 clamp(14px, 2.8vh, 22px);
+  font-size: clamp(1rem, 3.4vw, 1.16rem);
   line-height: 1.15;
 }
 
 .settings-list {
   display: grid;
-  gap: 18px;
-  padding: 0 16px;
+  gap: clamp(9px, 2vh, 14px);
+  width: 100%;
+  padding: 0 clamp(18px, 5vw, 26px);
 }
 
 .settings-card {
   width: 100%;
   border: 1px solid #e7e9ee;
-  border-radius: 16px;
+  border-radius: 12px;
   background: #fff;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.07);
   overflow: hidden;
 }
 
 .settings-row {
   display: flex;
   align-items: center;
-  column-gap: 8px;
+  column-gap: clamp(8px, 2.4vw, 12px);
   width: 100%;
-  min-height: 62px;
-  padding: 0 14px;
+  min-height: clamp(50px, 7.2vh, 56px);
+  padding: 0 clamp(14px, 4vw, 20px);
   border: 0;
   background: transparent;
   color: #151a22;
   text-align: left;
-  font-size: 1.12rem;
+  font-size: clamp(0.9rem, 3.6vw, 0.98rem);
 }
 
 .settings-row > svg {
   margin-inline-start: auto;
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   color: var(--blue);
-  stroke-width: 2.7;
+  stroke-width: 2.5;
   flex: 0 0 auto;
 }
 
@@ -1331,7 +1334,7 @@ button {
 }
 
 .settings-row > .setting-icon {
-  flex: 0 0 28px;
+  flex: 0 0 clamp(22px, 6vw, 26px);
   display: grid;
   place-items: center;
 }
@@ -1340,37 +1343,37 @@ button {
   display: grid;
   place-items: center;
   color: var(--blue);
-  font-size: 1.45rem;
+  font-size: 1.15rem;
 }
 
 .setting-icon svg {
-  width: 24px;
-  height: 24px;
-  stroke-width: 2.1;
+  width: clamp(18px, 5.2vw, 20px);
+  height: clamp(18px, 5.2vw, 20px);
+  stroke-width: 2;
 }
 
 .settings-screen .setting-icon .flag-visual {
-  width: 20px;
-  height: 14px;
+  width: clamp(18px, 5vw, 20px);
+  height: clamp(12px, 3.5vw, 14px);
 }
 
 .language-options {
   display: grid;
   border-top: 1px solid #edf1f5;
-  padding: 5px 0 7px;
+  padding: 4px 0 6px;
 }
 
 .language-options button {
   display: flex;
   align-items: center;
-  gap: 16px;
-  min-height: 44px;
-  padding: 0 20px;
+  gap: clamp(10px, 3vw, 14px);
+  min-height: 38px;
+  padding: 0 clamp(16px, 4vw, 20px);
   border: 0;
   background: #fff;
   color: #111;
   text-align: left;
-  font-size: 0.98rem;
+  font-size: 0.86rem;
 }
 
 .language-options button .flag-visual {
@@ -1394,12 +1397,12 @@ button {
 }
 
 .settings-done {
-  width: calc(100% - 52px);
-  min-height: 62px;
-  margin: auto 26px 0;
-  border-radius: 13px;
-  font-size: 1.18rem;
-  box-shadow: 0 14px 24px rgba(36, 148, 232, 0.18);
+  width: auto;
+  min-height: 52px;
+  margin: clamp(14px, 2.8vh, 20px) clamp(18px, 5vw, 26px) 0;
+  border-radius: 11px;
+  font-size: 1rem;
+  box-shadow: 0 10px 20px rgba(36, 148, 232, 0.16);
 }
 
 .user-dashboard-screen {
