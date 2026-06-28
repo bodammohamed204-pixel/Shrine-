@@ -388,9 +388,13 @@ const copy = {
     loginTitle: "Let's Sign you in.",
     forgotPassword: "Forgot Password ?",
     resetPasswordTitle: "Reset Password",
-    resetPasswordIntro: "Enter the mobile number linked to your account and we will send a verification code.",
+    resetPasswordIntro: "Enter your mobile number or email address to receive a 6-digit code to reset your password.",
+    resetPasswordPhoneIntro: "Enter your mobile number to receive a 6-digit code to reset your password.",
+    resetPasswordEmailIntro: "Enter your email address to receive a 6-digit code to reset your password.",
     sendResetCode: "Send Reset Code",
     resetAccountNotFound: "No account was found with this mobile number.",
+    resetEmailAccountNotFound: "No account was found with this email address.",
+    resetRecoveryHelp: "Use the same phone or email linked to your account.",
     newPasswordTitle: "Create New Password",
     newPasswordIntro: "Choose a new password for your account.",
     newPassword: "New Password",
@@ -556,9 +560,13 @@ const copy = {
     loginTitle: "دعنا نقوم بتسجيل دخولك.",
     forgotPassword: "نسيت كلمة المرور؟",
     resetPasswordTitle: "إعادة تعيين كلمة المرور",
-    resetPasswordIntro: "أدخل رقم الهاتف المرتبط بحسابك وسنرسل لك كود تحقق.",
+    resetPasswordIntro: "أدخل رقم الهاتف أو البريد الإلكتروني لاستلام كود من 6 أرقام لإعادة تعيين كلمة المرور.",
+    resetPasswordPhoneIntro: "أدخل رقم هاتفك لاستلام كود من 6 أرقام لإعادة تعيين كلمة المرور.",
+    resetPasswordEmailIntro: "أدخل بريدك الإلكتروني لاستلام كود من 6 أرقام لإعادة تعيين كلمة المرور.",
     sendResetCode: "إرسال كود الاسترجاع",
     resetAccountNotFound: "لم يتم العثور على حساب بهذا الرقم.",
+    resetEmailAccountNotFound: "لم يتم العثور على حساب بهذا البريد الإلكتروني.",
+    resetRecoveryHelp: "استخدم نفس الهاتف أو البريد الإلكتروني المرتبط بحسابك.",
     newPasswordTitle: "إنشاء كلمة مرور جديدة",
     newPasswordIntro: "اختر كلمة مرور جديدة لحسابك.",
     newPassword: "كلمة المرور الجديدة",
@@ -945,6 +953,13 @@ function findUserByResetPhone(users, countryCode, phone) {
   }) || null;
 }
 
+function findUserByResetEmail(users, email) {
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  if (!normalizedEmail) return null;
+
+  return users.find((user) => String(user?.email || "").trim().toLowerCase() === normalizedEmail) || null;
+}
+
 function findCountry(name) {
   return findCountryExact(name) || countries[0];
 }
@@ -1203,7 +1218,7 @@ function App() {
     });
   };
 
-  const verifyPasswordResetUser = (user) => {
+  const verifyPasswordResetUser = (user, preferredChannel = "mobile") => {
     const accountCountry = findCountry(user.phoneCountry || user.country || state.currentCountry || initialState.currentCountry);
     const phoneDigits = normalizePhoneDigits(user.phone).replace(/^0+/, "");
     const userForOtp = {
@@ -1217,6 +1232,7 @@ function App() {
     setModal({
       type: "verify",
       user: userForOtp,
+      preferredChannel,
       onProceed: () => {
         setModal({ type: "newPassword", user: userForOtp });
       }
@@ -1376,6 +1392,7 @@ function App() {
           language={language}
           t={t}
           toggleLanguage={toggleLanguage}
+          initialChannel={modal.preferredChannel}
           onCancel={() => setModal(null)}
           onBackFromCode={modal.onBackFromCode}
           onLoginFromCode={modal.onLoginFromCode}
@@ -1753,18 +1770,51 @@ function RegisterScreen({ state, language, t, updateState, onRegister, onCancelR
 
 function ResetPasswordModal({ state, language, t, initialPhoneCountry, initialPhone = "", onContinue, onClose }) {
   const startingCountry = findCountry(initialPhoneCountry?.name || initialPhoneCountry || state.currentCountry || initialState.currentCountry);
+  const [method, setMethod] = useState("mobile");
   const [phoneCountry, setPhoneCountry] = useState(startingCountry);
   const [phone, setPhone] = useState(() => normalizePhoneDigits(initialPhone).slice(0, 14));
+  const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [countryPickerOpen, setCountryPickerOpen] = useState(false);
+  const recoveryMethods = [
+    { id: "mobile", label: t("mobileNumber") },
+    { id: "email", label: t("emailAddress") }
+  ];
+
+  const chooseMethod = (nextMethod) => {
+    setMethod(nextMethod);
+    setError("");
+  };
 
   const setPhoneValue = (value) => {
     setPhone(normalizePhoneDigits(value).slice(0, 14));
     setError("");
   };
 
+  const setEmailValue = (value) => {
+    setEmail(value);
+    setError("");
+  };
+
   const submit = (event) => {
     event.preventDefault();
+    if (method === "email") {
+      const cleanEmail = email.trim().toLowerCase();
+      if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) {
+        setError(t("errEmail"));
+        return;
+      }
+
+      const user = findUserByResetEmail(state.users, cleanEmail);
+      if (!user) {
+        setError(t("resetEmailAccountNotFound"));
+        return;
+      }
+
+      onContinue(user, "email");
+      return;
+    }
+
     const cleanPhone = normalizePhoneDigits(phone);
     if (!/^\d{7,14}$/.test(cleanPhone)) {
       setError(t("errPhone"));
@@ -1777,7 +1827,7 @@ function ResetPasswordModal({ state, language, t, initialPhoneCountry, initialPh
       return;
     }
 
-    onContinue(user);
+    onContinue(user, "mobile");
   };
 
   return (
@@ -1786,29 +1836,56 @@ function ResetPasswordModal({ state, language, t, initialPhoneCountry, initialPh
         <button type="button" className="modal-close-button" onClick={onClose} aria-label={t("cancel")}>
           <X size={24} />
         </button>
-        <h2>{t("resetPasswordTitle")}</h2>
-        <p>{t("resetPasswordIntro")}</p>
-        <label className="field-label">{t("mobileNumber")}</label>
-        <div className={`phone-field ${error ? "has-error" : ""}`}>
-          <button type="button" className="country-code-button" onClick={() => setCountryPickerOpen(true)}>
-            <ChevronDown size={18} />
-            <Flag country={phoneCountry} />
-            <span>{phoneCountry.code}</span>
-          </button>
-          <input
-            type="tel"
-            inputMode="numeric"
-            placeholder="1234567891"
-            maxLength={14}
-            value={phone}
-            onChange={(event) => setPhoneValue(event.target.value)}
-          />
+        <h2>{t("forgotPassword")}</h2>
+        <p>{method === "email" ? t("resetPasswordEmailIntro") : t("resetPasswordPhoneIntro")}</p>
+        <div className="reset-method-tabs" role="group" aria-label={t("resetPasswordIntro")}>
+          {recoveryMethods.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              className={method === option.id ? "active" : ""}
+              aria-pressed={method === option.id}
+              onClick={() => chooseMethod(option.id)}
+            >
+              {option.label}
+            </button>
+          ))}
         </div>
-        <div className="counter">{phone.length}/14</div>
-        {error && <p className="error-text">* {error}</p>}
+        {method === "mobile" ? (
+          <>
+            <label className="field-label">{t("mobileNumber")}</label>
+            <div className={`phone-field ${error ? "has-error" : ""}`}>
+              <button type="button" className="country-code-button" onClick={() => setCountryPickerOpen(true)}>
+                <ChevronDown size={18} />
+                <Flag country={phoneCountry} />
+                <span>{phoneCountry.code}</span>
+              </button>
+              <input
+                type="tel"
+                inputMode="numeric"
+                placeholder="1234567891"
+                maxLength={14}
+                value={phone}
+                onChange={(event) => setPhoneValue(event.target.value)}
+              />
+            </div>
+            <div className="counter">{phone.length}/14</div>
+          </>
+        ) : (
+          <Input
+            label={t("emailAddress")}
+            placeholder="email@example.com"
+            type="email"
+            value={email}
+            error={error}
+            onChange={setEmailValue}
+          />
+        )}
+        {method === "mobile" && error && <p className="error-text">* {error}</p>}
         <button className="primary-button" type="submit">
-          {t("sendResetCode")}
+          {t("send")}
         </button>
+        <p className="reset-recovery-help">{t("resetRecoveryHelp")}</p>
         <button type="button" className="ghost-link reset-cancel-link" onClick={onClose}>
           {t("cancel")}
         </button>
@@ -2683,6 +2760,7 @@ function GalleryScreen({ state, t, setScreen }) {
 }
 
 function DetailScreen({ state, language, t, updateState, setScreen, setModal, canUseAccount }) {
+  const [entryMenuOpen, setEntryMenuOpen] = useState(false);
   const person = state.people.find((item) => item.id === state.selectedPersonId);
 
   if (!person) {
@@ -2700,6 +2778,9 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
   const creatorName = person.createdByName || (creator ? getUserName(creator) : person.createdBy === "guest" ? t("guestAccount") : "Shrine");
   const createdDate = personCreatedDate(person);
   const detailInfo = person.info?.trim();
+  const lifeYears = personLifeYears(person, t);
+  const displayAge = personDisplayAge(person);
+  const activeFlowers = activeFlowerGifts(person.flowers);
 
   const toggleFollow = () => {
     if (!canUseAccount) {
@@ -2719,9 +2800,27 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
     });
   };
 
+  const shareShrine = () => {
+    shareContent({
+      title: person.fullName,
+      text: [person.fullName, lifeYears].filter(Boolean).join(" "),
+      url: typeof window !== "undefined" ? window.location.href : ""
+    });
+  };
+
   return (
     <main className="main-screen detail-screen scroll-screen">
-      <Header title={t("memorial")} back={() => setScreen("home")} language={language} t={t} />
+      <Header
+        title=""
+        back={() => setScreen("home")}
+        language={language}
+        t={t}
+        action={
+          <button className="header-icon detail-share-button" onClick={shareShrine} aria-label="Share">
+            <Share2 size={30} />
+          </button>
+        }
+      />
       <section className="detail-card">
         <div className="detail-hero">
           <div className="detail-photo">
@@ -2730,36 +2829,68 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
           <div className="detail-summary">
             {person.fatherName && <p className="detail-father-name">{person.fatherName}</p>}
             <h2>{person.fullName}</h2>
-            <p className="detail-dates">
-              {person.birthDate || t("unknownBirth")} - {person.deathDate}
-            </p>
-            <p className="detail-country">
-              <Flag country={findCountry(person.country)} /> {countryLabel(person.country, language)}
-            </p>
+            <p className="detail-dates">{lifeYears}</p>
+            {displayAge && <p className="detail-age">{displayAge} Year</p>}
           </div>
         </div>
-        <div className="detail-actions">
-          <button className={followed ? "primary-button small active" : "primary-button small"} onClick={toggleFollow}>
-            <UserRoundPlus size={20} /> {followed ? t("following") : t("follow")}
+        <div className="detail-tools" aria-label={t("memorial")}>
+          <button className="detail-tool-button" onClick={() => setScreen("gallery")} aria-label={t("gallery")}>
+            <ImageIcon size={30} />
           </button>
-          <button className="outline-button small" onClick={toggleBlock}>
-            <Ban size={20} /> {blocked ? t("unblock") : t("block")}
+          <button
+            className="detail-tool-button detail-flower-button"
+            onClick={() => setModal({ type: "flower", personId: person.id })}
+            aria-label={t("giveFlower")}
+          >
+            <RoseGraphic small />
+            <span>{activeFlowers.length}</span>
+          </button>
+          <button className="detail-tool-button" onClick={() => setModal({ type: "aiSoon" })} aria-label="AI">
+            <AiMark />
           </button>
         </div>
-        {detailInfo && (
-          <article className="detail-entry">
-            <div className="detail-entry-header">
-              <div className="detail-entry-avatar">
-                <AvatarSilhouette />
-              </div>
-              <div>
-                <strong>{creatorName}</strong>
-                {createdDate && <span>{createdDate}</span>}
-              </div>
+        <article className={`detail-entry ${detailInfo ? "" : "compact"}`}>
+          <div className="detail-entry-header">
+            <div className="detail-entry-avatar">
+              <AvatarSilhouette />
             </div>
-            <p className="detail-info">{detailInfo}</p>
-          </article>
-        )}
+            <div>
+              <strong>{creatorName}</strong>
+              {createdDate && <span>{createdDate}</span>}
+            </div>
+            <div className="detail-entry-actions">
+              <button
+                className="detail-entry-menu-button"
+                onClick={() => setEntryMenuOpen((open) => !open)}
+                aria-label="More"
+                aria-expanded={entryMenuOpen}
+              >
+                <MoreVertical size={27} />
+              </button>
+              {entryMenuOpen && (
+                <div className="detail-entry-menu">
+                  <button
+                    onClick={() => {
+                      toggleFollow();
+                      setEntryMenuOpen(false);
+                    }}
+                  >
+                    <UserRoundPlus size={19} /> {followed ? t("following") : t("follow")}
+                  </button>
+                  <button
+                    onClick={() => {
+                      toggleBlock();
+                      setEntryMenuOpen(false);
+                    }}
+                  >
+                    <Ban size={19} /> {blocked ? t("unblock") : t("block")}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+          {detailInfo && <p className="detail-info">{detailInfo}</p>}
+        </article>
       </section>
     </main>
   );
@@ -2932,24 +3063,59 @@ function SelectField({ label, required, requiredLabel = "Required", placeholder,
 }
 
 function DateField({ label, required, requiredLabel = "Required", value, error, onChange }) {
+  const inputRef = useRef(null);
+
+  const openPicker = () => {
+    const input = inputRef.current;
+    if (!input) return;
+
+    input.focus({ preventScroll: true });
+
+    if (typeof input.showPicker === "function") {
+      try {
+        input.showPicker();
+        return;
+      } catch {
+        // Some WebViews expose showPicker but still reject it.
+      }
+    }
+
+    input.click();
+  };
+
+  const openPickerFromKeyboard = (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    openPicker();
+  };
+
   return (
-    <label className="field-wrap">
+    <div className="field-wrap">
       <span className="field-label">
         {label}
         {required && <em>{requiredLabel}</em>}
       </span>
-      <span className="date-field">
+      <span
+        className={`date-field ${error ? "has-error" : ""}`}
+        role="button"
+        tabIndex={0}
+        onClick={openPicker}
+        onKeyDown={openPickerFromKeyboard}
+      >
         <span className={value ? "" : "muted"}>{value || label}</span>
         <input
-          className={error ? "has-error" : ""}
+          ref={inputRef}
+          aria-label={label}
+          tabIndex={-1}
           type="date"
           value={value}
+          onClick={(event) => event.stopPropagation()}
           onChange={(event) => onChange(event.target.value)}
         />
-        <Calendar size={28} />
+        <Calendar size={28} aria-hidden="true" />
       </span>
       {error && <p className="error-text">* {error}</p>}
-    </label>
+    </div>
   );
 }
 
@@ -3075,7 +3241,7 @@ function FlowerModal({ t, onGive, onClose }) {
   );
 }
 
-function VerifyModal({ user, language = "EN", t, toggleLanguage, onProceed, onCancel, onBackFromCode, onLoginFromCode }) {
+function VerifyModal({ user, language = "EN", t, toggleLanguage, initialChannel, onProceed, onCancel, onBackFromCode, onLoginFromCode }) {
   const channels = useMemo(() => {
     const phoneValue = [user.phoneCode, user.phone].filter(Boolean).join(" ").trim() || user.otpPhone;
     return [
@@ -3099,7 +3265,10 @@ function VerifyModal({ user, language = "EN", t, toggleLanguage, onProceed, onCa
         : null
     ].filter(Boolean);
   }, [t, user.email, user.otpPhone, user.phone, user.phoneCode]);
-  const [channelId, setChannelId] = useState(channels[0]?.id || "mobile");
+  const initialChannelId = channels.some((channel) => channel.id === initialChannel)
+    ? initialChannel
+    : channels[0]?.id || "mobile";
+  const [channelId, setChannelId] = useState(initialChannelId);
   const [step, setStep] = useState("choose");
   const [code, setCode] = useState("");
   const [sent, setSent] = useState(false);
@@ -3118,6 +3287,11 @@ function VerifyModal({ user, language = "EN", t, toggleLanguage, onProceed, onCa
   const codeReady = code.length === 6;
   const resendWaitSeconds = Math.max(0, Math.ceil((resendAvailableAt - now) / 1000));
   const resendBlocked = resendWaitSeconds > 0;
+
+  useEffect(() => {
+    if (channels.some((channel) => channel.id === channelId)) return;
+    setChannelId(channels[0]?.id || "mobile");
+  }, [channelId, channels]);
 
   useEffect(() => {
     if (!codeStep) return;

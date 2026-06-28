@@ -521,6 +521,7 @@ button {
 
 .date-field {
   position: relative;
+  cursor: pointer;
 }
 
 .date-field > span {
@@ -535,6 +536,7 @@ button {
   position: absolute;
   inset: 0;
   opacity: 0;
+  pointer-events: none;
 }
 
 .date-field svg {
@@ -1799,12 +1801,21 @@ button {
 
 .detail-screen .top-header {
   direction: ltr;
-  min-height: 64px;
+  min-height: 104px;
 }
 
 .detail-screen .header-action {
-  right: 16px;
+  right: 18px;
   left: auto;
+}
+
+.detail-screen .header-icon {
+  color: #fff;
+}
+
+.detail-share-button {
+  width: 44px;
+  height: 44px;
 }
 
 .flower-header-button {
@@ -1827,8 +1838,9 @@ button {
 }
 
 .detail-screen .header-icon.left svg {
-  width: 26px;
-  height: 26px;
+  width: 30px;
+  height: 30px;
+  stroke-width: 3;
 }
 
 .rtl .detail-screen .header-icon.left svg {
@@ -1973,24 +1985,27 @@ button {
 }
 
 .detail-card {
+  --detail-photo-width: clamp(104px, 30vw, 165px);
+  --detail-hero-gap: clamp(18px, 4vw, 28px);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 28px 24px 120px;
+  align-items: stretch;
+  padding: 16px 22px 120px;
 }
 
 .detail-hero {
   direction: ltr;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: grid;
+  grid-template-columns: var(--detail-photo-width) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--detail-hero-gap);
   width: 100%;
 }
 
 .detail-photo {
-  width: clamp(204px, 53.6vw, 232px);
-  aspect-ratio: 1 / 1.25;
-  border: 1px solid var(--line);
+  width: var(--detail-photo-width);
+  aspect-ratio: 1 / 1.86;
+  border: 0;
   border-radius: 2px;
   overflow: hidden;
   background: #f2f2f2;
@@ -2005,7 +2020,7 @@ button {
 .detail-summary {
   min-width: 0;
   width: 100%;
-  padding-top: 30px;
+  padding-top: 13px;
   text-align: center;
 }
 
@@ -2014,9 +2029,9 @@ button {
 }
 
 .detail-summary h2 {
-  margin: 0 0 16px;
-  color: var(--blue);
-  font-size: 2rem;
+  margin: 0 0 22px;
+  color: #050505;
+  font-size: clamp(1.56rem, 6.1vw, 2rem);
   line-height: 1.16;
   font-weight: 850;
   overflow-wrap: anywhere;
@@ -2038,15 +2053,18 @@ button {
 }
 
 .detail-dates {
-  color: #5f6670;
-  font-size: 1.12rem;
-  font-weight: 550;
+  color: #2c9bea;
+  font-size: clamp(1.2rem, 5vw, 1.75rem);
+  line-height: 1.18;
+  font-weight: 500;
 }
 
 .detail-age {
-  color: #b0b4bb;
-  font-size: 0.9rem;
-  font-weight: 700;
+  margin-top: 13px;
+  color: #b3b3b3;
+  font-size: clamp(1rem, 3.8vw, 1.34rem);
+  line-height: 1.2;
+  font-weight: 400;
 }
 
 .detail-country {
@@ -2113,6 +2131,60 @@ button {
   background: #fff0f3;
   font-size: 0.88rem;
   font-weight: 850;
+}
+
+.detail-tools {
+  position: relative;
+  direction: ltr;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: calc(100% - var(--detail-photo-width) - var(--detail-hero-gap));
+  min-width: 184px;
+  margin: -67px 0 31px calc(var(--detail-photo-width) + var(--detail-hero-gap));
+  padding-bottom: 22px;
+}
+
+.detail-tools::after {
+  content: "";
+  position: absolute;
+  right: calc(-1 * (var(--detail-photo-width) + var(--detail-hero-gap)));
+  bottom: 0;
+  left: calc(-1 * (var(--detail-photo-width) + var(--detail-hero-gap)));
+  height: 1px;
+  background: #d5d5d5;
+}
+
+.detail-tool-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 44px;
+  border: 1px solid #eef2f6;
+  border-radius: 14px;
+  color: var(--blue);
+  background: #fff;
+  box-shadow: 0 2px 9px rgba(15, 23, 42, 0.06);
+}
+
+.detail-tool-button svg {
+  stroke-width: 3;
+}
+
+.detail-flower-button {
+  gap: 8px;
+  width: 85px;
+  padding: 0 10px;
+  color: #1f8edc;
+  font-size: 1.2rem;
+  font-weight: 750;
+}
+
+.detail-flower-button .rose-graphic.small {
+  width: 28px;
+  flex: 0 0 auto;
 }
 
 .rose-graphic {
@@ -2194,9 +2266,10 @@ button {
 .detail-entry {
   position: relative;
   direction: ltr;
-  min-height: 82px;
-  margin-top: 34px;
-  padding: 10px 12px;
+  width: 100%;
+  min-height: 104px;
+  margin-top: 0;
+  padding: 12px 11px;
   border: 0;
   border-radius: 10px;
   background: #f3f3f3;
@@ -2214,20 +2287,20 @@ button {
 }
 
 .detail-entry::before {
-  top: -16px;
+  top: -17px;
 }
 
 .detail-entry::after {
-  bottom: -16px;
+  bottom: -18px;
 }
 
 .detail-entry.compact {
-  padding-bottom: 10px;
+  padding-bottom: 12px;
 }
 
 .detail-entry-header {
   display: grid;
-  grid-template-columns: 54px minmax(0, 1fr);
+  grid-template-columns: 54px minmax(0, 1fr) 34px;
   align-items: center;
   gap: 12px;
 }
@@ -2853,6 +2926,35 @@ button {
   line-height: 1.42;
 }
 
+.reset-method-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 2px 0 8px;
+}
+
+.reset-method-tabs button {
+  min-width: 0;
+  min-height: 52px;
+  padding: 0 12px;
+  border: 1px solid var(--blue);
+  border-radius: 8px;
+  color: var(--blue);
+  background: #fff;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 750;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reset-method-tabs button.active {
+  color: #fff;
+  background: var(--blue);
+  box-shadow: 0 8px 18px rgba(36, 148, 232, 0.18);
+}
+
 .reset-modal .field-label {
   margin-top: 4px;
   margin-bottom: 0;
@@ -2873,6 +2975,14 @@ button {
 
 .reset-modal .primary-button {
   margin-top: 4px;
+}
+
+.reset-modal .reset-recovery-help {
+  margin: 2px 0 0;
+  color: #8b8f98;
+  text-align: center;
+  font-size: 0.94rem;
+  line-height: 1.35;
 }
 
 .reset-cancel-link {
@@ -3430,6 +3540,29 @@ button {
 }
 
 @media (max-width: 360px) {
+  .detail-card {
+    --detail-photo-width: 96px;
+    --detail-hero-gap: 12px;
+    padding-inline: 16px;
+  }
+
+  .detail-tools {
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .detail-tool-button {
+    width: 42px;
+    height: 42px;
+  }
+
+  .detail-flower-button {
+    width: 74px;
+    gap: 5px;
+    padding-inline: 8px;
+    font-size: 1.04rem;
+  }
+
   .segmented {
     gap: 7px;
     padding-inline: 12px;
