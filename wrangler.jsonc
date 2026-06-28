@@ -4,6 +4,12 @@
   "main": "worker/index.js",
   "compatibility_date": "2026-06-01",
   "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "app.shrine-app.com",
+      "custom_domain": true
+    }
+  ],
   "build": {
     "command": "npm run build"
   },
