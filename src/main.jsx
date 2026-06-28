@@ -447,6 +447,7 @@ const copy = {
     couldNotSend: "Could not send activation code.",
     couldNotVerify: "Could not verify activation code.",
     codeWrong: "The code is incorrect or expired.",
+    registrationCancelled: "Registration cancelled. Start again with the correct details.",
     devCode: "Development code",
     expiresAt: "Expires at",
     pleaseWait: "Please wait...",
@@ -584,6 +585,7 @@ const copy = {
     couldNotSend: "تعذر إرسال كود التفعيل.",
     couldNotVerify: "تعذر التحقق من كود التفعيل.",
     codeWrong: "الكود غير صحيح أو انتهت صلاحيته.",
+    registrationCancelled: "تم إلغاء التسجيل. ابدأ من جديد بالبيانات الصحيحة.",
     devCode: "كود التطوير",
     expiresAt: "ينتهي في",
     pleaseWait: "برجاء الانتظار...",
@@ -863,6 +865,7 @@ function App() {
   const [homeIntroLoading, setHomeIntroLoading] = useState(true);
   const [modal, setModal] = useState(null);
   const [toast, setToast] = useState("");
+  const [registerResetKey, setRegisterResetKey] = useState(0);
 
   useEffect(() => {
     const splashTimer = setTimeout(() => setOpening(false), 2600);
@@ -989,6 +992,13 @@ function App() {
     setScreen("success");
   };
 
+  const cancelRegistrationAttempt = () => {
+    setModal(null);
+    setRegisterResetKey((key) => key + 1);
+    setScreen("register");
+    setToast(t("registrationCancelled"));
+  };
+
   const loginUser = (identifier, password) => {
     const normalizedIdentifier = identifier.trim().toLowerCase();
     const identifierDigits = identifier.replace(/\D/g, "");
@@ -1051,11 +1061,13 @@ function App() {
       {opening && <SplashIntro />}
       {screen === "register" && (
         <RegisterScreen
+          key={registerResetKey}
           state={state}
           language={language}
           t={t}
           updateState={updateState}
           onRegister={registerUser}
+          onCancelRegistration={cancelRegistrationAttempt}
           onLogin={() => setScreen("login")}
           onGuest={() => {
             updateState({ guest: true });
@@ -1148,6 +1160,7 @@ function App() {
           user={modal.user}
           t={t}
           onCancel={() => setModal(null)}
+          onBackFromCode={modal.onBackFromCode}
           onProceed={() => {
             setModal(null);
             modal.onProceed();
@@ -1228,7 +1241,7 @@ function LanguageButton({ value, onClick }) {
   );
 }
 
-function RegisterScreen({ state, language, t, updateState, onRegister, onLogin, onGuest, setModal, setToast }) {
+function RegisterScreen({ state, language, t, updateState, onRegister, onCancelRegistration, onLogin, onGuest, setModal, setToast }) {
   const [form, setForm] = useState(() => {
     const accountCountry = findCountry(state.currentCountry || initialState.currentCountry);
 
@@ -1298,7 +1311,9 @@ function RegisterScreen({ state, language, t, updateState, onRegister, onLogin, 
 
     setModal({
       type: "verify",
+      source: "register",
       user,
+      onBackFromCode: onCancelRegistration,
       onProceed: () => onRegister(user)
     });
   };
@@ -2442,7 +2457,7 @@ function FlowerModal({ t, onGive, onClose }) {
   );
 }
 
-function VerifyModal({ user, t, onProceed, onCancel }) {
+function VerifyModal({ user, t, onProceed, onCancel, onBackFromCode }) {
   const channels = useMemo(() => {
     const phoneValue = [user.phoneCode, user.phone].filter(Boolean).join(" ").trim() || user.otpPhone;
     return [
@@ -2596,6 +2611,15 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
     setError("");
   };
 
+  const goBackFromCode = () => {
+    if (loading) return;
+    if (onBackFromCode) {
+      onBackFromCode();
+      return;
+    }
+    chooseDifferentMethod();
+  };
+
   const verifyCode = async () => {
     if (!code.trim()) {
       setError(t("enterCode"));
@@ -2629,6 +2653,11 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
   return (
     <div className="modal-backdrop" onClick={onCancel}>
       <div className="verify-modal" onClick={(event) => event.stopPropagation()}>
+        {codeStep && (
+          <button type="button" className="verify-back-button" disabled={loading} onClick={goBackFromCode} aria-label={t("back")}>
+            <ArrowLeft size={30} />
+          </button>
+        )}
         <h2>{codeStep ? t("activationCode") : t("receiveActivationCode")}</h2>
         {!codeStep && (
           <div className="verify-options">
@@ -2689,7 +2718,7 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
           </button>
         )}
         {codeStep && (
-          <button className="ghost-link resend-link" disabled={loading} onClick={chooseDifferentMethod}>
+          <button className="ghost-link resend-link" disabled={loading} onClick={goBackFromCode}>
             {t("back")}
           </button>
         )}

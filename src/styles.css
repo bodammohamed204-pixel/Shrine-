@@ -2058,7 +2058,8 @@ button {
   display: grid;
   place-items: center;
   width: min(78vw, 330px);
-  min-height: 410px;
+  height: min(58vh, 430px);
+  min-height: 300px;
   padding: 24px;
 }
 
@@ -2199,8 +2200,30 @@ button {
 }
 
 .verify-modal {
+  position: relative;
   padding: 28px 24px;
   background: #fff;
+}
+
+.verify-back-button {
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  margin: -8px 0 12px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--blue);
+  background: transparent;
+}
+
+.verify-back-button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.rtl .verify-back-button svg {
+  transform: scaleX(-1);
 }
 
 .age-modal {
