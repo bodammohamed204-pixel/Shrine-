@@ -25,14 +25,15 @@ import {
   LogOut,
   Mail,
   MapPin,
+  MessageSquare,
   MoreVertical,
   Pencil,
-  Plus,
   Search,
   Settings,
   Share2,
   ShieldCheck,
   Sparkles,
+  SquarePen,
   Trash2,
   UserRound,
   UserRoundPlus,
@@ -90,6 +91,77 @@ function shareContent({ title, text, url }) {
   if (fallbackText) {
     navigator.clipboard?.writeText?.(fallbackText).catch(() => {});
   }
+}
+
+function shareBaseUrl() {
+  const configuredBase = String(import.meta.env.VITE_SHARE_BASE_URL || "").replace(/\/$/, "");
+  if (configuredBase) return configuredBase;
+  if (typeof window === "undefined") return PRODUCTION_API_BASE_URL;
+
+  const { hostname, protocol } = window.location;
+  const localHosts = new Set(["localhost", "127.0.0.1", "0.0.0.0"]);
+  const localWebView = protocol === "capacitor:" || localHosts.has(hostname);
+
+  if (!import.meta.env.DEV && localWebView && API_BASE_URL) {
+    return API_BASE_URL;
+  }
+
+  return window.location.href;
+}
+
+function buildShareUrl(personId, view = "shrine") {
+  if (typeof window === "undefined" || !personId) return "";
+
+  const url = new URL(shareBaseUrl());
+  url.search = "";
+  url.hash = "";
+  url.searchParams.set("shrine", personId);
+
+  if (view === "comment") {
+    url.searchParams.set("view", "comment");
+    url.hash = "comment";
+  }
+
+  return url.toString();
+}
+
+function getSharedTargetFromLocation() {
+  if (typeof window === "undefined") return null;
+
+  const params = new URLSearchParams(window.location.search);
+  const shrineId = params.get("shrine") || params.get("person") || "";
+  const directCommentId = params.get("comment") || params.get("message") || "";
+  const view = String(params.get("view") || "").toLowerCase();
+  const hash = window.location.hash.replace(/^#/, "").toLowerCase();
+
+  if (directCommentId) {
+    const personId = ["1", "true", "comment", "message", "info"].includes(directCommentId)
+      ? shrineId
+      : directCommentId;
+    return personId ? { type: "comment", personId } : null;
+  }
+
+  if (shrineId && (view === "comment" || view === "message" || hash === "comment" || hash === "message")) {
+    return { type: "comment", personId: shrineId };
+  }
+
+  if (shrineId) return { type: "shrine", personId: shrineId };
+  return null;
+}
+
+function loadInitialApp() {
+  const loadedState = loadState();
+  const sharedTarget = getSharedTargetFromLocation();
+
+  if (!sharedTarget?.personId) {
+    return { state: loadedState, screen: "home", sharedTarget: null };
+  }
+
+  return {
+    state: { ...loadedState, selectedPersonId: sharedTarget.personId },
+    screen: "detail",
+    sharedTarget
+  };
 }
 
 async function readApiJson(response, fallbackMessage) {
@@ -1004,17 +1076,23 @@ function genderLabel(value, t) {
 }
 
 function App() {
-  const [state, setState] = useState(loadState);
+  const initialAppRef = useRef(null);
+  if (!initialAppRef.current) {
+    initialAppRef.current = loadInitialApp();
+  }
+
+  const [state, setState] = useState(initialAppRef.current.state);
   const language = normalizeLanguage(state.language);
   const t = translator(language);
   const isArabic = language === "AR";
   const platformFontClass = getPlatformFontClass();
-  const [screen, setScreenState] = useState("home");
+  const [screen, setScreenState] = useState(initialAppRef.current.screen);
   const [opening, setOpening] = useState(true);
   const [homeIntroLoading, setHomeIntroLoading] = useState(true);
   const [modal, setModal] = useState(null);
   const [toast, setToast] = useState("");
   const [registerResetKey, setRegisterResetKey] = useState(0);
+  const [sharedTarget, setSharedTarget] = useState(initialAppRef.current.sharedTarget);
   const screenRef = useRef(screen);
   const screenHistoryRef = useRef([]);
 
@@ -1039,6 +1117,7 @@ function App() {
     const targetScreen = typeof nextScreen === "function" ? nextScreen(screenRef.current) : nextScreen;
     if (!targetScreen || targetScreen === screenRef.current) return;
 
+    setSharedTarget(null);
     const currentScreen = screenRef.current;
     screenRef.current = targetScreen;
     if (options.reset) {
@@ -1322,7 +1401,9 @@ function App() {
     activeUser,
     canUseAccount,
     onGiveFlower: giveFlowerToPerson,
-    toggleLanguage
+    toggleLanguage,
+    sharedTarget,
+    onSharedTargetHandled: () => setSharedTarget(null)
   };
 
   return (
@@ -1383,8 +1464,8 @@ function App() {
       {screen === "detail" && <DetailScreen {...commonProps} />}
       {screen === "gallery" && <GalleryScreen {...commonProps} />}
 
-      {["home", "add", "search", "settings"].includes(screen) && (
-        <BottomNav active={screen} setScreen={setScreen} setModal={setModal} canUseAccount={canUseAccount} t={t} />
+      {["home", "add", "search", "settings", "detail"].includes(screen) && (
+        <BottomNav active={screen === "detail" ? "home" : screen} setScreen={setScreen} setModal={setModal} canUseAccount={canUseAccount} t={t} />
       )}
 
       {modal?.type === "country" && (
@@ -2820,9 +2901,22 @@ function GalleryScreen({ state, t, setScreen, goBack }) {
   );
 }
 
-function DetailScreen({ state, language, t, setScreen, goBack, setModal }) {
+function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedTarget, onSharedTargetHandled }) {
   const [entryMenuOpen, setEntryMenuOpen] = useState(false);
+  const entryRef = useRef(null);
   const person = state.people.find((item) => item.id === state.selectedPersonId);
+  const sharedCommentPersonId = sharedTarget?.type === "comment" ? sharedTarget.personId : "";
+
+  useEffect(() => {
+    if (!person || sharedCommentPersonId !== person.id) return undefined;
+
+    const scrollTimer = setTimeout(() => {
+      entryRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      onSharedTargetHandled?.();
+    }, 350);
+
+    return () => clearTimeout(scrollTimer);
+  }, [person, sharedCommentPersonId, onSharedTargetHandled]);
 
   if (!person) {
     return (
@@ -2845,7 +2939,15 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal }) {
     shareContent({
       title: person.fullName,
       text: [person.fullName, lifeYears].filter(Boolean).join(" "),
-      url: typeof window !== "undefined" ? window.location.href : ""
+      url: buildShareUrl(person.id, "shrine")
+    });
+  };
+
+  const shareMessage = () => {
+    shareContent({
+      title: `${person.fullName} - ${t("message")}`,
+      text: detailInfo || person.fullName,
+      url: buildShareUrl(person.id, "comment")
     });
   };
 
@@ -2890,7 +2992,7 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal }) {
             <AiMark />
           </button>
         </div>
-        <article className={`detail-entry ${detailInfo ? "" : "compact"}`}>
+        <article id="comment" ref={entryRef} className={`detail-entry ${detailInfo ? "" : "compact"}`}>
           <div className="detail-entry-header">
             <div className="detail-entry-avatar">
               <AvatarSilhouette />
@@ -2912,7 +3014,7 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal }) {
                 <div className="detail-entry-menu">
                   <button
                     onClick={() => {
-                      shareShrine();
+                      shareMessage();
                       setEntryMenuOpen(false);
                     }}
                   >
@@ -3010,8 +3112,8 @@ function ContactScreen({ language, t, goBack, setToast }) {
 function BottomNav({ active, setScreen, setModal, canUseAccount, t }) {
   const items = [
     { id: "home", label: t("home"), icon: <ContactRound size={36} /> },
-    { id: "add", label: t("add"), icon: <Plus size={30} />, featured: true },
-    { id: "search", label: t("search"), icon: <Search size={42} /> },
+    { id: "search", label: t("search"), icon: <MessageSquare size={38} /> },
+    { id: "add", label: t("add"), icon: <SquarePen size={36} />, featured: true },
     { id: "settings", label: t("settings"), icon: <Settings size={42} /> }
   ];
   const go = (id) => {
@@ -3689,11 +3791,21 @@ function RoseGraphic({ small = false }) {
 
 function AvatarSilhouette() {
   return (
-    <svg className="avatar-svg" viewBox="0 0 120 120" role="img" aria-label="Default avatar">
-      <circle cx="60" cy="60" r="58" fill="#d8d8d8" />
-      <path d="M35 105c6-17 20-25 25-25s19 8 25 25H35Z" fill="#fff" />
-      <path d="M37 58c0-19 10-34 23-34s23 15 23 34c0 16-9 29-23 29S37 74 37 58Z" fill="#fff" />
-      <path d="M74 16c18 7 31 23 36 43-15-7-27-19-36-43Z" fill="#cfcfcf" opacity=".8" />
+    <svg className="avatar-svg" viewBox="0 0 120 190" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Default avatar">
+      <defs>
+        <linearGradient id="avatarFade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#d0d0d0" />
+          <stop offset="0.72" stopColor="#cfcfcf" />
+          <stop offset="1" stopColor="#bdbdbd" />
+        </linearGradient>
+      </defs>
+      <rect width="120" height="190" fill="#fafafa" />
+      <path
+        d="M2 190c3-32 12-47 33-55 7-3 11-8 10-16-1-7-7-11-10-20-4-11-5-34 1-51 7-20 22-31 43-29 12 1 19 5 25 12 10 2 15 11 15 26v28c0 16-8 28-18 36-4 4-4 10 1 14 16 10 18 25 18 55H2Z"
+        fill="url(#avatarFade)"
+      />
+      <path d="M4 150c20-7 35-17 43-31 2 16-4 25-15 31-11 7-20 16-28 30v-30Z" fill="#d0d0d0" opacity=".92" />
+      <rect y="132" width="120" height="58" fill="url(#avatarFade)" opacity=".44" />
     </svg>
   );
 }
