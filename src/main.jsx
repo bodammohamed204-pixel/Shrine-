@@ -1477,11 +1477,10 @@ function canViewFlowerSenders(person, currentUser) {
   if (!person || defaultPeople.some((sample) => sample.id === person.id) || person.createdBy === "sample") return false;
 
   const creatorId = String(person.createdBy || "").trim();
-  if (person.importedFromShare && (!creatorId || creatorId !== String(currentUser?.id || ""))) return false;
-  if (!person.importedFromShare && (person.createdLocally || person.createdAt)) return true;
-  if (!creatorId) return true;
+  if (!person.importedFromShare) return true;
+  if (!creatorId) return false;
 
-  return creatorId === "guest" || creatorId === String(currentUser?.id || "");
+  return creatorId === String(currentUser?.id || "");
 }
 
 function getUserName(user) {
