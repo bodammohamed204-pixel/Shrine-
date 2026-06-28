@@ -2464,12 +2464,26 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
           <div className="detail-summary">
             {person.fatherName && <p className="detail-father-name">{person.fatherName}</p>}
             <h2>{person.fullName}</h2>
-            <p className="detail-dates">
-              {person.birthDate || t("unknownBirth")} - {person.deathDate}
-            </p>
-            <p className="detail-country">
-              <Flag country={findCountry(person.country)} /> {countryLabel(person.country, language)}
-            </p>
+            <p className="detail-dates">{lifeYears}</p>
+            {displayAge && <p className="detail-age">{displayAge} Year</p>}
+            <div className="detail-quick-actions">
+              <button className="detail-action-tile" type="button" aria-label={t("gallery")} onClick={() => setScreen("gallery")}>
+                <ImageIcon size={23} />
+              </button>
+              <button
+                className={`detail-action-tile rose-tile ${activeFlowers.length ? "selected" : ""}`}
+                type="button"
+                aria-label={t("giveFlower")}
+                aria-pressed={Boolean(activeFlowers.length)}
+                onClick={openFlowerPicker}
+              >
+                <RoseGraphic small />
+                <span>{activeFlowers.length}</span>
+              </button>
+              <button className="detail-action-tile ai-tile" type="button" aria-label="AI" onClick={() => setModal({ type: "aiSoon" })}>
+                <AiMark />
+              </button>
+            </div>
           </div>
         </div>
         <div className="detail-actions">
