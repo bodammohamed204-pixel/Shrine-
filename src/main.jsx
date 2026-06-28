@@ -764,7 +764,9 @@ const copy = {
     oneFlowerADay: "One Flower A Day",
     flowerAlreadySentToday: "You have already sent a flower to this shrine today",
     flowerLasts: "The flower lasts for seven days",
-    flowerCount: "{count} flowers"
+    flowerCount: "{count} flowers",
+    noFlowersYet: "No flowers yet",
+    flowerSenders: "Flower senders"
   },
   AR: {
     shrine: "شراين",
@@ -947,7 +949,9 @@ const copy = {
     oneFlowerADay: "وردة واحدة يوميًا",
     flowerAlreadySentToday: "لقد أرسلت وردة لهذا المزار اليوم بالفعل",
     flowerLasts: "الوردة تستمر سبعة أيام",
-    flowerCount: "{count} وردة"
+    flowerCount: "{count} وردة",
+    noFlowersYet: "لا توجد ورود حتى الآن",
+    flowerSenders: "مرسلو الورود"
   }
 };
 
@@ -1191,6 +1195,13 @@ function personCreatedDate(person) {
 function canEditPersonShrine(person, currentUser) {
   const creatorId = person?.createdBy || "";
   return Boolean(creatorId && creatorId !== "sample" && (creatorId === "guest" || creatorId === currentUser?.id));
+}
+
+function canViewFlowerSenders(person, currentUser) {
+  if (!person || defaultPeople.some((sample) => sample.id === person.id) || person.createdBy === "sample") return false;
+
+  const creatorId = String(person.createdBy || "").trim();
+  return Boolean(creatorId && (creatorId === "guest" || creatorId === String(currentUser?.id || "")));
 }
 
 function getUserName(user) {
@@ -1834,6 +1845,7 @@ function App() {
       {screen === "contact" && <ContactScreen {...commonProps} />}
       {screen === "detail" && <DetailScreen {...commonProps} />}
       {screen === "gallery" && <GalleryScreen {...commonProps} />}
+      {screen === "flowers" && <FlowerScreen {...commonProps} />}
       {screen === "message" && <MessageScreen {...commonProps} />}
 
       {["home", "add", "search", "settings"].includes(screen) && (
@@ -3295,6 +3307,62 @@ function GalleryScreen({ state, t, setScreen, goBack }) {
   );
 }
 
+function FlowerScreen({ state, language, t, setModal, goBack }) {
+  const person = state.people.find((item) => item.id === state.selectedPersonId);
+
+  if (!person) {
+    return (
+      <main className="main-screen flowers-screen">
+        <Header title={t("giveFlower")} back={goBack} language={language} t={t} />
+        <EmptyState title={t("entryNotFound")} />
+      </main>
+    );
+  }
+
+  const flowers = activeFlowerGifts(person.flowers).sort((left, right) => Date.parse(right.givenAt) - Date.parse(left.givenAt));
+
+  return (
+    <main className="main-screen flowers-screen scroll-screen">
+      <Header
+        title={t("giveFlower")}
+        back={goBack}
+        language={language}
+        t={t}
+        action={
+          <button
+            className="header-icon flower-header-button"
+            onClick={() => setModal({ type: "flower", personId: person.id })}
+            aria-label={t("giveFlower")}
+          >
+            <Plus size={34} />
+          </button>
+        }
+      />
+      <section className="flower-person-row">
+        <div className="flower-person-photo">
+          {person.photo ? <img src={person.photo} alt={person.fullName} /> : <AvatarSilhouette />}
+        </div>
+        <strong>{person.fullName}</strong>
+      </section>
+      <section className="flower-sender-list" aria-label={t("flowerSenders")}>
+        {!flowers.length && <p className="flower-empty">{t("noFlowersYet")}</p>}
+        {flowers.map((flower) => (
+          <article className="flower-sender-card" key={flower.id}>
+            <div className="flower-sender-avatar">
+              <AvatarSilhouette />
+            </div>
+            <div className="flower-sender-text">
+              <strong>{flower.userName || t("guestAccount")}</strong>
+              <span>{formatStoredDate(flower.givenAt)}</span>
+            </div>
+            <RoseGraphic small />
+          </article>
+        ))}
+      </section>
+    </main>
+  );
+}
+
 function MessageScreen({ state, language, t, goBack, onSendMessage, activeUser }) {
   const [draft, setDraft] = useState("");
   const [attachment, setAttachment] = useState(null);
@@ -3440,6 +3508,7 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
   const activeFlowers = activeFlowerGifts(person.flowers);
   const shrineMessages = normalizePersonMessages(person.messages);
   const canEditShrine = canEditPersonShrine(person, state.currentUser);
+  const canOpenFlowerSenders = canViewFlowerSenders(person, state.currentUser);
 
   const shareShrine = () => {
     shareContent({
@@ -3494,7 +3563,13 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
           </button>
           <button
             className="detail-tool-button detail-flower-button"
-            onClick={() => setModal({ type: "flower", personId: person.id })}
+            onClick={() => {
+              if (canOpenFlowerSenders) {
+                setScreen("flowers");
+                return;
+              }
+              setModal({ type: "flower", personId: person.id });
+            }}
             aria-label={t("giveFlower")}
           >
             <RoseGraphic small />

@@ -2070,6 +2070,150 @@ button {
   object-fit: cover;
 }
 
+.flowers-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-bottom: 0;
+  background: #fff8ff;
+}
+
+.flowers-screen .top-header {
+  direction: ltr;
+  min-height: 78px;
+  border-radius: 19px 19px 0 0;
+  background: #d9f5ff;
+}
+
+.flowers-screen .top-header .rays {
+  opacity: 0.82;
+  background:
+    radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.98) 0 14%, rgba(255, 255, 255, 0.72) 22%, rgba(255, 255, 255, 0) 39%),
+    repeating-conic-gradient(from -18deg at 50% 104%, rgba(255, 255, 255, 0.78) 0 7deg, rgba(133, 218, 240, 0.28) 7deg 16deg, rgba(255, 255, 255, 0.58) 16deg 23deg, rgba(98, 202, 231, 0.22) 23deg 31deg),
+    linear-gradient(180deg, #d8f6ff 0%, #eefbff 100%);
+}
+
+.flowers-screen .top-header h1 {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.flowers-screen .header-icon.left {
+  color: #fff;
+  filter: drop-shadow(0 1px 2px rgba(74, 157, 184, 0.14));
+}
+
+.flowers-screen .header-action {
+  top: 20px;
+  right: 20px;
+}
+
+.flower-person-row {
+  direction: ltr;
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+  min-height: 126px;
+  padding: 12px 22px;
+  border-bottom: 2px solid #d6d0d8;
+  background: #fff8ff;
+}
+
+.flower-person-photo {
+  width: 80px;
+  height: 92px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #f4f4f4;
+}
+
+.flower-person-photo img,
+.flower-person-photo .avatar-svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.flower-person-row strong {
+  min-width: 0;
+  color: #050505;
+  font-size: 1.55rem;
+  font-weight: 900;
+  line-height: 1.18;
+  text-align: left;
+  unicode-bidi: plaintext;
+  overflow-wrap: anywhere;
+}
+
+.flower-sender-list {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-height: calc(100vh - 204px);
+  min-height: calc(100dvh - 204px);
+  padding: 26px 22px 90px;
+  background: #fff8ff;
+}
+
+.flower-sender-card {
+  direction: ltr;
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) 64px;
+  align-items: center;
+  gap: 10px;
+  min-height: 78px;
+}
+
+.flower-sender-avatar {
+  width: 52px;
+  height: 52px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #f1f2f4;
+}
+
+.flower-sender-avatar .avatar-svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.flower-sender-text {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  text-align: left;
+}
+
+.flower-sender-text strong {
+  min-width: 0;
+  color: #050505;
+  font-size: 1.2rem;
+  font-weight: 850;
+  line-height: 1.1;
+  unicode-bidi: plaintext;
+  overflow-wrap: anywhere;
+}
+
+.flower-sender-text span {
+  color: #777;
+  font-size: 1rem;
+  line-height: 1.1;
+}
+
+.flower-sender-card .rose-graphic.small {
+  justify-self: end;
+  width: 44px;
+}
+
+.flower-empty {
+  margin: 52px auto 0;
+  color: #8a9099;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 750;
+}
+
 .message-screen {
   min-height: 100vh;
   min-height: 100dvh;
