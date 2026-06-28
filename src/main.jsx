@@ -4391,18 +4391,18 @@ function AvatarSilhouette() {
     <svg className="avatar-svg" viewBox="0 0 120 190" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Default avatar">
       <defs>
         <linearGradient id="avatarFade" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#d0d0d0" />
-          <stop offset="0.72" stopColor="#cfcfcf" />
-          <stop offset="1" stopColor="#bdbdbd" />
+          <stop offset="0" stopColor="#d7d7d7" />
+          <stop offset="0.68" stopColor="#d0d0d0" />
+          <stop offset="1" stopColor="#bbbbbb" />
         </linearGradient>
       </defs>
       <rect width="120" height="190" fill="#fafafa" />
       <path
-        d="M8 190c4-33 19-51 44-60v-12C38 109 29 91 29 69v-8c0-26 13-43 31-43s31 17 31 43v8c0 22-9 40-23 49v12c25 9 40 27 44 60H8Z"
+        d="M9 190c4-28 20-45 48-54v-13C37 115 24 93 24 65v-5c0-29 15-48 36-48s36 19 36 48v5c0 28-13 50-33 58v13c28 9 44 26 48 54H9Z"
         fill="url(#avatarFade)"
       />
-      <path d="M18 158c12-15 26-23 42-23s30 8 42 23c5 8 8 18 10 32H8c2-14 5-24 10-32Z" fill="#d0d0d0" opacity=".92" />
-      <rect y="132" width="120" height="58" fill="url(#avatarFade)" opacity=".44" />
+      <path d="M4 190c5-30 24-48 56-55 32 7 51 25 56 55H4Z" fill="#c8c8c8" opacity=".76" />
+      <path d="M35 134c7 8 15 12 25 12s18-4 25-12v18c-6 8-14 12-25 12s-19-4-25-12v-18Z" fill="#d5d5d5" opacity=".72" />
     </svg>
   );
 }
