@@ -1,8 +1,6 @@
 :root {
-  --font-ios: 'SF Arabic', 'San Francisco Arabic', -apple-system, BlinkMacSystemFont, 'Noto Sans Arabic', sans-serif;
+  --font-ios: -apple-system, BlinkMacSystemFont, 'SF Arabic', 'San Francisco Arabic', 'Helvetica Neue', Arial, sans-serif;
   --font-android: 'Noto Sans Arabic', Arial, sans-serif;
-  --font-latin: var(--font-android);
-  --font-arabic: var(--font-android);
   --font-app: var(--font-android);
   --blue: #2494e8;
   --blue-dark: #1675bd;
@@ -22,6 +20,11 @@
   background: #eef2f7;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+}
+
 body,
 * {
   box-sizing: border-box;
@@ -33,12 +36,16 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   background: #eef2f7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
+  font-family: inherit;
 }
 
 button {
@@ -62,21 +69,11 @@ button {
 }
 
 .app-shell.ios-font {
-  --font-latin: var(--font-ios);
-  --font-arabic: var(--font-ios);
+  --font-app: var(--font-ios);
 }
 
 .app-shell.android-font {
-  --font-latin: var(--font-android);
-  --font-arabic: var(--font-android);
-}
-
-.app-shell:not(.rtl) {
-  --font-app: var(--font-latin);
-}
-
-.app-shell.rtl {
-  --font-app: var(--font-arabic);
+  --font-app: var(--font-android);
 }
 
 .splash-intro {
@@ -309,7 +306,7 @@ button {
   color: #050505;
   font-size: 1.32rem;
   line-height: 1.15;
-  font-weight: 850;
+  font-weight: 800;
 }
 
 .auth-intro p,
@@ -339,7 +336,7 @@ button {
   margin-bottom: 7px;
   color: #283040;
   font-size: 0.93rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .login-screen .field-label {
@@ -347,7 +344,7 @@ button {
   color: #050505;
   font-size: 1.05rem;
   line-height: 1.2;
-  font-weight: 850;
+  font-weight: 800;
 }
 
 .login-screen > .field-label {
@@ -638,7 +635,7 @@ button {
   min-height: 54px;
   border-radius: 8px;
   font-size: 1rem;
-  font-weight: 750;
+  font-weight: 700;
   text-align: center;
 }
 
@@ -1003,7 +1000,7 @@ button {
   background: #fff;
   box-shadow: none;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1097,7 +1094,7 @@ button {
   color: #222;
   font-size: 13px;
   font-style: normal;
-  font-weight: 650;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1502,7 +1499,7 @@ button {
   color: #b42318;
   background: #fff;
   font-size: 1rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .danger-button.small {
@@ -1757,7 +1754,7 @@ button {
   min-width: 0;
   color: #111;
   font-size: 1.25rem;
-  font-weight: 850;
+  font-weight: 800;
   line-height: 1.12;
   text-align: left;
   unicode-bidi: plaintext;
@@ -1947,7 +1944,7 @@ button {
   min-width: 0;
   color: #050505;
   font-size: 1.2rem;
-  font-weight: 850;
+  font-weight: 800;
   line-height: 1.1;
   unicode-bidi: plaintext;
   overflow-wrap: anywhere;
@@ -1969,7 +1966,7 @@ button {
   color: #8a9099;
   text-align: center;
   font-size: 1rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .message-screen {
@@ -2336,7 +2333,7 @@ button {
   margin: 0 0 18px;
   color: #687482;
   font-size: 1.05rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .detail-dates,
@@ -2429,7 +2426,7 @@ button {
   color: #b71735;
   background: #fff0f3;
   font-size: 0.88rem;
-  font-weight: 850;
+  font-weight: 800;
 }
 
 .detail-tools {
@@ -2478,7 +2475,7 @@ button {
   padding: 0 8px;
   color: #1f8edc;
   font-size: 16px;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .detail-flower-button .rose-graphic.small {
@@ -2956,7 +2953,7 @@ button {
   color: #fff;
   background: transparent;
   font-size: var(--nav-label-size);
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .bottom-nav .nav-label {
@@ -3175,7 +3172,7 @@ button {
   border-radius: 999px;
   color: #fff;
   text-align: center;
-  font-weight: 850;
+  font-weight: 800;
   line-height: 1.22;
   box-shadow: 0 14px 26px rgba(0, 0, 0, 0.22);
   pointer-events: none;
@@ -3211,7 +3208,7 @@ button {
   color: rgba(36, 148, 232, 0.92);
   text-align: center;
   font-size: 1.15rem;
-  font-weight: 850;
+  font-weight: 800;
   line-height: 1.35;
 }
 
@@ -3379,7 +3376,7 @@ button {
   background: #fff;
   font: inherit;
   font-size: 0.95rem;
-  font-weight: 750;
+  font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -3926,7 +3923,7 @@ button {
   color: #111;
   font-size: 1.18rem;
   line-height: 1.1;
-  font-weight: 850;
+  font-weight: 800;
 }
 
 .logout-confirm-modal p {
@@ -3934,7 +3931,7 @@ button {
   color: #111;
   font-size: 1rem;
   line-height: 1.35;
-  font-weight: 850;
+  font-weight: 800;
 }
 
 .logout-actions {
@@ -3992,14 +3989,14 @@ button {
   color: #222832;
   font-size: 1.35rem;
   line-height: 1.15;
-  font-weight: 850;
+  font-weight: 800;
 }
 
 .ai-soon-modal p {
   margin: 0 auto 24px;
   color: #343942;
   font-size: 1.02rem;
-  font-weight: 750;
+  font-weight: 700;
   line-height: 1.55;
 }
 
