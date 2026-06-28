@@ -468,6 +468,8 @@ const copy = {
     flower: "Flower",
     flowerAdded: "Flower added to the shrine",
     flowerUsedToday: "You have one flower per day",
+    oneFlowerADay: "One Flower A Day",
+    flowerAlreadySentToday: "You have already sent a flower to this shrine today",
     flowerLasts: "The flower lasts for seven days",
     flowerCount: "{count} flowers"
   },
@@ -606,6 +608,8 @@ const copy = {
     flower: "وردة",
     flowerAdded: "تمت إضافة الوردة إلى المزار",
     flowerUsedToday: "لديك وردة واحدة فقط في اليوم",
+    oneFlowerADay: "وردة واحدة في اليوم",
+    flowerAlreadySentToday: "لقد أرسلت وردة لهذا المزار اليوم بالفعل",
     flowerLasts: "الوردة تستمر سبعة أيام",
     flowerCount: "{count} وردة"
   }
@@ -952,7 +956,6 @@ function App() {
 
     const dayKey = localDateKey();
     if (userHasGivenFlowerToday(state.people, user.id, dayKey)) {
-      setToast(t("flowerUsedToday"));
       return false;
     }
 
@@ -1172,9 +1175,11 @@ function App() {
           t={t}
           onClose={() => setModal(null)}
           onGive={() => {
-            if (giveFlowerToPerson(modal.personId)) {
+            const added = giveFlowerToPerson(modal.personId);
+            if (added) {
               setModal(null);
             }
+            return added;
           }}
         />
       )}
@@ -2435,6 +2440,13 @@ function Sheet({ children, onClose }) {
 }
 
 function FlowerModal({ t, onGive, onClose }) {
+  const [showLimit, setShowLimit] = useState(false);
+
+  const give = () => {
+    if (onGive()) return;
+    setShowLimit(true);
+  };
+
   return (
     <div className="modal-backdrop flower-backdrop" onClick={onClose}>
       <div className="flower-modal" onClick={(event) => event.stopPropagation()}>
@@ -2447,9 +2459,15 @@ function FlowerModal({ t, onGive, onClose }) {
         <button className="flower-nav-button right" type="button" aria-hidden="true" tabIndex={-1}>
           <ChevronRight size={50} />
         </button>
-        <button className="flower-pick-button" type="button" onClick={onGive} aria-label={t("giveFlower")}>
+        <button className="flower-pick-button" type="button" onClick={give} aria-label={t("giveFlower")}>
           <RoseGraphic />
         </button>
+        {showLimit && (
+          <>
+            <div className="flower-limit-banner">{t("oneFlowerADay")}</div>
+            <div className="flower-limit-message">{t("flowerAlreadySentToday")}</div>
+          </>
+        )}
         <p className="flower-note">{t("flowerLasts")}</p>
       </div>
     </div>
