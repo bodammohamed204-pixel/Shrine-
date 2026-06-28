@@ -6,8 +6,8 @@
   "workers_dev": true,
   "routes": [
     {
-      "pattern": "app.shrine-app.com",
-      "custom_domain": true
+      "pattern": "app.shrine-app.com/*",
+      "zone_name": "shrine-app.com"
     }
   ],
   "build": {
