@@ -1892,6 +1892,7 @@ button {
 }
 
 .flowers-screen {
+  position: relative;
   min-height: 100vh;
   min-height: 100dvh;
   padding-bottom: 0;
@@ -2008,7 +2009,7 @@ button {
   gap: 10px;
   min-height: calc(100vh - 188px);
   min-height: calc(100dvh - 188px);
-  padding: 20px 16px 90px;
+  padding: 20px 16px 124px;
   background: #fff8ff;
 }
 
@@ -2061,6 +2062,27 @@ button {
 .flower-sender-card .rose-graphic.small {
   justify-self: end;
   width: 28px;
+}
+
+.flower-page-note {
+  position: fixed;
+  right: auto;
+  bottom: 0;
+  left: 50%;
+  z-index: 12;
+  width: min(calc(100vw - 28px), calc(var(--app-max-width) - 28px));
+  min-height: 58px;
+  margin: 0;
+  padding: 14px 18px calc(14px + env(safe-area-inset-bottom));
+  border-radius: 20px 20px 0 0;
+  color: rgba(36, 148, 232, 0.92);
+  background: #fff;
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.35;
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
 .flower-empty {

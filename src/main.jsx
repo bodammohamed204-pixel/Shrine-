@@ -3853,6 +3853,7 @@ function FlowerScreen({ state, language, t, setModal, goBack, flowerScreenMode }
           </article>
         ))}
       </section>
+      <p className="flower-page-note">{t("flowerLasts")}</p>
     </main>
   );
 }
