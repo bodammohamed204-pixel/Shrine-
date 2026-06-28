@@ -32,6 +32,7 @@ import "./styles.css";
 const STORAGE_KEY = "shrine_mobile_state_v1";
 const PRODUCTION_API_BASE_URL = "https://book-of-heaven.bodammohamed204.workers.dev";
 const PRODUCTION_API_HOST = "book-of-heaven.bodammohamed204.workers.dev";
+const OTP_RESEND_COOLDOWN_SECONDS = 60;
 
 function defaultApiBaseUrl() {
   if (typeof window === "undefined") return "";
@@ -72,6 +73,42 @@ async function readApiJson(response, fallbackMessage) {
       error: text || fallbackMessage
     };
   }
+}
+
+function positiveSeconds(value) {
+  const seconds = Number(value);
+  return Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds) : 0;
+}
+
+function parseRetryAfterSeconds(value) {
+  const text = String(value || "").trim();
+  if (!text) return 0;
+
+  const directSeconds = positiveSeconds(text);
+  if (directSeconds) return directSeconds;
+
+  const retryAt = Date.parse(text);
+  if (!Number.isFinite(retryAt)) return 0;
+  return positiveSeconds((retryAt - Date.now()) / 1000);
+}
+
+function retryAfterSecondsForResponse(response, data) {
+  return (
+    positiveSeconds(data?.retryAfterSeconds) ||
+    positiveSeconds(data?.retryAfter) ||
+    positiveSeconds(data?.retry_after) ||
+    parseRetryAfterSeconds(response.headers.get("Retry-After"))
+  );
+}
+
+function formatWaitTime(seconds) {
+  const totalSeconds = positiveSeconds(seconds);
+  if (totalSeconds >= 60) return `${Math.ceil(totalSeconds / 60)}m`;
+  return `${totalSeconds}s`;
+}
+
+function formatText(template, values) {
+  return String(template).replace(/\{(\w+)\}/g, (_match, key) => String(values[key] ?? ""));
 }
 
 const countries = [
@@ -234,6 +271,7 @@ const copy = {
     sixDigitCode: "8-digit code",
     codeSent: "Activation code sent.",
     emailCodeSent: "Email code sent.",
+    rateLimited: "Too many activation code requests. Try again in {time}.",
     enterCode: "Enter the activation code first.",
     couldNotSend: "Could not send activation code.",
     couldNotVerify: "Could not verify activation code.",
@@ -244,6 +282,7 @@ const copy = {
     verifyProceed: "Verify & Proceed",
     sendWhatsappCode: "Send WhatsApp Code",
     resendCode: "Resend code",
+    resendIn: "Resend in {time}",
     emailOrPhone: "Email or mobile number",
     emailOrPhonePlaceholder: "email@example.com or mobile number",
     accountPromptTitle: "Create an account to save your follows",
@@ -360,6 +399,7 @@ const copy = {
     sixDigitCode: "كود من 8 أرقام",
     codeSent: "تم إرسال كود التفعيل.",
     emailCodeSent: "تم إرسال كود البريد الإلكتروني.",
+    rateLimited: "طلبات كود التفعيل كثيرة. حاول مرة أخرى بعد {time}.",
     enterCode: "أدخل كود التفعيل أولًا.",
     couldNotSend: "تعذر إرسال كود التفعيل.",
     couldNotVerify: "تعذر التحقق من كود التفعيل.",
@@ -370,6 +410,7 @@ const copy = {
     verifyProceed: "تحقق وتابع",
     sendWhatsappCode: "إرسال كود واتساب",
     resendCode: "إعادة إرسال الكود",
+    resendIn: "إعادة الإرسال بعد {time}",
     emailOrPhone: "البريد الإلكتروني أو رقم الهاتف",
     emailOrPhonePlaceholder: "email@example.com أو رقم الهاتف",
     accountPromptTitle: "اعمل حساب عشان تحفظ المتابعات",
@@ -1869,8 +1910,12 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [resendAvailableAt, setResendAvailableAt] = useState(0);
+  const [now, setNow] = useState(Date.now());
   const codeInputRef = useRef(null);
   const selectedChannel = channels.find((channel) => channel.id === channelId) || channels[0];
+  const resendWaitSeconds = Math.max(0, Math.ceil((resendAvailableAt - now) / 1000));
+  const resendBlocked = resendWaitSeconds > 0;
 
   useEffect(() => {
     if (!sent) return;
@@ -1879,6 +1924,20 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
       codeInputRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
     });
   }, [sent]);
+
+  useEffect(() => {
+    if (!resendAvailableAt) return undefined;
+    const tick = () => setNow(Date.now());
+    tick();
+    const intervalId = window.setInterval(tick, 1000);
+    return () => window.clearInterval(intervalId);
+  }, [resendAvailableAt]);
+
+  useEffect(() => {
+    if (resendAvailableAt && now >= resendAvailableAt) {
+      setResendAvailableAt(0);
+    }
+  }, [now, resendAvailableAt]);
 
   const resetChannel = (nextChannelId) => {
     if (loading || nextChannelId === channelId) return;
@@ -1889,6 +1948,14 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
     setExpiresAt("");
     setMessage("");
     setError("");
+    setResendAvailableAt(0);
+  };
+
+  const startResendCooldown = (seconds = OTP_RESEND_COOLDOWN_SECONDS) => {
+    const duration = positiveSeconds(seconds) || OTP_RESEND_COOLDOWN_SECONDS;
+    const nextAvailableAt = Date.now() + duration * 1000;
+    setNow(Date.now());
+    setResendAvailableAt(nextAvailableAt);
   };
 
   const requestBody = () => {
@@ -1907,6 +1974,10 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
 
   const sendCode = async () => {
     if (!selectedChannel) return;
+    if (resendBlocked) {
+      setMessage(formatText(t("rateLimited"), { time: formatWaitTime(resendWaitSeconds) }));
+      return;
+    }
     setLoading(true);
     setError("");
     setMessage("");
@@ -1924,10 +1995,12 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
           selectedChannel.id === "mobile" && (response.status === 429 || /rate limit/i.test(errorMessage));
 
         if (canEnterExistingCode) {
+          const retryAfterSeconds = retryAfterSecondsForResponse(response, data) || OTP_RESEND_COOLDOWN_SECONDS;
           setSent(true);
           setChallenge(data.challenge || "");
           setExpiresAt(data.expiresAt || "");
-          setMessage(errorMessage);
+          startResendCooldown(retryAfterSeconds);
+          setMessage(formatText(t("rateLimited"), { time: formatWaitTime(retryAfterSeconds) }));
           return;
         }
 
@@ -1937,6 +2010,7 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
       setCode("");
       setChallenge(data.challenge || "");
       setExpiresAt(data.expiresAt || "");
+      startResendCooldown(retryAfterSecondsForResponse(response, data) || OTP_RESEND_COOLDOWN_SECONDS);
       const sentMessage = data.message || (selectedChannel.id === "email" ? t("emailCodeSent") : t("codeSent"));
       setMessage(data.debugCode ? `${sentMessage} ${t("devCode")}: ${data.debugCode}` : sentMessage);
     } catch (err) {
@@ -2026,8 +2100,8 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
           {loading ? t("pleaseWait") : sent ? t("verifyProceed") : selectedChannel?.id === "mobile" ? t("sendWhatsappCode") : t("send")}
         </button>
         {sent && (
-          <button className="ghost-link resend-link" disabled={loading} onClick={sendCode}>
-            {t("resendCode")}
+          <button className="ghost-link resend-link" disabled={loading || resendBlocked} onClick={sendCode}>
+            {resendBlocked ? formatText(t("resendIn"), { time: formatWaitTime(resendWaitSeconds) }) : t("resendCode")}
           </button>
         )}
       </div>

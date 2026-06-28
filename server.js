@@ -14,6 +14,7 @@ const app = express();
 const port = Number(process.env.PORT || 5184);
 const oncallosBaseUrl = "https://public.oncallos.com";
 const emailOtpTtlMs = 10 * 60 * 1000;
+const otpRateLimitFallbackSeconds = 60 * 60;
 const devEmailOtpSecret = crypto.randomBytes(32).toString("hex");
 const defaultAllowedOrigins =
   process.env.NODE_ENV === "production"
@@ -50,6 +51,7 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS");
+    res.setHeader("Access-Control-Expose-Headers", "Retry-After, X-RateLimit-Remaining-Hour, X-RateLimit-Remaining-Day");
     res.setHeader("Vary", "Origin");
   }
 
@@ -148,6 +150,49 @@ function escapeHtml(value) {
     .replace(/"/g, "&quot;");
 }
 
+function positiveSeconds(value) {
+  const seconds = Number(value);
+  return Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds) : 0;
+}
+
+function parseRetryAfterSeconds(value) {
+  const text = String(value || "").trim();
+  if (!text) return 0;
+
+  const directSeconds = positiveSeconds(text);
+  if (directSeconds) return directSeconds;
+
+  const retryAt = Date.parse(text);
+  if (!Number.isFinite(retryAt)) return 0;
+  return positiveSeconds((retryAt - Date.now()) / 1000);
+}
+
+function rateLimitedOtpResult(result) {
+  if (result.status !== 429) return result;
+
+  const body = result.body && typeof result.body === "object" && !Array.isArray(result.body) ? result.body : {};
+  const retryAfterSeconds =
+    positiveSeconds(body.retryAfterSeconds) ||
+    positiveSeconds(body.retryAfter) ||
+    positiveSeconds(body.retry_after) ||
+    parseRetryAfterSeconds(result.headers["Retry-After"]) ||
+    otpRateLimitFallbackSeconds;
+
+  return {
+    ...result,
+    headers: {
+      ...result.headers,
+      "Retry-After": result.headers["Retry-After"] || String(retryAfterSeconds)
+    },
+    body: {
+      ...body,
+      success: false,
+      error: body.error || body.message || "Too many activation code requests. Please wait before requesting another code.",
+      retryAfterSeconds
+    }
+  };
+}
+
 async function deliverEmailOtp(email, code, expiresAt) {
   const from = process.env.OTP_EMAIL_FROM?.trim();
   const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
@@ -197,7 +242,8 @@ async function forwardOtpRequest(pathname, payload) {
       body: {
         success: false,
         error: "OTP is not configured on this server."
-      }
+      },
+      headers: {}
     };
   }
 
@@ -218,7 +264,7 @@ async function forwardOtpRequest(pathname, payload) {
     body = { success: false, error: text || response.statusText };
   }
 
-  return {
+  return rateLimitedOtpResult({
     status: response.status,
     body,
     headers: {
@@ -226,7 +272,7 @@ async function forwardOtpRequest(pathname, payload) {
       "X-RateLimit-Remaining-Hour": response.headers.get("X-RateLimit-Remaining-Hour"),
       "X-RateLimit-Remaining-Day": response.headers.get("X-RateLimit-Remaining-Day")
     }
-  };
+  });
 }
 
 app.post("/api/otp/send", async (req, res) => {
@@ -246,7 +292,7 @@ app.post("/api/otp/send", async (req, res) => {
       codeLength: Math.min(8, Math.max(4, codeLength))
     });
 
-    for (const [key, value] of Object.entries(result.headers)) {
+    for (const [key, value] of Object.entries(result.headers || {})) {
       if (value) res.setHeader(key, value);
     }
 

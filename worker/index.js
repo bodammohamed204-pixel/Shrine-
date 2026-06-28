@@ -1,5 +1,6 @@
 const ONCALLOS_BASE_URL = "https://public.oncallos.com";
 const EMAIL_OTP_TTL_MS = 10 * 60 * 1000;
+const OTP_RATE_LIMIT_FALLBACK_SECONDS = 60 * 60;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
@@ -45,6 +46,7 @@ function corsHeaders(request, env) {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "POST,OPTIONS",
+    "Access-Control-Expose-Headers": "Retry-After, X-RateLimit-Remaining-Hour, X-RateLimit-Remaining-Day",
     Vary: "Origin"
   };
 }
@@ -152,6 +154,49 @@ async function parseJson(request) {
   }
 }
 
+function positiveSeconds(value) {
+  const seconds = Number(value);
+  return Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds) : 0;
+}
+
+function parseRetryAfterSeconds(value) {
+  const text = String(value || "").trim();
+  if (!text) return 0;
+
+  const directSeconds = positiveSeconds(text);
+  if (directSeconds) return directSeconds;
+
+  const retryAt = Date.parse(text);
+  if (!Number.isFinite(retryAt)) return 0;
+  return positiveSeconds((retryAt - Date.now()) / 1000);
+}
+
+function rateLimitedOtpResult(result) {
+  if (result.status !== 429) return result;
+
+  const body = result.body && typeof result.body === "object" && !Array.isArray(result.body) ? result.body : {};
+  const retryAfterSeconds =
+    positiveSeconds(body.retryAfterSeconds) ||
+    positiveSeconds(body.retryAfter) ||
+    positiveSeconds(body.retry_after) ||
+    parseRetryAfterSeconds(result.headers["Retry-After"]) ||
+    OTP_RATE_LIMIT_FALLBACK_SECONDS;
+
+  return {
+    ...result,
+    headers: {
+      ...result.headers,
+      "Retry-After": result.headers["Retry-After"] || String(retryAfterSeconds)
+    },
+    body: {
+      ...body,
+      success: false,
+      error: body.error || body.message || "Too many activation code requests. Please wait before requesting another code.",
+      retryAfterSeconds
+    }
+  };
+}
+
 async function forwardOtpRequest(pathname, payload, env) {
   const apiKey = String(env.ONCALLOS_API_KEY || "").trim();
   if (!apiKey) {
@@ -188,7 +233,7 @@ async function forwardOtpRequest(pathname, payload, env) {
     if (value) headers[key] = value;
   }
 
-  return { status: response.status, body, headers };
+  return rateLimitedOtpResult({ status: response.status, body, headers });
 }
 
 async function sendOtp(request, env) {
