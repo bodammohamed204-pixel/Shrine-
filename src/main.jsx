@@ -1901,6 +1901,7 @@ function App() {
           toggleLanguage={toggleLanguage}
           initialChannel={modal.preferredChannel}
           autoSendInitial={modal.autoSend}
+          requireChannelChoice={modal.requireChannelChoice}
           onCancel={() => setModal(null)}
           onBackFromCode={modal.onBackFromCode}
           onLoginFromCode={modal.onLoginFromCode}
@@ -2162,8 +2163,7 @@ function RegisterScreen({ state, language, t, updateState, onRegister, onCancelR
     setModal({
       type: "verify",
       user,
-      preferredChannel: "email",
-      autoSend: true,
+      requireChannelChoice: true,
       onBackFromCode: onCancelRegistration,
       onLoginFromCode: () => {
         setModal(null);
@@ -3934,6 +3934,7 @@ function VerifyModal({
   toggleLanguage,
   initialChannel,
   autoSendInitial = false,
+  requireChannelChoice = false,
   onProceed,
   onCancel,
   onBackFromCode,
@@ -3962,8 +3963,11 @@ function VerifyModal({
         : null
     ].filter(Boolean);
   }, [t, user.email, user.otpPhone, user.phone, user.phoneCode]);
+  const shouldRequireChannelChoice = requireChannelChoice && channels.length > 1;
   const initialChannelId = channels.some((channel) => channel.id === initialChannel)
     ? initialChannel
+    : shouldRequireChannelChoice
+      ? ""
     : channels[0]?.id || "mobile";
   const [channelId, setChannelId] = useState(initialChannelId);
   const [step, setStep] = useState("choose");
@@ -3978,7 +3982,7 @@ function VerifyModal({
   const [now, setNow] = useState(Date.now());
   const codeInputRef = useRef(null);
   const autoSentRef = useRef(false);
-  const selectedChannel = channels.find((channel) => channel.id === channelId) || channels[0];
+  const selectedChannel = channels.find((channel) => channel.id === channelId) || (shouldRequireChannelChoice ? null : channels[0]);
   const codeStep = step === "code";
   const registrationCodeStep = codeStep && Boolean(onBackFromCode);
   const codeDigits = Array.from({ length: 6 }, (_item, index) => code[index] || "");
@@ -3988,8 +3992,8 @@ function VerifyModal({
 
   useEffect(() => {
     if (channels.some((channel) => channel.id === channelId)) return;
-    setChannelId(channels[0]?.id || "mobile");
-  }, [channelId, channels]);
+    setChannelId(shouldRequireChannelChoice ? "" : channels[0]?.id || "mobile");
+  }, [channelId, channels, shouldRequireChannelChoice]);
 
   useEffect(() => {
     if (!codeStep) return;
@@ -4112,6 +4116,10 @@ function VerifyModal({
 
   const goBackFromCode = () => {
     if (loading) return;
+    if (shouldRequireChannelChoice) {
+      chooseDifferentMethod();
+      return;
+    }
     if (onBackFromCode) {
       onBackFromCode();
       return;
