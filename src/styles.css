@@ -380,6 +380,11 @@ button {
   padding-right: 58px;
 }
 
+.password-field input::-ms-reveal,
+.password-field input::-ms-clear {
+  display: none;
+}
+
 .rtl .password-field input {
   padding-right: 18px;
   padding-left: 58px;
