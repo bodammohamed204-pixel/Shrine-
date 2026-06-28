@@ -356,6 +356,7 @@ const copy = {
     dateOfDeath: "Date of Death",
     dateOfBirth: "Date of Birth",
     age: "Age",
+    years: "Years",
     information: "Information",
     words: "words",
     create: "Create",
@@ -484,6 +485,7 @@ const copy = {
     dateOfDeath: "تاريخ الوفاة",
     dateOfBirth: "تاريخ الميلاد",
     age: "العمر",
+    years: "سنة",
     information: "معلومات",
     words: "كلمة",
     create: "إنشاء",
@@ -676,6 +678,23 @@ function today() {
   });
 }
 
+function formatStoredDate(value) {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+}
+
+function personCreatedDate(person) {
+  if (person?.createdAt) return formatStoredDate(person.createdAt);
+
+  const idTimestamp = Number(String(person?.id || "").split("-")[0]);
+  if (Number.isFinite(idTimestamp) && idTimestamp > 0) {
+    return formatStoredDate(idTimestamp);
+  }
+
+  return "";
+}
+
 function getUserName(user) {
   if (!user) return "Guest";
   return `${user.firstName || ""} ${user.surname || ""}`.trim() || user.email;
@@ -780,7 +799,16 @@ function App() {
   const addPerson = (person) => {
     setState((current) => ({
       ...current,
-      people: [{ ...person, id: uid(), createdBy: current.currentUser?.id || "guest" }, ...current.people]
+      people: [
+        {
+          ...person,
+          id: uid(),
+          createdAt: new Date().toISOString(),
+          createdBy: current.currentUser?.id || "guest",
+          createdByName: current.currentUser ? getUserName(current.currentUser) : ""
+        },
+        ...current.people
+      ]
     }));
     setToast(t("memorialCreated"));
     setScreen("home");
@@ -1777,6 +1805,10 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
 
   const followed = state.following.includes(person.id);
   const blocked = state.blocked.includes(person.id);
+  const creator = state.users.find((user) => user.id === person.createdBy);
+  const creatorName = person.createdByName || (creator ? getUserName(creator) : person.createdBy === "guest" ? t("guestAccount") : "Shrine");
+  const createdDate = personCreatedDate(person);
+  const detailInfo = person.info?.trim();
 
   const toggleFollow = () => {
     if (!canUseAccount) {
@@ -1800,18 +1832,22 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
     <main className="main-screen detail-screen scroll-screen">
       <Header title={t("memorial")} back={() => setScreen("home")} language={language} t={t} />
       <section className="detail-card">
-        <div className="detail-photo">
-          {person.photo ? <img src={person.photo} alt={person.fullName} /> : <AvatarSilhouette />}
+        <div className="detail-hero">
+          <div className="detail-photo">
+            {person.photo ? <img src={person.photo} alt={person.fullName} /> : <AvatarSilhouette />}
+          </div>
+          <div className="detail-summary">
+            {person.fatherName && <p className="detail-father-name">{person.fatherName}</p>}
+            <h2>{person.fullName}</h2>
+            <p className="detail-dates">
+              ({person.birthDate || t("unknownBirth")} - {person.deathDate})
+            </p>
+            {person.age && <p className="detail-age">{person.age} {t("years")}</p>}
+            <p className="detail-country">
+              <Flag country={findCountry(person.country)} /> {countryLabel(person.country, language)}
+            </p>
+          </div>
         </div>
-        {person.fatherName && <p className="detail-father-name">{person.fatherName}</p>}
-        <h2>{person.fullName}</h2>
-        <p className="detail-dates">
-          {person.birthDate || t("unknownBirth")} - {person.deathDate}
-        </p>
-        <p className="detail-country">
-          <Flag country={findCountry(person.country)} /> {countryLabel(person.country, language)}
-        </p>
-        {person.info && <p className="detail-info">{person.info}</p>}
         <div className="detail-actions">
           <button className={followed ? "primary-button small active" : "primary-button small"} onClick={toggleFollow}>
             <UserRoundPlus size={20} /> {followed ? t("following") : t("follow")}
@@ -1820,6 +1856,18 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
             <Ban size={20} /> {blocked ? t("unblock") : t("block")}
           </button>
         </div>
+        <article className={`detail-entry ${detailInfo ? "" : "compact"}`}>
+          <div className="detail-entry-header">
+            <div className="detail-entry-avatar">
+              <AvatarSilhouette />
+            </div>
+            <div>
+              <strong>{creatorName}</strong>
+              {createdDate && <span>{createdDate}</span>}
+            </div>
+          </div>
+          {detailInfo && <p className="detail-info">{detailInfo}</p>}
+        </article>
       </section>
     </main>
   );
