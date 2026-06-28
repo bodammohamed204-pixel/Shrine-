@@ -1303,9 +1303,9 @@ button {
 
 .settings-row {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) 24px;
+  grid-template-columns: 28px max-content minmax(0, 1fr);
   align-items: center;
-  gap: 10px;
+  column-gap: 8px;
   width: 100%;
   min-height: 62px;
   padding: 0 14px;
@@ -1325,6 +1325,7 @@ button {
 }
 
 .settings-row > span:nth-child(2) {
+  justify-self: start;
   min-width: 0;
 }
 
