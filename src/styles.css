@@ -1970,71 +1970,25 @@ button {
   font-size: 1.13rem;
 }
 
-.detail-quick-actions {
+.detail-actions {
   direction: ltr;
   display: grid;
-  grid-template-columns: 44px 84px 44px;
-  justify-content: start;
-  gap: 6px;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
   width: 100%;
-  margin: 78px 0 0;
+  margin: 22px 0 18px;
 }
 
-.detail-action-tile {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  width: 44px;
-  height: 48px;
-  min-width: 0;
-  border: 1px solid #e2e7ee;
+.detail-actions .primary-button.small,
+.detail-actions .outline-button.small {
+  min-height: 52px;
   border-radius: 8px;
-  color: var(--blue);
-  background: #fff;
-  box-shadow: var(--shadow-sm);
+  font-size: 1.05rem;
 }
 
-.detail-action-tile svg {
-  width: 23px;
-  height: 23px;
-  stroke-width: 2.45;
-}
-
-.detail-action-tile .rose-graphic.small {
-  width: 25px;
-  filter: drop-shadow(0 2px 3px rgba(110, 18, 28, 0.15));
-}
-
-.detail-action-tile.rose-tile {
-  width: 84px;
-}
-
-.rose-tile {
-  color: #247fbd;
-}
-
-.rose-tile svg {
-  color: #cc2442;
-}
-
-.rose-tile span {
-  color: var(--blue);
-  font-size: 0.9rem;
-  font-weight: 850;
-}
-
-.rose-tile.selected {
-  border-color: rgba(36, 148, 232, 0.45);
-  background: #eef8ff;
-}
-
-.ai-tile {
-  color: #3457c9;
-}
-
-.detail-block-action {
-  display: none;
+.detail-actions svg {
+  width: 20px;
+  height: 20px;
 }
 
 .flower-offerings {
