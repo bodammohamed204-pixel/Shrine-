@@ -603,7 +603,7 @@ button {
 }
 
 .login-screen .text-link.wide {
-  margin: 32px 0 0;
+  margin: 22px 0 0;
   color: #111;
   font-size: 1rem;
   line-height: 1.35;
@@ -635,7 +635,7 @@ button {
 .forgot-password-link {
   display: block;
   width: fit-content;
-  margin: 22px 24px 16px auto;
+  margin: 22px 24px 6px auto;
   border: 0;
   background: transparent;
   color: #111;
