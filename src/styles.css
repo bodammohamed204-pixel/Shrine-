@@ -2307,7 +2307,7 @@ button {
   left: 50%;
   z-index: 35;
   width: min(100vw, 430px);
-  min-height: 78px;
+  min-height: 72px;
   transform: translateX(-50%);
   display: grid;
   grid-template-columns: repeat(4, 1fr);
