@@ -3815,25 +3815,21 @@ function FlowerScreen({ state, language, t, setModal, goBack, flowerScreenMode }
   }
 
   const flowers = activeFlowerGifts(person.flowers).sort((left, right) => Date.parse(right.givenAt) - Date.parse(left.givenAt));
-  const showFlowerSenders = flowerScreenMode !== "give";
-
   return (
     <main className="main-screen flowers-screen scroll-screen">
       <Header
-        title={showFlowerSenders ? t("flowerSenders") : t("giveFlower")}
+        title={t("giveFlower")}
         back={goBack}
         language={language}
         t={t}
         action={
-          !showFlowerSenders && (
-            <button
-              className="header-icon flower-header-button"
-              onClick={() => setModal({ type: "flower", personId: person.id })}
-              aria-label={t("giveFlower")}
-            >
-              <Plus size={34} />
-            </button>
-          )
+          <button
+            className="header-icon flower-header-button"
+            onClick={() => setModal({ type: "flower", personId: person.id })}
+            aria-label={t("giveFlower")}
+          >
+            <Plus size={34} />
+          </button>
         }
       />
       <section className="flower-person-row">
