@@ -140,16 +140,16 @@ button {
 }
 
 .login-screen {
-  padding: 70px 18px 32px;
+  padding: 74px 18px 32px;
   background: #fff;
 }
 
 .login-screen .language-mini {
   min-width: 64px;
-  height: 34px;
+  height: 31px;
   padding: 0 10px;
   gap: 8px;
-  font-size: 0.98rem;
+  font-size: 0.86rem;
 }
 
 .login-screen .language-mini svg {
@@ -191,7 +191,7 @@ button {
 }
 
 .login-screen .auth-intro.login {
-  margin: 71px 0 31px;
+  margin: 70px 0 43px;
 }
 
 .auth-intro h1,
@@ -207,8 +207,8 @@ button {
 .login-screen .auth-intro h1 {
   margin: 0;
   color: #050505;
-  font-size: 1.98rem;
-  line-height: 1.14;
+  font-size: 1.32rem;
+  line-height: 1.15;
   font-weight: 850;
 }
 
@@ -243,11 +243,15 @@ button {
 }
 
 .login-screen .field-label {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   color: #050505;
-  font-size: 1.52rem;
-  line-height: 1.15;
+  font-size: 1.05rem;
+  line-height: 1.2;
   font-weight: 850;
+}
+
+.login-screen > .field-label {
+  margin-bottom: 18px;
 }
 
 .field-label em {
@@ -276,7 +280,7 @@ button {
 
 .login-screen .phone-field,
 .login-screen .password-field input {
-  min-height: 62px;
+  min-height: 58px;
   border-color: #e8e8e8;
   border-radius: 8px;
   box-shadow: none;
@@ -335,9 +339,9 @@ button {
 }
 
 .login-screen .country-code-button {
-  min-width: 116px;
-  padding: 0 20px 0 22px;
-  gap: 11px;
+  min-width: 0;
+  padding: 0 14px 0 11px;
+  gap: 8px;
   color: var(--blue);
 }
 
@@ -348,10 +352,10 @@ button {
   stroke-width: 0;
 }
 
-.login-screen .country-code-button span:last-child {
+.login-screen .country-code-button > span:last-child {
   color: var(--blue);
-  font-size: 1.3rem;
-  font-weight: 500;
+  font-size: 1.05rem;
+  font-weight: 400;
 }
 
 .country-code-button span {
@@ -370,7 +374,7 @@ button {
 
 .login-screen .phone-field input {
   color: #111;
-  font-size: 1.3rem;
+  font-size: 1rem;
   letter-spacing: 0;
 }
 
@@ -390,10 +394,10 @@ button {
 }
 
 .login-screen .counter {
-  margin: 11px 18px 6px 0;
+  margin: 8px 18px 0 0;
   color: #383838;
-  font-size: 1.24rem;
-  line-height: 1;
+  font-size: 0.88rem;
+  line-height: 1.1;
 }
 
 .counter.left {
@@ -474,7 +478,7 @@ button {
 }
 
 .login-screen .field-wrap:has(.password-field) {
-  margin-top: 14px;
+  margin-top: 11px;
 }
 
 .password-field input {
@@ -503,7 +507,7 @@ button {
 
 .login-screen .password-field input {
   padding-right: 64px;
-  font-size: 1.08rem;
+  font-size: 1rem;
 }
 
 .login-screen .password-field button {
@@ -511,8 +515,8 @@ button {
 }
 
 .login-screen .password-field button svg {
-  width: 34px;
-  height: 34px;
+  width: 24px;
+  height: 24px;
   stroke-width: 2.2;
 }
 
@@ -536,12 +540,12 @@ button {
 }
 
 .login-screen .primary-button {
-  min-height: 64px;
+  min-height: 68px;
   border-radius: 6px;
   color: rgba(255, 255, 255, 0.82);
   background: #2a9bec;
   box-shadow: none;
-  font-size: 1.38rem;
+  font-size: 1.05rem;
   font-weight: 400;
 }
 
@@ -594,9 +598,9 @@ button {
 }
 
 .login-screen .text-link.wide {
-  margin: 28px 0 0;
+  margin: 32px 0 0;
   color: #111;
-  font-size: 1.15rem;
+  font-size: 1rem;
   line-height: 1.35;
 }
 
@@ -606,9 +610,9 @@ button {
 }
 
 .login-screen .text-link span {
-  margin-left: 20px;
+  margin-left: 18px;
   color: #329ce8;
-  font-size: 1.22rem;
+  font-size: 1.06rem;
 }
 
 .rtl .text-link span {
@@ -626,26 +630,26 @@ button {
 .forgot-password-link {
   display: block;
   width: fit-content;
-  margin: 16px 24px 16px auto;
+  margin: 22px 24px 16px auto;
   border: 0;
   background: transparent;
   color: #111;
-  font-size: 1.13rem;
+  font-size: 1rem;
   font-weight: 400;
   text-align: right;
 }
 
 .login-screen .error-text {
-  margin: 9px 0 0;
+  margin: 2px 0 0;
   color: #d97834;
-  font-size: 1.02rem;
+  font-size: 0.86rem;
   font-weight: 800;
   line-height: 1.22;
 }
 
 .login-screen .flag-visual {
-  width: 28px;
-  height: 20px;
+  width: 23px;
+  height: 17px;
   border-radius: 2px;
 }
 
