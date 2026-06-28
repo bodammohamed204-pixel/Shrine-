@@ -3815,17 +3815,17 @@ function FlowerScreen({ state, language, t, setModal, goBack, flowerScreenMode }
   }
 
   const flowers = activeFlowerGifts(person.flowers).sort((left, right) => Date.parse(right.givenAt) - Date.parse(left.givenAt));
-  const canOpenFlowerSenders = flowerScreenMode === "senders" || canViewFlowerSenders(person, state.currentUser);
+  const showFlowerSenders = flowerScreenMode !== "give";
 
   return (
     <main className="main-screen flowers-screen scroll-screen">
       <Header
-        title={canOpenFlowerSenders ? t("flowerSenders") : t("giveFlower")}
+        title={showFlowerSenders ? t("flowerSenders") : t("giveFlower")}
         back={goBack}
         language={language}
         t={t}
         action={
-          !canOpenFlowerSenders && (
+          !showFlowerSenders && (
             <button
               className="header-icon flower-header-button"
               onClick={() => setModal({ type: "flower", personId: person.id })}
