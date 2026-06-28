@@ -22,9 +22,25 @@ function allowedOrigins(env) {
   );
 }
 
+function isTrustedPreviewOrigin(origin) {
+  try {
+    const { hostname, protocol } = new URL(origin);
+    const host = hostname.toLowerCase();
+
+    if (protocol !== "https:") return false;
+    if (host === "book-of-heaven.onholding.workers.dev") return true;
+    if (host === "book-of-heaven.bodammohamed204.workers.dev") return true;
+    if (host === "bodammohamed204.workers.dev") return true;
+    return host.endsWith(".pages.dev") && host.includes("shrine");
+  } catch {
+    return false;
+  }
+}
+
 function corsHeaders(request, env) {
   const origin = request.headers.get("Origin");
-  if (!origin || !allowedOrigins(env).has(origin)) return {};
+  const origins = allowedOrigins(env);
+  if (!origin || (!origins.has("*") && !origins.has(origin) && !isTrustedPreviewOrigin(origin))) return {};
 
   return {
     "Access-Control-Allow-Origin": origin,
