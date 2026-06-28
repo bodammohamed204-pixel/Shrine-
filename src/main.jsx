@@ -25,15 +25,18 @@ import {
   LogOut,
   Mail,
   MapPin,
-  MessageCircle,
+  MessageSquare,
   MoreVertical,
+  Paperclip,
   Pencil,
   Plus,
   Search,
+  SendHorizontal,
   Settings,
   Share2,
   ShieldCheck,
   Sparkles,
+  SquarePen,
   Trash2,
   UserRound,
   UserRoundPlus,
@@ -709,6 +712,9 @@ const copy = {
     yourEmail: "Your Email",
     message: "Message",
     writeMessage: "Write your message",
+    noMessages: "No messages yet",
+    attachPhoto: "Attach photo",
+    removeAttachment: "Remove attachment",
     send: "Send",
     messageSaved: "Message saved locally",
     home: "Home",
@@ -889,6 +895,9 @@ const copy = {
     yourEmail: "بريدك الإلكتروني",
     message: "الرسالة",
     writeMessage: "اكتب رسالتك",
+    noMessages: "لا توجد رسائل بعد",
+    attachPhoto: "إرفاق صورة",
+    removeAttachment: "إزالة المرفق",
     send: "إرسال",
     messageSaved: "تم حفظ الرسالة محليًا",
     home: "الرئيسية",
@@ -1100,10 +1109,36 @@ function normalizeFlowerGifts(flowers) {
     .filter((flower) => activeFlowerGifts([flower]).length);
 }
 
+function normalizePersonMessages(messages) {
+  if (!Array.isArray(messages)) return [];
+
+  return messages
+    .map((message) => {
+      const text = String(message?.text || "").trim();
+      const attachment = String(message?.attachment || "").trim();
+      if (!text && !attachment) return null;
+
+      const createdAt = message?.createdAt ? new Date(message.createdAt) : new Date();
+      const isoCreatedAt = Number.isFinite(createdAt.getTime()) ? createdAt.toISOString() : new Date().toISOString();
+
+      return {
+        id: message.id || uid(),
+        text,
+        attachment,
+        attachmentName: String(message?.attachmentName || "").trim(),
+        userId: String(message?.userId || "guest"),
+        userName: String(message?.userName || "").trim(),
+        createdAt: isoCreatedAt
+      };
+    })
+    .filter(Boolean);
+}
+
 function normalizePersonFlowers(person) {
   return {
     ...person,
-    flowers: normalizeFlowerGifts(person?.flowers)
+    flowers: normalizeFlowerGifts(person?.flowers),
+    messages: normalizePersonMessages(person?.messages)
   };
 }
 
@@ -1151,6 +1186,11 @@ function personCreatedDate(person) {
   }
 
   return "";
+}
+
+function canEditPersonShrine(person, currentUser) {
+  const creatorId = person?.createdBy || "";
+  return Boolean(creatorId && creatorId !== "sample" && (creatorId === "guest" || creatorId === currentUser?.id));
 }
 
 function getUserName(user) {
@@ -1473,7 +1513,8 @@ function App() {
           createdAt: new Date().toISOString(),
           createdBy: current.currentUser?.id || "guest",
           createdByName: current.currentUser ? getUserName(current.currentUser) : "",
-          flowers: []
+          flowers: [],
+          messages: []
         },
         ...current.people
       ]
@@ -1534,6 +1575,37 @@ function App() {
       })
     }));
     showToast(t("flowerAdded"));
+    return true;
+  };
+
+  const sendMessageToPerson = (personId, message) => {
+    const text = String(message?.text || "").trim();
+    const attachment = String(message?.attachment || "").trim();
+    if (!personId || (!text && !attachment)) return false;
+
+    const user = state.currentUser;
+    const nextMessage = {
+      id: uid(),
+      text,
+      attachment,
+      attachmentName: String(message?.attachmentName || "").trim(),
+      userId: user?.id || "guest",
+      userName: user ? getUserName(user) : t("guestAccount"),
+      createdAt: new Date().toISOString()
+    };
+
+    setState((current) => ({
+      ...current,
+      people: current.people.map((person) =>
+        person.id === personId
+          ? normalizePersonFlowers({
+              ...person,
+              messages: [...normalizePersonMessages(person.messages), nextMessage]
+            })
+          : person
+      )
+    }));
+    showToast(t("messageSaved"));
     return true;
   };
 
@@ -1687,10 +1759,14 @@ function App() {
     activeUser,
     canUseAccount,
     onGiveFlower: giveFlowerToPerson,
+    onSendMessage: sendMessageToPerson,
     toggleLanguage,
     sharedTarget,
     onSharedTargetHandled: () => setSharedTarget(null)
   };
+
+  const selectedPerson = state.people.find((person) => person.id === state.selectedPersonId);
+  const canEditSelectedShrine = canEditPersonShrine(selectedPerson, state.currentUser);
 
   return (
     <div className={`app-shell ${platformFontClass} ${isArabic ? "rtl" : ""}`} dir={isArabic ? "rtl" : "ltr"} lang={isArabic ? "ar" : "en"}>
@@ -1758,9 +1834,21 @@ function App() {
       {screen === "contact" && <ContactScreen {...commonProps} />}
       {screen === "detail" && <DetailScreen {...commonProps} />}
       {screen === "gallery" && <GalleryScreen {...commonProps} />}
+      {screen === "message" && <MessageScreen {...commonProps} />}
 
-      {["home", "add", "search", "settings", "detail"].includes(screen) && (
+      {["home", "add", "search", "settings"].includes(screen) && (
         <BottomNav active={screen === "detail" ? "home" : screen} setScreen={setScreen} setModal={setModal} canUseAccount={canUseAccount} t={t} />
+      )}
+      {screen === "detail" && (
+        <BottomNav
+          variant="detail"
+          active="home"
+          canEditShrine={canEditSelectedShrine}
+          setScreen={setScreen}
+          setModal={setModal}
+          canUseAccount={canUseAccount}
+          t={t}
+        />
       )}
 
       {modal?.type === "country" && (
@@ -3207,6 +3295,116 @@ function GalleryScreen({ state, t, setScreen, goBack }) {
   );
 }
 
+function MessageScreen({ state, language, t, goBack, onSendMessage, activeUser }) {
+  const [draft, setDraft] = useState("");
+  const [attachment, setAttachment] = useState(null);
+  const person = state.people.find((item) => item.id === state.selectedPersonId);
+
+  if (!person) {
+    return (
+      <main className="main-screen message-screen">
+        <Header title={t("message")} back={goBack} language={language} t={t} />
+        <EmptyState title={t("entryNotFound")} />
+      </main>
+    );
+  }
+
+  const messages = normalizePersonMessages(person.messages);
+  const canSend = Boolean(draft.trim() || attachment?.src);
+
+  const pickAttachment = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setAttachment({
+        src: reader.result,
+        name: file.name || t("attachPhoto")
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const send = () => {
+    if (!canSend) return;
+    const sent = onSendMessage(person.id, {
+      text: draft,
+      attachment: attachment?.src || "",
+      attachmentName: attachment?.name || ""
+    });
+    if (!sent) return;
+
+    setDraft("");
+    setAttachment(null);
+  };
+
+  return (
+    <main className="main-screen message-screen">
+      <Header title={t("message")} back={goBack} language={language} t={t} />
+      <section className="message-person-row">
+        <div className="message-person-photo">
+          {person.photo ? <img src={person.photo} alt={person.fullName} /> : <AvatarSilhouette />}
+        </div>
+        <strong>{person.fullName}</strong>
+      </section>
+      <section className="message-thread" aria-live="polite">
+        {!messages.length && <p className="message-empty">{t("noMessages")}</p>}
+        {messages.map((message) => {
+          const mine = message.userId !== "guest" && message.userId === activeUser?.id;
+          const time = new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+          return (
+            <article className={`message-bubble ${mine ? "mine" : ""}`} key={message.id}>
+              <div className="message-bubble-meta">
+                <strong>{message.userName || t("guestAccount")}</strong>
+                <span>{time}</span>
+              </div>
+              {message.attachment && <img className="message-bubble-image" src={message.attachment} alt={message.attachmentName || t("message")} />}
+              {message.text && <p dir="auto">{message.text}</p>}
+            </article>
+          );
+        })}
+      </section>
+      <form
+        className="message-composer"
+        onSubmit={(event) => {
+          event.preventDefault();
+          send();
+        }}
+      >
+        {attachment && (
+          <div className="message-attachment-preview">
+            <img src={attachment.src} alt={attachment.name} />
+            <span>{attachment.name}</span>
+            <button type="button" onClick={() => setAttachment(null)} aria-label={t("removeAttachment")}>
+              <X size={18} />
+            </button>
+          </div>
+        )}
+        <div className="message-composer-row">
+          <label className="message-attach-button" aria-label={t("attachPhoto")}>
+            <Paperclip size={31} />
+            <input type="file" accept="image/*" onChange={pickAttachment} />
+          </label>
+          <textarea
+            className="message-input"
+            dir="auto"
+            rows={1}
+            placeholder={t("writeMessage")}
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+          />
+          <button className="message-send-button" type="submit" disabled={!canSend} aria-label={t("send")}>
+            <SendHorizontal size={31} />
+          </button>
+        </div>
+      </form>
+    </main>
+  );
+}
+
 function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedTarget, onSharedTargetHandled }) {
   const [entryMenuOpen, setEntryMenuOpen] = useState(false);
   const entryRef = useRef(null);
@@ -3240,11 +3438,8 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
   const lifeYears = personLifeYears(person, t);
   const displayAge = personDisplayAge(person);
   const activeFlowers = activeFlowerGifts(person.flowers);
-  const creatorId = person.createdBy || "";
-  const canEditShrine =
-    creatorId &&
-    creatorId !== "sample" &&
-    (creatorId === "guest" || creatorId === state.currentUser?.id);
+  const shrineMessages = normalizePersonMessages(person.messages);
+  const canEditShrine = canEditPersonShrine(person, state.currentUser);
 
   const shareShrine = () => {
     shareContent({
@@ -3343,6 +3538,24 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
           </div>
           {detailInfo && <p className="detail-info">{detailInfo}</p>}
         </article>
+        {shrineMessages.length > 0 && (
+          <section className="detail-message-list" aria-label={t("message")}>
+            {shrineMessages.map((message) => (
+              <article className="detail-message-card" key={message.id}>
+                <div className="detail-message-header">
+                  <div className="detail-message-avatar">
+                    <AvatarSilhouette />
+                  </div>
+                  <div>
+                    <strong>{message.userName || t("guestAccount")}</strong>
+                    <span>{formatStoredDate(message.createdAt)}</span>
+                  </div>
+                </div>
+                {message.text && <p className="detail-message-text">{message.text}</p>}
+              </article>
+            ))}
+          </section>
+        )}
       </section>
     </main>
   );
@@ -3426,29 +3639,46 @@ function ContactScreen({ language, t, goBack, setToast }) {
   );
 }
 
-function BottomNav({ active, setScreen, setModal, canUseAccount, t }) {
-  const items = [
-    { id: "home", label: t("home"), icon: <ContactRound size={36} /> },
-    { id: "add", label: t("add"), icon: <Plus size={30} />, featured: true },
-    { id: "search", label: t("search"), icon: <Search size={42} /> },
-    { id: "settings", label: t("settings"), icon: <Settings size={42} /> }
-  ];
-  const go = (id) => {
+function BottomNav({ active, variant = "main", canEditShrine = false, setScreen, setModal, canUseAccount, t }) {
+  const isDetail = variant === "detail";
+  const items = isDetail
+    ? [
+        { id: "home", label: t("home"), icon: <ContactRound size={36} /> },
+        { id: "message", label: t("message"), icon: <MessageSquare size={38} /> },
+        { id: "editShrine", label: t("update"), icon: <SquarePen size={38} />, disabled: !canEditShrine },
+        { id: "settings", label: t("settings"), icon: <Settings size={42} /> }
+      ]
+    : [
+        { id: "home", label: t("home"), icon: <ContactRound size={36} /> },
+        { id: "add", label: t("add"), icon: <Plus size={30} />, featured: true },
+        { id: "search", label: t("search"), icon: <Search size={42} /> },
+        { id: "settings", label: t("settings"), icon: <Settings size={42} /> }
+      ];
+
+  const go = (item) => {
+    const id = item.id;
+    if (item.disabled) return;
     if (id === "add" && !canUseAccount) {
       setModal({ type: "accountPrompt", intent: "add" });
+      return;
+    }
+    if (id === "message") {
+      setScreen("message");
       return;
     }
     setScreen(id);
   };
 
   return (
-    <nav className="bottom-nav">
+    <nav className={`bottom-nav${isDetail ? " detail-bottom-nav" : ""}`}>
       {items.map((item) => (
         <button
           key={item.id}
-          className={`${active === item.id ? "nav-active" : ""}${item.matched ? " nav-matched" : ""}${item.featured ? " nav-featured" : ""}`}
+          className={`${active === item.id ? "nav-active" : ""}${item.matched ? " nav-matched" : ""}${item.featured ? " nav-featured" : ""}${item.disabled ? " nav-disabled" : ""}`}
           aria-label={item.label}
-          onClick={() => go(item.id)}
+          aria-disabled={item.disabled || undefined}
+          disabled={item.disabled}
+          onClick={() => go(item)}
         >
           <span className="nav-icon">{item.icon}</span>
           <span className="nav-label">{item.label}</span>
@@ -4160,10 +4390,10 @@ function AvatarSilhouette() {
       </defs>
       <rect width="120" height="190" fill="#fafafa" />
       <path
-        d="M2 190c3-32 12-47 33-55 7-3 11-8 10-16-1-7-7-11-10-20-4-11-5-34 1-51 7-20 22-31 43-29 12 1 19 5 25 12 10 2 15 11 15 26v28c0 16-8 28-18 36-4 4-4 10 1 14 16 10 18 25 18 55H2Z"
+        d="M8 190c4-33 19-51 44-60v-12C38 109 29 91 29 69v-8c0-26 13-43 31-43s31 17 31 43v8c0 22-9 40-23 49v12c25 9 40 27 44 60H8Z"
         fill="url(#avatarFade)"
       />
-      <path d="M4 150c20-7 35-17 43-31 2 16-4 25-15 31-11 7-20 16-28 30v-30Z" fill="#d0d0d0" opacity=".92" />
+      <path d="M18 158c12-15 26-23 42-23s30 8 42 23c5 8 8 18 10 32H8c2-14 5-24 10-32Z" fill="#d0d0d0" opacity=".92" />
       <rect y="132" width="120" height="58" fill="url(#avatarFade)" opacity=".44" />
     </svg>
   );
