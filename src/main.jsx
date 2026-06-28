@@ -44,10 +44,12 @@ const STORAGE_KEY = "shrine_mobile_state_v1";
 const PRODUCTION_API_BASE_URL = "https://book-of-heaven.bodammohamed204.workers.dev";
 const PRODUCTION_APP_URL = "https://app.shrine-app.com";
 const SAME_ORIGIN_API_HOSTS = new Set([
+  "app.shrine-app.com",
   "book-of-heaven.bodammohamed204.workers.dev",
   "shrine-the-book-of-heaven.bodammohamed204.workers.dev"
 ]);
 const DEFAULT_META_DESCRIPTION = "Create and share memorial shrines.";
+const SHRINE_API_PATH_PREFIX = "/api/shrines/";
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
 const FLOWER_LIFETIME_DAYS = 7;
 const FLOWER_LIFETIME_MS = FLOWER_LIFETIME_DAYS * 24 * 60 * 60 * 1000;
@@ -104,6 +106,10 @@ function appBaseUrl() {
 
 function shrineInfoPath(personId) {
   return `/shrines/${encodeURIComponent(personId)}/info`;
+}
+
+function shrineApiPath(personId) {
+  return `${SHRINE_API_PATH_PREFIX}${encodeURIComponent(personId)}`;
 }
 
 function isHttpUrl(value) {
@@ -216,18 +222,9 @@ function buildShareUrl(personOrId, view = "shrine") {
   const personId = person?.id || String(personOrId || "");
   if (!personId) return "";
 
-  const meta = shrinePreviewMeta(person || personId);
   const url = new URL(`${shareBaseUrl()}${shrineInfoPath(personId)}`);
 
-  if (person) {
-    url.searchParams.set("name", meta.title);
-    if (person.birthDate) url.searchParams.set("birth", person.birthDate);
-    if (person.deathDate) url.searchParams.set("death", person.deathDate);
-    if (meta.image) url.searchParams.set("image", meta.image);
-  }
-
   if (view === "comment") {
-    url.searchParams.set("view", "comment");
     url.hash = "comment";
   }
 
@@ -491,6 +488,50 @@ async function detectNetworkCountry(signal) {
     if (!response.ok) return null;
 
     return countryFromNetworkData(await response.json());
+  } catch {
+    return null;
+  }
+}
+
+function firstText(...values) {
+  for (const value of values) {
+    const text = String(value || "").trim();
+    if (text) return text;
+  }
+  return "";
+}
+
+function normalizeShrineApiPerson(data, fallbackId) {
+  const source = data?.shrine || data?.person || data?.data || data;
+  if (!source || typeof source !== "object" || Array.isArray(source)) return null;
+
+  const fullName = firstText(source.fullName, source.full_name, source.name, source.title);
+  if (!fullName) return null;
+
+  return normalizePersonFlowers({
+    ...source,
+    id: firstText(source.id, source._id, source.shrineId, source.shrine_id, fallbackId),
+    fullName,
+    photo: firstText(source.photo, source.photoUrl, source.photo_url, source.image, source.imageUrl, source.image_url),
+    birthDate: firstText(source.birthDate, source.birth_date, source.birth),
+    deathDate: firstText(source.deathDate, source.death_date, source.death),
+    fatherName: firstText(source.fatherName, source.father_name),
+    info: firstText(source.info, source.description, source.bio)
+  });
+}
+
+async function fetchShrineById(personId, signal) {
+  if (!personId || typeof fetch !== "function") return null;
+
+  try {
+    const response = await fetch(apiUrl(shrineApiPath(personId)), {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal
+    });
+    if (!response.ok) return null;
+
+    return normalizeShrineApiPerson(await readApiJson(response, "Could not load shrine."), personId);
   } catch {
     return null;
   }
@@ -1206,6 +1247,7 @@ function App() {
   const [sharedTarget, setSharedTarget] = useState(initialAppRef.current.sharedTarget);
   const screenRef = useRef(screen);
   const screenHistoryRef = useRef([]);
+  const apiShrineFetchRef = useRef(new Set());
 
   useEffect(() => {
     const splashTimer = setTimeout(() => setOpening(false), 2600);
@@ -1228,6 +1270,35 @@ function App() {
     const selectedPerson = screen === "detail" ? state.people.find((person) => person.id === state.selectedPersonId) : null;
     updateDocumentPreviewMeta(selectedPerson);
   }, [screen, state.people, state.selectedPersonId]);
+
+  useEffect(() => {
+    const personId = state.selectedPersonId;
+    const shouldLoadSharedShrine =
+      personId &&
+      sharedTarget?.personId === personId &&
+      !state.people.some((person) => person.id === personId) &&
+      !apiShrineFetchRef.current.has(personId);
+
+    if (!shouldLoadSharedShrine) return undefined;
+
+    apiShrineFetchRef.current.add(personId);
+    const controller = new AbortController();
+
+    fetchShrineById(personId, controller.signal).then((person) => {
+      if (!person) return;
+
+      setState((current) => {
+        if (current.people.some((item) => item.id === person.id)) return current;
+        return {
+          ...current,
+          selectedPersonId: person.id,
+          people: [person, ...current.people]
+        };
+      });
+    });
+
+    return () => controller.abort();
+  }, [sharedTarget, state.people, state.selectedPersonId]);
 
   const setScreen = (nextScreen, options = {}) => {
     const targetScreen = typeof nextScreen === "function" ? nextScreen(screenRef.current) : nextScreen;

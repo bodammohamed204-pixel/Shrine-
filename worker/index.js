@@ -3,6 +3,7 @@ const PRODUCTION_APP_URL = "https://app.shrine-app.com";
 const DEFAULT_META_DESCRIPTION = "Create and share memorial shrines.";
 const SHARE_META_START = "<!-- Shrine share preview meta:start -->";
 const SHARE_META_END = "<!-- Shrine share preview meta:end -->";
+const SHRINE_API_PATH_PREFIX = "/api/shrines/";
 const EMAIL_OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_RATE_LIMIT_FALLBACK_SECONDS = 60 * 60;
 const COUNTRY_HEADER_NAMES = [
@@ -240,8 +241,24 @@ function shrineInfoPath(personId) {
   return `/shrines/${encodeURIComponent(personId)}/info`;
 }
 
+function shrineApiPath(personId) {
+  return `${SHRINE_API_PATH_PREFIX}${encodeURIComponent(personId)}`;
+}
+
 function shrineInfoMatch(pathname) {
   return String(pathname || "").match(/^\/shrines\/([^/]+)\/info\/?$/i);
+}
+
+function shrineApiMatch(pathname) {
+  return String(pathname || "").match(/^\/api\/shrines\/([^/]+)\/?$/i);
+}
+
+function firstText(...values) {
+  for (const value of values) {
+    const text = String(value || "").trim();
+    if (text) return text;
+  }
+  return "";
 }
 
 function shrinePreviewDescription(name, birthDate, deathDate) {
@@ -250,19 +267,84 @@ function shrinePreviewDescription(name, birthDate, deathDate) {
   return `In loving memory of ${previewName}.${dateText ? ` ${dateText}` : ""}`;
 }
 
-function shrinePreviewMeta(url, env) {
-  const match = shrineInfoMatch(url.pathname);
-  const personId = match ? safeDecodeURIComponent(match[1]) : "";
-  const name = (url.searchParams.get("name") || url.searchParams.get("title") || "").trim();
-  const birthDate = (url.searchParams.get("birth") || url.searchParams.get("birthDate") || "").trim();
-  const deathDate = (url.searchParams.get("death") || url.searchParams.get("deathDate") || "").trim();
-  const imageParam = (url.searchParams.get("image") || url.searchParams.get("photo") || "").trim();
-  const fallbackImage = String(env.SHARE_IMAGE_URL || "").trim();
-  const image = isHttpUrl(imageParam) ? imageParam : isHttpUrl(fallbackImage) ? fallbackImage : "";
+function normalizeShrineApiData(data, fallbackId) {
+  const source = data?.shrine || data?.person || data?.data || data;
+  if (!source || typeof source !== "object" || Array.isArray(source)) return null;
+
+  const fullName = firstText(source.fullName, source.full_name, source.name, source.title);
+  if (!fullName) return null;
 
   return {
-    title: name || "Shrine",
-    description: name ? shrinePreviewDescription(name, birthDate, deathDate) : DEFAULT_META_DESCRIPTION,
+    id: firstText(source.id, source._id, source.shrineId, source.shrine_id, fallbackId),
+    fullName,
+    photo: firstText(source.photo, source.photoUrl, source.photo_url, source.image, source.imageUrl, source.image_url),
+    birthDate: firstText(source.birthDate, source.birth_date, source.birth),
+    deathDate: firstText(source.deathDate, source.death_date, source.death),
+    info: firstText(source.info, source.description, source.bio)
+  };
+}
+
+function configuredShrineApiBaseUrl(env) {
+  return normalizeBaseUrl(env.SHRINE_API_BASE_URL || env.API_BASE_URL || env.VITE_API_BASE_URL);
+}
+
+function sameOrigin(left, right) {
+  try {
+    return new URL(left).origin === new URL(right).origin;
+  } catch {
+    return false;
+  }
+}
+
+async function readJsonResponse(response) {
+  const text = await response.text();
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+async function fetchShrineFromApi(personId, request, env, { allowSameOrigin = true } = {}) {
+  const configuredBase = configuredShrineApiBaseUrl(env);
+  const requestOrigin = new URL(request.url).origin;
+  const baseUrl = configuredBase || (allowSameOrigin ? requestOrigin : "");
+  if (!baseUrl || (!allowSameOrigin && sameOrigin(baseUrl, request.url))) return null;
+
+  try {
+    const response = await fetch(`${baseUrl}${shrineApiPath(personId)}`, {
+      method: "GET",
+      headers: { Accept: "application/json" }
+    });
+    if (!response.ok) return null;
+
+    return normalizeShrineApiData(await readJsonResponse(response), personId);
+  } catch {
+    return null;
+  }
+}
+
+async function shrineApiResponse(request, env, personId) {
+  const shrine = await fetchShrineFromApi(personId, request, env, { allowSameOrigin: false });
+  if (!shrine) {
+    return jsonResponse({ success: false, error: "Shrine not found." }, 404, corsHeaders(request, env));
+  }
+
+  return jsonResponse({ success: true, shrine }, 200, corsHeaders(request, env));
+}
+
+function shrinePreviewMeta(personId, shrine, env) {
+  const fallbackImage = String(env.SHARE_IMAGE_URL || "").trim();
+  const image = isHttpUrl(shrine?.photo) ? shrine.photo : isHttpUrl(fallbackImage) ? fallbackImage : "";
+  const title = shrine?.fullName || "Shrine";
+
+  return {
+    title,
+    description: shrine
+      ? shrinePreviewDescription(shrine.fullName, shrine.birthDate, shrine.deathDate)
+      : DEFAULT_META_DESCRIPTION,
     url: personId ? `${appBaseUrl(env)}${shrineInfoPath(personId)}` : appBaseUrl(env),
     image
   };
@@ -337,7 +419,11 @@ async function shrineInfoPage(request, env, url) {
   headers.set("Content-Type", "text/html; charset=utf-8");
   headers.delete("Content-Length");
 
-  return new Response(injectSharePreviewMeta(html, shrinePreviewMeta(url, env)), {
+  const match = shrineInfoMatch(url.pathname);
+  const personId = match ? safeDecodeURIComponent(match[1]) : "";
+  const shrine = personId ? await fetchShrineFromApi(personId, request, env) : null;
+
+  return new Response(injectSharePreviewMeta(html, shrinePreviewMeta(personId, shrine, env)), {
     status: assetResponse.status,
     statusText: assetResponse.statusText,
     headers
@@ -584,11 +670,23 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders(request, env) });
     }
 
+    if (request.method === "OPTIONS" && shrineApiMatch(url.pathname)) {
+      return new Response(null, { status: 204, headers: corsHeaders(request, env) });
+    }
+
     if (url.pathname === "/api/geo/country") {
       if (request.method !== "GET") {
         return methodNotAllowed(request, env, "Use GET /api/geo/country.");
       }
       return geoCountry(request, env);
+    }
+
+    const shrineApi = shrineApiMatch(url.pathname);
+    if (shrineApi) {
+      if (request.method !== "GET") {
+        return methodNotAllowed(request, env, "Use GET /api/shrines/:id.");
+      }
+      return shrineApiResponse(request, env, safeDecodeURIComponent(shrineApi[1]));
     }
 
     if (url.pathname === "/api/otp/email/send") {
