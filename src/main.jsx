@@ -1673,6 +1673,7 @@ function App() {
   const [toastKind, setToastKind] = useState("");
   const [registerResetKey, setRegisterResetKey] = useState(0);
   const [sharedTarget, setSharedTarget] = useState(initialAppRef.current.sharedTarget);
+  const [flowerScreenMode, setFlowerScreenMode] = useState("");
   const screenRef = useRef(screen);
   const screenHistoryRef = useRef([]);
   const apiShrineFetchRef = useRef(new Set());
@@ -1773,6 +1774,9 @@ function App() {
     if (!targetScreen || targetScreen === screenRef.current) return;
 
     setSharedTarget(null);
+    if (targetScreen !== "flowers") {
+      setFlowerScreenMode("");
+    }
     const currentScreen = screenRef.current;
     screenRef.current = targetScreen;
     if (options.reset) {
@@ -2176,6 +2180,8 @@ function App() {
     onSendMessage: sendMessageToPerson,
     toggleLanguage,
     sharedTarget,
+    flowerScreenMode,
+    setFlowerScreenMode,
     onSharedTargetHandled: () => setSharedTarget(null)
   };
 
@@ -3768,7 +3774,7 @@ function GalleryScreen({ state, t, setScreen, goBack }) {
   );
 }
 
-function FlowerScreen({ state, language, t, setModal, goBack }) {
+function FlowerScreen({ state, language, t, setModal, goBack, flowerScreenMode }) {
   const person = findPersonByShareId(state.people, state.selectedPersonId);
 
   if (!person) {
@@ -3781,7 +3787,7 @@ function FlowerScreen({ state, language, t, setModal, goBack }) {
   }
 
   const flowers = activeFlowerGifts(person.flowers).sort((left, right) => Date.parse(right.givenAt) - Date.parse(left.givenAt));
-  const canOpenFlowerSenders = canViewFlowerSenders(person, state.currentUser);
+  const canOpenFlowerSenders = flowerScreenMode === "senders" || canViewFlowerSenders(person, state.currentUser);
 
   return (
     <main className="main-screen flowers-screen scroll-screen">
@@ -3946,7 +3952,7 @@ function MessageScreen({ state, language, t, goBack, setScreen, onSendMessage, a
   );
 }
 
-function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedTarget, onSharedTargetHandled }) {
+function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedTarget, onSharedTargetHandled, setFlowerScreenMode }) {
   const [entryMenuOpen, setEntryMenuOpen] = useState(false);
   const [openMessageMenuId, setOpenMessageMenuId] = useState("");
   const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
@@ -4071,9 +4077,11 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
             className="detail-tool-button detail-flower-button"
             onClick={() => {
               if (canOpenFlowerSenders) {
+                setFlowerScreenMode?.("senders");
                 setScreen("flowers");
                 return;
               }
+              setFlowerScreenMode?.("give");
               setModal({ type: "flower", personId: person.id });
             }}
             aria-label={t("giveFlower")}
