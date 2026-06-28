@@ -873,6 +873,18 @@ function normalizeLanguage(language) {
   return language === "AR" ? "AR" : "EN";
 }
 
+function getPlatformFontClass() {
+  if (typeof navigator === "undefined") return "android-font";
+
+  const userAgent = navigator.userAgent || "";
+  const platform = navigator.platform || "";
+  const isIos =
+    /iPad|iPhone|iPod/i.test(userAgent) ||
+    (platform === "MacIntel" && Number(navigator.maxTouchPoints) > 1);
+
+  return isIos ? "ios-font" : "android-font";
+}
+
 function getNextLanguage(language) {
   return normalizeLanguage(language) === "AR" ? "EN" : "AR";
 }
