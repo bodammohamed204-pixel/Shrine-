@@ -1362,22 +1362,25 @@ button {
 }
 
 .detail-card {
-  padding: 26px 18px 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 24px 120px;
 }
 
 .detail-hero {
   direction: ltr;
-  display: grid;
-  grid-template-columns: minmax(132px, 0.88fr) minmax(0, 1fr);
-  align-items: start;
-  gap: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
 }
 
 .detail-photo {
-  width: 100%;
+  width: clamp(204px, 58vw, 232px);
   aspect-ratio: 1 / 1.25;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 2px;
   overflow: hidden;
   background: #f2f2f2;
 }
@@ -1390,7 +1393,8 @@ button {
 
 .detail-summary {
   min-width: 0;
-  padding-top: 8px;
+  width: 100%;
+  padding-top: 30px;
   text-align: center;
 }
 
@@ -1399,18 +1403,19 @@ button {
 }
 
 .detail-summary h2 {
-  margin: 0 0 8px;
-  color: #111;
-  font-size: 1.56rem;
-  line-height: 1.22;
+  margin: 0 0 16px;
+  color: var(--blue);
+  font-size: 2rem;
+  line-height: 1.16;
+  font-weight: 850;
   overflow-wrap: anywhere;
 }
 
 .detail-father-name {
-  margin: 0 0 6px;
+  margin: 0 0 18px;
   color: #687482;
-  font-size: 0.95rem;
-  font-weight: 700;
+  font-size: 1.05rem;
+  font-weight: 750;
 }
 
 .detail-dates,
@@ -1422,9 +1427,9 @@ button {
 }
 
 .detail-dates {
-  color: var(--blue);
-  font-size: 1.05rem;
-  font-weight: 700;
+  color: #5f6670;
+  font-size: 1.12rem;
+  font-weight: 550;
 }
 
 .detail-age {
@@ -1437,15 +1442,29 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 9px;
   color: #687482;
+  font-size: 1.13rem;
 }
 
 .detail-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin: 24px 0 18px;
+  width: 100%;
+  margin: 22px 0 18px;
+}
+
+.detail-actions .primary-button.small,
+.detail-actions .outline-button.small {
+  min-height: 52px;
+  border-radius: 8px;
+  font-size: 1.05rem;
+}
+
+.detail-actions svg {
+  width: 23px;
+  height: 23px;
 }
 
 .detail-entry {

@@ -1840,7 +1840,7 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
             {person.fatherName && <p className="detail-father-name">{person.fatherName}</p>}
             <h2>{person.fullName}</h2>
             <p className="detail-dates">
-              ({person.birthDate || t("unknownBirth")} - {person.deathDate})
+              {person.birthDate || t("unknownBirth")} - {person.deathDate}
             </p>
             {person.age && <p className="detail-age">{person.age} {t("years")}</p>}
             <p className="detail-country">
@@ -1856,18 +1856,20 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
             <Ban size={20} /> {blocked ? t("unblock") : t("block")}
           </button>
         </div>
-        <article className={`detail-entry ${detailInfo ? "" : "compact"}`}>
-          <div className="detail-entry-header">
-            <div className="detail-entry-avatar">
-              <AvatarSilhouette />
+        {detailInfo && (
+          <article className="detail-entry">
+            <div className="detail-entry-header">
+              <div className="detail-entry-avatar">
+                <AvatarSilhouette />
+              </div>
+              <div>
+                <strong>{creatorName}</strong>
+                {createdDate && <span>{createdDate}</span>}
+              </div>
             </div>
-            <div>
-              <strong>{creatorName}</strong>
-              {createdDate && <span>{createdDate}</span>}
-            </div>
-          </div>
-          {detailInfo && <p className="detail-info">{detailInfo}</p>}
-        </article>
+            <p className="detail-info">{detailInfo}</p>
+          </article>
+        )}
       </section>
     </main>
   );
