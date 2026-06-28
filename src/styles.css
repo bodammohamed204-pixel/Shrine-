@@ -2114,10 +2114,10 @@ button {
 .detail-summary h2 {
   margin: 0 0 24px;
   color: #050505;
-  font-family: var(--font-arabic), var(--font-latin);
-  font-size: 18.5px;
-  line-height: 1.16;
-  font-weight: 800;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-size: 20px;
+  line-height: 1.12;
+  font-weight: 900;
   overflow-wrap: anywhere;
 }
 
@@ -2267,84 +2267,81 @@ button {
 }
 
 .detail-flower-button .rose-graphic.small {
-  width: 24px;
+  width: 22px;
   flex: 0 0 auto;
 }
 
 .rose-graphic {
-  width: min(64vw, 270px);
+  width: min(50vw, 210px);
   max-width: 100%;
   height: auto;
   overflow: visible;
-  filter: drop-shadow(0 18px 20px rgba(0, 0, 0, 0.34));
+  filter: drop-shadow(0 16px 18px rgba(0, 0, 0, 0.28));
 }
 
 .rose-graphic.small {
-  width: 34px;
-  filter: drop-shadow(0 3px 4px rgba(110, 18, 28, 0.18));
+  width: 28px;
+  filter: drop-shadow(0 2px 2px rgba(36, 72, 49, 0.18));
 }
 
 .rose-stem-shadow {
   fill: none;
-  stroke: rgba(44, 62, 22, 0.36);
-  stroke-width: 11;
+  stroke: rgba(10, 44, 31, 0.28);
+  stroke-width: 5.6;
   stroke-linecap: round;
 }
 
 .rose-stem {
   fill: none;
-  stroke: #688f35;
-  stroke-width: 8;
+  stroke: #176343;
+  stroke-width: 4.2;
   stroke-linecap: round;
 }
 
 .rose-leaf {
-  fill: #82aa45;
-  stroke: #5d842d;
-  stroke-width: 2;
+  fill: #2f8b64;
+  stroke: #176343;
+  stroke-width: 1.1;
 }
 
 .rose-leaf.front {
-  fill: #9bbb57;
-}
-
-.rose-leaf.small-leaf {
-  fill: #a6c760;
+  fill: #3da374;
 }
 
 .rose-bloom {
-  transform-origin: 110px 102px;
+  transform-origin: 48px 46px;
 }
 
 .petal {
-  stroke: rgba(112, 0, 12, 0.28);
-  stroke-width: 1.4;
+  stroke: rgba(98, 0, 10, 0.32);
+  stroke-linejoin: round;
+  stroke-width: 0.9;
 }
 
 .petal.p1,
 .petal.p2,
 .petal.p3,
 .petal.p4 {
-  fill: #b70716;
+  fill: #be0617;
 }
 
 .petal.p5,
 .petal.p6,
 .petal.p7,
 .petal.p8 {
-  fill: #d70b19;
+  fill: #dd0c1e;
 }
 
 .petal.center {
-  fill: #f01928;
+  fill: #f32a36;
 }
 
 .petal.core {
-  fill: #a90412;
+  fill: #a50413;
 }
 
 .petal.fold {
-  fill: rgba(222, 12, 27, 0.86);
+  fill: rgba(239, 21, 34, 0.9);
 }
 
 .detail-entry {

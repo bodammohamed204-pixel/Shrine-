@@ -4059,28 +4059,27 @@ function RoseGraphic({ small = false }) {
   return (
     <svg
       className={`rose-graphic ${small ? "small" : ""}`}
-      viewBox="0 0 220 320"
+      viewBox="0 0 96 140"
       role="img"
       aria-label="Rose"
       focusable="false"
     >
-      <path className="rose-stem-shadow" d="M109 130 C94 184 101 238 82 303" />
-      <path className="rose-stem" d="M112 126 C98 184 104 235 86 302" />
-      <path className="rose-leaf back" d="M98 220 C55 197 42 166 80 166 C111 167 119 191 98 220Z" />
-      <path className="rose-leaf front" d="M100 251 C143 229 163 200 126 194 C94 190 78 220 100 251Z" />
-      <path className="rose-leaf small-leaf" d="M109 185 C142 172 151 148 123 144 C102 144 95 164 109 185Z" />
+      <path className="rose-stem-shadow" d="M50 50 C47 72 49 100 43 130" />
+      <path className="rose-stem" d="M51 50 C48 73 50 101 44 130" />
+      <path className="rose-leaf back" d="M47 86 C29 83 19 71 28 64 C42 54 53 69 47 86Z" />
+      <path className="rose-leaf front" d="M47 102 C62 89 76 88 76 101 C72 115 55 115 47 102Z" />
       <g className="rose-bloom">
-        <path className="petal p1" d="M111 40 C142 25 174 43 180 78 C160 62 136 66 120 91 C114 75 108 58 111 40Z" />
-        <path className="petal p2" d="M105 42 C69 26 39 49 40 88 C62 67 89 70 105 96 C111 73 111 55 105 42Z" />
-        <path className="petal p3" d="M58 83 C38 111 52 149 91 161 C79 131 89 104 117 92 C93 79 72 75 58 83Z" />
-        <path className="petal p4" d="M162 79 C190 103 181 144 142 162 C152 127 142 105 113 92 C133 78 151 74 162 79Z" />
-        <path className="petal p5" d="M80 67 C104 49 139 51 157 72 C132 75 111 91 103 121 C91 102 82 86 80 67Z" />
-        <path className="petal p6" d="M74 113 C91 83 127 73 154 92 C134 104 120 125 119 154 C96 145 80 132 74 113Z" />
-        <path className="petal p7" d="M143 112 C121 83 84 76 62 99 C87 107 103 126 106 157 C126 146 140 131 143 112Z" />
-        <path className="petal p8" d="M86 145 C107 159 133 159 153 143 C148 173 124 192 97 181 C79 173 73 157 86 145Z" />
-        <path className="petal center" d="M91 91 C105 68 139 67 151 91 C132 88 117 99 111 123 C105 105 99 96 91 91Z" />
-        <path className="petal core" d="M103 96 C113 82 132 83 141 97 C128 99 119 107 115 121 C112 110 108 102 103 96Z" />
-        <path className="petal fold" d="M95 111 C112 96 137 100 148 119 C129 115 113 122 101 140 C96 129 94 119 95 111Z" />
+        <path className="petal p1" d="M44 13 C54 4 72 6 80 21 C66 18 57 25 53 39 C48 30 43 22 44 13Z" />
+        <path className="petal p2" d="M42 14 C28 8 15 16 14 32 C25 24 38 28 46 41 C47 30 46 21 42 14Z" />
+        <path className="petal p3" d="M22 30 C9 41 13 60 30 67 C27 52 34 41 49 37 C38 29 29 27 22 30Z" />
+        <path className="petal p4" d="M72 28 C86 37 87 58 69 68 C73 52 65 43 50 37 C59 29 67 26 72 28Z" />
+        <path className="petal p5" d="M30 23 C41 12 61 13 72 25 C59 27 49 35 45 51 C37 42 31 33 30 23Z" />
+        <path className="petal p6" d="M28 47 C38 32 57 27 72 38 C60 44 53 55 53 70 C40 65 30 58 28 47Z" />
+        <path className="petal p7" d="M67 47 C55 32 35 29 22 41 C36 46 45 57 47 72 C58 66 66 58 67 47Z" />
+        <path className="petal p8" d="M36 64 C47 72 61 72 72 63 C68 78 54 88 40 82 C31 78 28 69 36 64Z" />
+        <path className="petal center" d="M37 37 C45 24 62 25 69 38 C57 36 50 43 47 56 C44 46 41 40 37 37Z" />
+        <path className="petal core" d="M44 39 C50 31 60 32 65 40 C58 41 52 46 50 54 C49 47 46 43 44 39Z" />
+        <path className="petal fold" d="M38 49 C48 41 61 43 68 53 C57 51 48 56 42 66 C39 59 37 53 38 49Z" />
       </g>
     </svg>
   );
