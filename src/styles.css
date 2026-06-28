@@ -1581,6 +1581,15 @@ button {
   text-align: left;
 }
 
+.country-list button.selected {
+  background: rgba(37, 155, 220, 0.1);
+}
+
+.country-list button.selected strong,
+.country-list button.selected em {
+  color: var(--blue);
+}
+
 .country-list .flag {
   font-size: 1.35rem;
 }

@@ -134,6 +134,144 @@ const countries = [
   { name: "Indonesia", ar: "إندونيسيا", code: "+62", iso: "id" }
 ];
 
+const LEGACY_DEFAULT_COUNTRY_NAME = "United States";
+const FALLBACK_COUNTRY_NAME = "Egypt";
+const COUNTRY_FILTER_IDS = new Set(["Sponsor", "Follow"]);
+
+const regionCountryNames = {
+  EG: "Egypt",
+  US: "United States",
+  SA: "Saudi Arabia",
+  AE: "United Arab Emirates",
+  KW: "Kuwait",
+  QA: "Qatar",
+  JO: "Jordan",
+  MA: "Morocco",
+  DZ: "Algeria",
+  TN: "Tunisia",
+  DE: "Germany",
+  FR: "France",
+  GB: "United Kingdom",
+  UK: "United Kingdom",
+  CA: "Canada",
+  AU: "Australia",
+  TR: "Turkey",
+  IT: "Italy",
+  ES: "Spain",
+  MY: "Malaysia",
+  ID: "Indonesia"
+};
+
+const timeZoneCountryNames = {
+  "Africa/Cairo": "Egypt",
+  "America/Anchorage": "United States",
+  "America/Chicago": "United States",
+  "America/Denver": "United States",
+  "America/Detroit": "United States",
+  "America/Indiana/Indianapolis": "United States",
+  "America/Los_Angeles": "United States",
+  "America/New_York": "United States",
+  "America/Phoenix": "United States",
+  "Pacific/Honolulu": "United States",
+  "Asia/Riyadh": "Saudi Arabia",
+  "Asia/Dubai": "United Arab Emirates",
+  "Asia/Kuwait": "Kuwait",
+  "Asia/Qatar": "Qatar",
+  "Asia/Amman": "Jordan",
+  "Africa/Casablanca": "Morocco",
+  "Africa/Algiers": "Algeria",
+  "Africa/Tunis": "Tunisia",
+  "Europe/Berlin": "Germany",
+  "Europe/Paris": "France",
+  "Europe/London": "United Kingdom",
+  "America/Toronto": "Canada",
+  "America/Vancouver": "Canada",
+  "America/Edmonton": "Canada",
+  "America/Winnipeg": "Canada",
+  "America/Halifax": "Canada",
+  "America/St_Johns": "Canada",
+  "Australia/Sydney": "Australia",
+  "Australia/Melbourne": "Australia",
+  "Australia/Brisbane": "Australia",
+  "Australia/Adelaide": "Australia",
+  "Australia/Perth": "Australia",
+  "Australia/Darwin": "Australia",
+  "Australia/Hobart": "Australia",
+  "Europe/Istanbul": "Turkey",
+  "Europe/Rome": "Italy",
+  "Europe/Madrid": "Spain",
+  "Atlantic/Canary": "Spain",
+  "Asia/Kuala_Lumpur": "Malaysia",
+  "Asia/Kuching": "Malaysia",
+  "Asia/Jakarta": "Indonesia",
+  "Asia/Makassar": "Indonesia",
+  "Asia/Jayapura": "Indonesia"
+};
+
+function findCountryExact(name) {
+  return countries.find((country) => country.name === name || country.ar === name) || null;
+}
+
+function countryFromRegion(region) {
+  const countryName = regionCountryNames[String(region || "").toUpperCase()];
+  return countryName ? findCountryExact(countryName) : null;
+}
+
+function getLocaleRegion(locale) {
+  const text = String(locale || "").trim();
+  if (!text) return "";
+
+  try {
+    if (typeof Intl !== "undefined" && Intl.Locale) {
+      return new Intl.Locale(text).region || "";
+    }
+  } catch {
+    // Fall back to the lightweight parser below.
+  }
+
+  const match = text.match(/[-_]([A-Za-z]{2})(?:[-_]|$)/);
+  return match ? match[1].toUpperCase() : "";
+}
+
+function detectDeviceCountry() {
+  try {
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const timeZoneCountry = findCountryExact(timeZoneCountryNames[timeZone]);
+    if (timeZoneCountry) return timeZoneCountry;
+  } catch {
+    // Time zone detection is best effort.
+  }
+
+  if (typeof navigator !== "undefined") {
+    const locales = Array.isArray(navigator.languages) && navigator.languages.length
+      ? navigator.languages
+      : [navigator.language];
+
+    for (const locale of locales) {
+      const localeCountry = countryFromRegion(getLocaleRegion(locale));
+      if (localeCountry) return localeCountry;
+    }
+  }
+
+  return findCountryExact(FALLBACK_COUNTRY_NAME) || countries[0];
+}
+
+function getDefaultCountryName() {
+  return detectDeviceCountry().name;
+}
+
+function normalizeCountryName(name, fallbackName = getDefaultCountryName()) {
+  return (findCountryExact(name) || findCountryExact(fallbackName) || countries[0]).name;
+}
+
+function normalizeCountryFilter(value, fallbackName = getDefaultCountryName()) {
+  if (!value) return fallbackName;
+  if (COUNTRY_FILTER_IDS.has(value)) return value;
+  return normalizeCountryName(value, fallbackName);
+}
+
+const initialCountryName = getDefaultCountryName();
+
 const defaultPeople = [
   {
     id: "sample-ronald-reagan",
@@ -157,8 +295,9 @@ const initialState = {
   following: [],
   blocked: [],
   language: "AR",
-  currentCountry: "United States",
-  homeFilter: "United States",
+  currentCountry: initialCountryName,
+  homeFilter: initialCountryName,
+  countryPreferenceTouched: false,
   guest: true
 };
 
@@ -482,6 +621,23 @@ function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
     const merged = saved ? { ...initialState, ...saved } : initialState;
+    const detectedCountry = detectDeviceCountry();
+    const savedCountry = findCountryExact(saved?.currentCountry);
+    const shouldUseDetectedCountry =
+      !saved ||
+      (!saved.countryPreferenceTouched &&
+        (!savedCountry ||
+          (savedCountry.name === LEGACY_DEFAULT_COUNTRY_NAME &&
+            detectedCountry.name !== LEGACY_DEFAULT_COUNTRY_NAME)));
+    const currentCountry = shouldUseDetectedCountry
+      ? detectedCountry.name
+      : normalizeCountryName(merged.currentCountry, initialState.currentCountry);
+    const rawHomeFilter = merged.homeFilter || currentCountry;
+    const homeFilter =
+      shouldUseDetectedCountry ||
+      (!saved?.countryPreferenceTouched && rawHomeFilter === LEGACY_DEFAULT_COUNTRY_NAME)
+        ? currentCountry
+        : normalizeCountryFilter(rawHomeFilter, currentCountry);
     const savedPeople = Array.isArray(merged.people) ? merged.people : [];
     const people = [
       ...defaultPeople,
@@ -493,8 +649,9 @@ function loadState() {
       people,
       guest: merged.currentUser ? false : true,
       language: normalizeLanguage(merged.language),
-      currentCountry: merged.currentCountry || initialState.currentCountry,
-      homeFilter: merged.homeFilter || initialState.homeFilter
+      currentCountry,
+      homeFilter,
+      countryPreferenceTouched: Boolean(merged.countryPreferenceTouched)
     };
   } catch {
     return initialState;
@@ -523,7 +680,7 @@ function getUserName(user) {
 }
 
 function findCountry(name) {
-  return countries.find((country) => country.name === name || country.ar === name) || countries[0];
+  return findCountryExact(name) || countries[0];
 }
 
 function normalizeLanguage(language) {
@@ -586,6 +743,19 @@ function App() {
       if (Object.prototype.hasOwnProperty.call(normalizedPatch, "language")) {
         normalizedPatch.language = normalizeLanguage(normalizedPatch.language);
       }
+      if (Object.prototype.hasOwnProperty.call(normalizedPatch, "currentCountry")) {
+        normalizedPatch.currentCountry = normalizeCountryName(
+          normalizedPatch.currentCountry,
+          current.currentCountry || initialState.currentCountry
+        );
+        normalizedPatch.countryPreferenceTouched = true;
+      }
+      if (Object.prototype.hasOwnProperty.call(normalizedPatch, "homeFilter")) {
+        normalizedPatch.homeFilter = normalizeCountryFilter(
+          normalizedPatch.homeFilter,
+          normalizedPatch.currentCountry || current.currentCountry || initialState.currentCountry
+        );
+      }
 
       const next = { ...current, ...normalizedPatch };
       if (!Object.prototype.hasOwnProperty.call(normalizedPatch, "language") || !next.currentUser) {
@@ -615,13 +785,17 @@ function App() {
   };
 
   const registerUser = (user) => {
-    const completeUser = { ...user, id: uid(), createdAt: new Date().toISOString() };
+    const accountCountry = findCountry(user.country || state.currentCountry);
+    const completeUser = { ...user, country: accountCountry.name, id: uid(), createdAt: new Date().toISOString() };
     setState((current) => ({
       ...current,
       currentUser: completeUser,
       users: [completeUser, ...current.users.filter((item) => item.email !== completeUser.email)],
       guest: false,
-      language: user.language
+      language: user.language,
+      currentCountry: accountCountry.name,
+      homeFilter: accountCountry.name,
+      countryPreferenceTouched: true
     }));
     setScreen("success");
   };
@@ -647,7 +821,14 @@ function App() {
       type: "verify",
       user: loginUserWithOtp,
       onProceed: () => {
-        updateState({ currentUser: loginUserWithOtp, guest: false, language: user.language || state.language });
+        const accountCountry = findCountry(loginUserWithOtp.country || state.currentCountry);
+        updateState({
+          currentUser: loginUserWithOtp,
+          guest: false,
+          language: user.language || state.language,
+          currentCountry: accountCountry.name,
+          homeFilter: accountCountry.name
+        });
         setScreen("home");
       }
     });
@@ -741,6 +922,7 @@ function App() {
           }}
           onClose={() => setModal(null)}
           withCodes={modal.withCodes}
+          selectedCountry={modal.selectedCountry}
         />
       )}
       {modal?.type === "gender" && (
@@ -846,7 +1028,7 @@ function LanguageButton({ value, onClick }) {
 
 function RegisterScreen({ state, language, t, updateState, onRegister, onLogin, onGuest, setModal, setToast }) {
   const [form, setForm] = useState(() => {
-    const accountCountry = findCountry(state.currentCountry || "United States");
+    const accountCountry = findCountry(state.currentCountry || initialState.currentCountry);
 
     return {
       language: state.language || "EN",
@@ -956,6 +1138,7 @@ function RegisterScreen({ state, language, t, updateState, onRegister, onLogin, 
               type: "country",
               title: t("selectCallingCode"),
               withCodes: true,
+              selectedCountry: form.phoneCountry.name,
               onPick: setAccountCountry
             })
           }
@@ -1005,6 +1188,7 @@ function RegisterScreen({ state, language, t, updateState, onRegister, onLogin, 
           setModal({
             type: "country",
             title: t("country"),
+            selectedCountry: form.country,
             onPick: setAccountCountry
           })
         }
@@ -1043,7 +1227,7 @@ function RegisterScreen({ state, language, t, updateState, onRegister, onLogin, 
 }
 
 function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setScreen, setModal }) {
-  const [phoneCountry, setPhoneCountry] = useState(findCountry(state.currentCountry || "United States"));
+  const [phoneCountry, setPhoneCountry] = useState(findCountry(state.currentCountry || initialState.currentCountry));
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [visible, setVisible] = useState(false);
@@ -1082,6 +1266,7 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setS
               type: "country",
               title: t("selectCallingCode"),
               withCodes: true,
+              selectedCountry: phoneCountry.name,
               onPick: setPhoneCountry
             })
           }
@@ -1140,7 +1325,7 @@ function SuccessScreen({ state, language, t, toggleLanguage, setScreen }) {
 }
 
 function HomeScreen({ state, language, t, updateState, setModal, setScreen, activeUser, canUseAccount, bootLoading }) {
-  const selectedCountry = findCountry(state.currentCountry || activeUser?.country || "Egypt");
+  const selectedCountry = findCountry(state.currentCountry || activeUser?.country || initialState.currentCountry);
   const filteredPeople = useMemo(() => {
     const people = state.people.filter((person) => !state.blocked.includes(person.id));
     if (state.homeFilter === "Follow") {
@@ -1178,6 +1363,7 @@ function HomeScreen({ state, language, t, updateState, setModal, setScreen, acti
           setModal({
             type: "country",
             title: t("browseCountry"),
+            selectedCountry: selectedCountry.name,
             onPick: (country) => updateState({ currentCountry: country.name, homeFilter: country.name })
           })
         }
@@ -1247,7 +1433,7 @@ function AddScreen({ state, language, t, setModal, onCreate, activeUser }) {
     birthDate: "",
     age: "",
     gender: "",
-    country: activeUser?.country || "Egypt",
+    country: activeUser?.country || state.currentCountry || initialState.currentCountry,
     info: ""
   });
   const [errors, setErrors] = useState({});
@@ -1364,8 +1550,9 @@ function AddScreen({ state, language, t, setModal, onCreate, activeUser }) {
           error={errors.country}
           onClick={() =>
             setModal({
-            type: "country",
+              type: "country",
               title: t("country"),
+              selectedCountry: form.country,
               onPick: (country) => setField("country", country.name)
             })
           }
@@ -1509,7 +1696,7 @@ function EditProfileScreen({ activeUser, state, language, t, updateState, setScr
     firstName: activeUser?.firstName || "",
     surname: activeUser?.surname || "",
     email: activeUser?.email || "",
-    country: activeUser?.country || "Egypt"
+    country: activeUser?.country || state.currentCountry || initialState.currentCountry
   });
 
   const save = () => {
@@ -1517,10 +1704,13 @@ function EditProfileScreen({ activeUser, state, language, t, updateState, setScr
       setScreen("register");
       return;
     }
-    const updated = { ...activeUser, ...form };
+    const accountCountry = findCountry(form.country || state.currentCountry);
+    const updated = { ...activeUser, ...form, country: accountCountry.name };
     updateState({
       currentUser: updated,
-      users: state.users.map((user) => (user.id === updated.id ? updated : user))
+      users: state.users.map((user) => (user.id === updated.id ? updated : user)),
+      currentCountry: accountCountry.name,
+      homeFilter: accountCountry.name
     });
     setToast(t("profileUpdated"));
     setScreen("profile");
@@ -1555,6 +1745,7 @@ function EditProfileScreen({ activeUser, state, language, t, updateState, setScr
             setModal({
               type: "country",
               title: t("country"),
+              selectedCountry: form.country,
               onPick: (country) => setForm((current) => ({ ...current, country: country.name }))
             })
           }
@@ -1840,11 +2031,18 @@ function AgeModal({ value, t, onSave, onCancel }) {
   );
 }
 
-function CountryModal({ title, language, t, onPick, onClose, withCodes }) {
+function CountryModal({ title, language, t, onPick, onClose, withCodes, selectedCountry }) {
   const [query, setQuery] = useState("");
+  const selectedCountryName = findCountryExact(selectedCountry)?.name || "";
+  const selectedRef = useRef(null);
   const results = countries.filter((country) =>
     `${country.name} ${country.ar} ${country.code}`.toLowerCase().includes(query.toLowerCase())
   );
+
+  useEffect(() => {
+    if (!selectedRef.current || query) return;
+    selectedRef.current.scrollIntoView({ block: "center" });
+  }, [query, selectedCountryName]);
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
@@ -1855,13 +2053,21 @@ function CountryModal({ title, language, t, onPick, onClose, withCodes }) {
         </div>
         <div className="modal-title">{title}</div>
         <div className="country-list">
-          {results.map((country) => (
-            <button key={`${country.name}-${country.code}`} onClick={() => onPick(country)}>
-              <Flag country={country} />
-              <strong>{countryLabel(country, language)}</strong>
-              {withCodes && <em>{country.code}</em>}
-            </button>
-          ))}
+          {results.map((country) => {
+            const isSelected = country.name === selectedCountryName;
+            return (
+              <button
+                key={`${country.name}-${country.code}`}
+                ref={isSelected ? selectedRef : null}
+                className={isSelected ? "selected" : ""}
+                onClick={() => onPick(country)}
+              >
+                <Flag country={country} />
+                <strong>{countryLabel(country, language)}</strong>
+                {withCodes && <em>{country.code}</em>}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
