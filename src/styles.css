@@ -1885,8 +1885,8 @@ button {
 
 .flowers-screen .top-header {
   direction: ltr;
-  min-height: 78px;
-  border-radius: 19px 19px 0 0;
+  min-height: 68px;
+  border-radius: 0;
   background: #d9f5ff;
 }
 
@@ -1899,7 +1899,7 @@ button {
 }
 
 .flowers-screen .top-header h1 {
-  font-size: 2rem;
+  font-size: 1.72rem;
   line-height: 1;
 }
 
@@ -1916,20 +1916,20 @@ button {
 .flower-person-row {
   direction: ltr;
   display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
+  grid-template-columns: 76px minmax(0, 1fr);
   align-items: center;
-  gap: 24px;
-  min-height: 126px;
-  padding: 12px 22px;
+  gap: 18px;
+  min-height: 104px;
+  padding: 10px 20px;
   border-bottom: 2px solid #d6d0d8;
   background: #fff8ff;
 }
 
 .flower-person-photo {
-  width: 80px;
-  height: 92px;
+  width: 66px;
+  height: 76px;
   overflow: hidden;
-  border-radius: 16px;
+  border-radius: 12px;
   background: #f4f4f4;
 }
 
@@ -1943,7 +1943,7 @@ button {
 .flower-person-row strong {
   min-width: 0;
   color: #050505;
-  font-size: 1.55rem;
+  font-size: 1.34rem;
   font-weight: 900;
   line-height: 1.18;
   text-align: left;
@@ -1954,25 +1954,25 @@ button {
 .flower-sender-list {
   display: grid;
   align-content: start;
-  gap: 12px;
-  min-height: calc(100vh - 204px);
-  min-height: calc(100dvh - 204px);
-  padding: 26px 22px 90px;
+  gap: 10px;
+  min-height: calc(100vh - 172px);
+  min-height: calc(100dvh - 172px);
+  padding: 22px 20px 90px;
   background: #fff8ff;
 }
 
 .flower-sender-card {
   direction: ltr;
   display: grid;
-  grid-template-columns: 62px minmax(0, 1fr) 64px;
+  grid-template-columns: 52px minmax(0, 1fr) 44px;
   align-items: center;
   gap: 10px;
-  min-height: 78px;
+  min-height: 64px;
 }
 
 .flower-sender-avatar {
-  width: 52px;
-  height: 52px;
+  width: 44px;
+  height: 44px;
   overflow: hidden;
   border-radius: 50%;
   background: #f1f2f4;
@@ -1986,7 +1986,7 @@ button {
 
 .flower-sender-text {
   display: grid;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
   text-align: left;
 }
@@ -1994,7 +1994,7 @@ button {
 .flower-sender-text strong {
   min-width: 0;
   color: #050505;
-  font-size: 1.2rem;
+  font-size: 1.02rem;
   font-weight: 800;
   line-height: 1.1;
   unicode-bidi: plaintext;
@@ -2003,13 +2003,13 @@ button {
 
 .flower-sender-text span {
   color: #777;
-  font-size: 1rem;
+  font-size: 0.88rem;
   line-height: 1.1;
 }
 
 .flower-sender-card .rose-graphic.small {
   justify-self: end;
-  width: 44px;
+  width: 32px;
 }
 
 .flower-empty {
