@@ -16,7 +16,6 @@ import {
   Eye,
   EyeOff,
   FileText,
-  Flower2,
   Headset,
   Home,
   Image as ImageIcon,
@@ -429,6 +428,16 @@ const copy = {
     language: "Language",
     arabic: "العربية",
     english: "English",
+    userDashboard: "User Dashboard",
+    dashboardIntro: "Edit or delete saved users on this device.",
+    noUsers: "No users yet",
+    noUsersBody: "Accounts you create on this device will appear here.",
+    editUser: "Edit user",
+    deleteUser: "Delete user",
+    deleteUserConfirm: "Delete this user from this device?",
+    userSaved: "User saved",
+    userDeleted: "User deleted",
+    cancel: "Cancel",
     blockedUsers: "Blocked Users",
     contactUs: "Contact Us",
     terms: "Terms & Conditions",
@@ -493,7 +502,7 @@ const copy = {
     accountPromptFlowerTitle: "Create an account to give a flower",
     accountPromptFlowerBody: "Each user can give one flower per day, so your daily flower needs to belong to your account.",
     signIn: "Sign in",
-    gallery: "Gallary",
+    gallery: "Gallery",
     giveFlower: "Give Flower",
     flower: "Flower",
     flowerAdded: "Flower added to the shrine",
@@ -506,7 +515,7 @@ const copy = {
   AR: {
     shrine: "مزارات",
     registerTitle: "ابدأ حسابك",
-    registerIntro: "اعمل حسابك واحفظ كل مزار باسمك.",
+    registerIntro: "أنشئ حسابك واحفظ كل مزار باسمك.",
     firstName: "الاسم الأول",
     surname: "اسم العائلة",
     mobileNumber: "رقم الهاتف",
@@ -524,28 +533,28 @@ const copy = {
     startRequired: "أكمل الحقول المطلوبة",
     errFirstName: "الاسم الأول مطلوب",
     errSurname: "اسم العائلة مطلوب",
-    errPhone: "أدخل رقم هاتف صحيح",
-    errEmail: "أدخل بريد إلكتروني صحيح",
+    errPhone: "أدخل رقم هاتف صحيحًا",
+    errEmail: "أدخل بريدًا إلكترونيًا صحيحًا",
     errGender: "النوع مطلوب",
     errPassword: "كلمة المرور مطلوبة",
     errPasswordLength: "استخدم 8 أحرف على الأقل",
     errPasswordMatch: "كلمتا المرور غير متطابقتين",
     welcomeBack: "أهلًا بعودتك",
-    loginIntro: "سجّل الدخول بالحساب اللي عملته على الجهاز ده.",
+    loginIntro: "سجّل الدخول بالحساب الذي أنشأته على هذا الجهاز.",
     back: "رجوع",
     newHere: "مستخدم جديد؟",
     createAccount: "إنشاء حساب",
-    badLogin: "راجع البريد الإلكتروني أو رقم الهاتف وكلمة المرور",
+    badLogin: "تحقق من البريد الإلكتروني أو رقم الهاتف وكلمة المرور",
     success: "تم بنجاح",
     congrats: "مبروك!",
     successBody: "حسابك جاهز. ابدأ بإضافة المزارات وإدارتها من ملفك.",
     letsStart: "ابدأ",
-    sponsor: "الداعمين",
+    sponsor: "الداعمون",
     follow: "المتابعين",
     sponsorTab: "الرعاية",
     followersTab: "المتابعون",
-    noMemorials: "لسه مفيش مزارات",
-    noMemorialsBody: "اضغط على زر إضافة عشان تضيف أول مزار ببياناتك.",
+    noMemorials: "لا توجد مزارات حتى الآن",
+    noMemorialsBody: "اضغط على زر الإضافة لإضافة أول مزار ببياناتك.",
     browseCountry: "تصفح حسب الدولة",
     add: "إضافة",
     selected: "تم الاختيار",
@@ -566,13 +575,23 @@ const copy = {
     errInfo: "استخدم 250 كلمة أو أقل",
     search: "بحث",
     startTyping: "ابدأ الكتابة للبحث",
-    noResults: "مفيش نتائج",
-    noResultsBody: "جرّب اسم أو دولة أو كلمة من الوصف.",
+    noResults: "لا توجد نتائج",
+    noResultsBody: "جرّب البحث باسم أو دولة أو كلمة من الوصف.",
     settings: "الإعدادات",
     profile: "الملف الشخصي",
     language: "اللغة",
     arabic: "العربية",
     english: "English",
+    userDashboard: "لوحة المستخدمين",
+    dashboardIntro: "عدّل أو احذف المستخدمين المحفوظين على هذا الجهاز.",
+    noUsers: "لا يوجد مستخدمون حتى الآن",
+    noUsersBody: "ستظهر هنا الحسابات التي يتم إنشاؤها على هذا الجهاز.",
+    editUser: "تعديل المستخدم",
+    deleteUser: "حذف المستخدم",
+    deleteUserConfirm: "هل تريد حذف هذا المستخدم من هذا الجهاز؟",
+    userSaved: "تم حفظ المستخدم",
+    userDeleted: "تم حذف المستخدم",
+    cancel: "إلغاء",
     blockedUsers: "المستخدمون المحظورون",
     contactUs: "تواصل معنا",
     terms: "الشروط والأحكام",
@@ -586,12 +605,12 @@ const copy = {
     save: "حفظ",
     profileUpdated: "تم تحديث الملف",
     memorial: "المزار",
-    entryNotFound: "المزار مش موجود",
+    entryNotFound: "المزار غير موجود",
     unknownBirth: "تاريخ الميلاد غير معروف",
     following: "تتم متابعته",
     block: "حظر",
     unblock: "إلغاء الحظر",
-    noBlockedUsers: "مفيش مستخدمين محظورين",
+    noBlockedUsers: "لا يوجد مستخدمون محظورون",
     lastUpdated: "آخر تحديث",
     yourEmail: "بريدك الإلكتروني",
     message: "الرسالة",
@@ -620,7 +639,7 @@ const copy = {
     registrationCancelled: "تم إلغاء التسجيل. ابدأ من جديد بالبيانات الصحيحة.",
     devCode: "كود التطوير",
     expiresAt: "ينتهي في",
-    pleaseWait: "برجاء الانتظار...",
+    pleaseWait: "يرجى الانتظار...",
     verifyProceed: "تحقق وتابع",
     sendWhatsappCode: "إرسال كود واتساب",
     resendCode: "إعادة إرسال الكود",
@@ -630,19 +649,19 @@ const copy = {
     codeSentToMobile: "أرسلنا كود التفعيل إلى هاتفك:",
     emailOrPhone: "البريد الإلكتروني أو رقم الهاتف",
     emailOrPhonePlaceholder: "email@example.com أو رقم الهاتف",
-    accountPromptTitle: "اعمل حساب عشان تحفظ المتابعات",
-    accountPromptBody: "قائمة المتابعين مرتبطة بحسابك، وبتفضل منفصلة عن تصفح الزائر.",
-    accountPromptAddTitle: "اعمل حساب عشان تضيف مزار",
-    accountPromptAddBody: "أضف مزار واحفظ التفاصيل وتحكم فيه بأمان من حسابك.",
-    accountPromptFlowerTitle: "اعمل حساب عشان تهدي وردة",
-    accountPromptFlowerBody: "كل مستخدم ليه وردة واحدة في اليوم، فخليها محفوظة على حسابك.",
+    accountPromptTitle: "أنشئ حسابًا لحفظ المتابعات",
+    accountPromptBody: "قائمة المتابعة مرتبطة بحسابك، وتظل منفصلة عن تصفح الزائر.",
+    accountPromptAddTitle: "أنشئ حسابًا لإضافة مزار",
+    accountPromptAddBody: "أضف مزارًا واحفظ التفاصيل وتحكم فيه بأمان من حسابك.",
+    accountPromptFlowerTitle: "أنشئ حسابًا لإهداء وردة",
+    accountPromptFlowerBody: "لكل مستخدم وردة واحدة يوميًا، لذلك يجب حفظها على حسابك.",
     signIn: "تسجيل الدخول",
     gallery: "المعرض",
     giveFlower: "إهداء وردة",
     flower: "وردة",
     flowerAdded: "تمت إضافة الوردة إلى المزار",
-    flowerUsedToday: "لديك وردة واحدة فقط في اليوم",
-    oneFlowerADay: "وردة واحدة في اليوم",
+    flowerUsedToday: "لديك وردة واحدة فقط يوميًا",
+    oneFlowerADay: "وردة واحدة يوميًا",
     flowerAlreadySentToday: "لقد أرسلت وردة لهذا المزار اليوم بالفعل",
     flowerLasts: "الوردة تستمر سبعة أيام",
     flowerCount: "{count} وردة"
@@ -910,6 +929,7 @@ function App() {
   const language = normalizeLanguage(state.language);
   const t = translator(language);
   const isArabic = language === "AR";
+  const platformFontClass = getPlatformFontClass();
   const [screen, setScreen] = useState("home");
   const [opening, setOpening] = useState(true);
   const [homeIntroLoading, setHomeIntroLoading] = useState(true);
@@ -1137,7 +1157,7 @@ function App() {
   };
 
   return (
-    <div className={`app-shell ${isArabic ? "rtl" : ""}`} dir={isArabic ? "rtl" : "ltr"} lang={isArabic ? "ar" : "en"}>
+    <div className={`app-shell ${platformFontClass} ${isArabic ? "rtl" : ""}`} dir={isArabic ? "rtl" : "ltr"} lang={isArabic ? "ar" : "en"}>
       {opening && <SplashIntro />}
       {screen === "register" && (
         <RegisterScreen
@@ -1184,6 +1204,7 @@ function App() {
       {screen === "settings" && <SettingsScreen {...commonProps} logout={logout} />}
       {screen === "profile" && <ProfileScreen {...commonProps} />}
       {screen === "editProfile" && <EditProfileScreen {...commonProps} />}
+      {screen === "userDashboard" && <UserDashboardScreen {...commonProps} />}
       {screen === "blocked" && <BlockedUsersScreen {...commonProps} />}
       {screen === "terms" && <TermsScreen {...commonProps} />}
       {screen === "contact" && <ContactScreen {...commonProps} />}
@@ -1552,7 +1573,7 @@ function RegisterScreen({ state, language, t, updateState, onRegister, onCancelR
 }
 
 function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setScreen, setModal }) {
-  const loginCountry = findCountry(state.currentCountry || initialState.currentCountry);
+  const loginCountry = findCountryExact("Australia") || findCountry(state.currentCountry || initialState.currentCountry);
   const [phoneCountry, setPhoneCountry] = useState(loginCountry);
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -1576,7 +1597,7 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setS
   };
 
   const setPhoneValue = (value) => {
-    const cleanValue = value.replace(/\D/g, "").slice(0, 14);
+    const cleanValue = value.replace(/\D/g, "").slice(0, 9);
     setPhone(cleanValue);
     setErrors((current) => ({
       ...current,
@@ -1596,7 +1617,7 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setS
     const nextErrors = {};
     if (!phone) {
       nextErrors.phone = phoneRequiredMessage;
-    } else if (!/^\d{7,14}$/.test(phone)) {
+    } else if (!/^\d{7,9}$/.test(phone)) {
       nextErrors.phone = "Enter a valid mobile number";
     }
     if (!password) nextErrors.password = passwordRequiredMessage;
@@ -1636,12 +1657,12 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setS
           type="tel"
           inputMode="numeric"
           placeholder="1234567891"
-          maxLength={14}
+          maxLength={9}
           value={phone}
           onChange={(event) => setPhoneValue(event.target.value)}
         />
       </div>
-      <div className="counter">{phone.length}/14</div>
+      <div className="counter">{phone.length}/9</div>
       {errors.phone && <p className="error-text">* {errors.phone}</p>}
       <PasswordInput
         label="Password"
@@ -1996,6 +2017,7 @@ function SettingsScreen({ state, language, t, updateState, setScreen, logout }) 
             </div>
           )}
         </div>
+        <SettingsItem icon={<UsersRound />} label={t("userDashboard")} onClick={() => setScreen("userDashboard")} />
         <SettingsItem icon={<Ban />} label={t("blockedUsers")} onClick={() => setScreen("blocked")} />
         <SettingsItem icon={<Headset />} label={t("contactUs")} onClick={() => setScreen("contact")} />
         <SettingsItem icon={<FileText />} label={t("terms")} onClick={() => setScreen("terms")} />
@@ -2178,28 +2200,7 @@ function GalleryScreen({ state, t, setScreen }) {
 }
 
 function DetailScreen({ state, language, t, updateState, setScreen, setModal, canUseAccount }) {
-  const [commentMenuOpen, setCommentMenuOpen] = useState(false);
   const person = state.people.find((item) => item.id === state.selectedPersonId);
-
-  useEffect(() => {
-    if (!commentMenuOpen) return undefined;
-
-    const closeMenu = (event) => {
-      if (!event.target.closest?.(".detail-entry-actions")) {
-        setCommentMenuOpen(false);
-      }
-    };
-    const closeOnEscape = (event) => {
-      if (event.key === "Escape") setCommentMenuOpen(false);
-    };
-
-    document.addEventListener("pointerdown", closeMenu);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("pointerdown", closeMenu);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [commentMenuOpen]);
 
   if (!person) {
     return (
@@ -2216,34 +2217,6 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
   const creatorName = person.createdByName || (creator ? getUserName(creator) : person.createdBy === "guest" ? t("guestAccount") : "Shrine");
   const createdDate = personCreatedDate(person);
   const detailInfo = person.info?.trim();
-  const activeFlowers = activeFlowerGifts(person.flowers);
-  const lifeYears = personLifeYears(person, t);
-  const displayAge = personDisplayAge(person);
-  const shareUrl = typeof window !== "undefined" ? window.location?.href || "" : "";
-  const shareTitle = person.fullName || t("memorial");
-  const sharePerson = () => {
-    shareContent({
-      title: shareTitle,
-      text: [shareTitle, lifeYears].filter(Boolean).join("\n"),
-      url: shareUrl
-    });
-  };
-  const shareComment = () => {
-    shareContent({
-      title: shareTitle,
-      text: [shareTitle, creatorName, createdDate, detailInfo].filter(Boolean).join("\n"),
-      url: shareUrl
-    });
-    setCommentMenuOpen(false);
-  };
-
-  const openFlowerPicker = () => {
-    if (!canUseAccount) {
-      setModal({ type: "accountPrompt", intent: "flower" });
-      return;
-    }
-    setModal({ type: "flower", personId: person.id });
-  };
 
   const toggleFollow = () => {
     if (!canUseAccount) {
@@ -2265,17 +2238,7 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
 
   return (
     <main className="main-screen detail-screen scroll-screen">
-      <Header
-        title=""
-        back={() => setScreen("home")}
-        language={language}
-        t={t}
-        action={
-          <button className="header-icon detail-share" onClick={sharePerson} aria-label="Share">
-            <Share2 size={28} />
-          </button>
-        }
-      />
+      <Header title={t("memorial")} back={() => setScreen("home")} language={language} t={t} />
       <section className="detail-card">
         <div className="detail-hero">
           <div className="detail-photo">

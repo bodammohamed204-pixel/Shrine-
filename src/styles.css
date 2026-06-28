@@ -1014,16 +1014,31 @@ button {
   background: #012169;
 }
 
+.flag-au::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 54%;
+  height: 55%;
+  background:
+    linear-gradient(28deg, transparent 40%, #fff 40% 48%, #c8102e 48% 53%, #fff 53% 61%, transparent 61%),
+    linear-gradient(-28deg, transparent 40%, #fff 40% 48%, #c8102e 48% 53%, #fff 53% 61%, transparent 61%),
+    linear-gradient(90deg, transparent 38%, #fff 38% 62%, transparent 62%),
+    linear-gradient(0deg, transparent 34%, #fff 34% 66%, transparent 66%),
+    #012169;
+}
+
 .flag-au::after {
   content: "";
   position: absolute;
-  right: 20%;
-  top: 36%;
-  width: 4px;
-  height: 4px;
+  right: 17%;
+  top: 28%;
+  width: 3px;
+  height: 3px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 8px 7px 0 #fff, -2px 10px 0 #fff;
+  box-shadow: -7px 8px 0 1px #fff, 6px 7px 0 #fff, -1px 13px 0 #fff, 8px 14px 0 #fff;
 }
 
 .flag-tr {
@@ -1073,11 +1088,12 @@ button {
 }
 
 .home-screen .top-header.compact {
-  min-height: 112px;
+  min-height: 72px;
 }
 
 .home-screen .top-header.compact h1 {
   font-size: 22px;
+  line-height: 1;
 }
 
 .home-screen .flag-button {
@@ -1834,13 +1850,13 @@ button {
 }
 
 .detail-quick-actions {
-  direction: ltr;
+  direction: ltr !important;
   display: grid;
-  grid-template-columns: 44px 84px 44px;
+  grid-template-columns: 44px 84px 54px;
   justify-content: start;
   gap: 6px;
   width: 100%;
-  margin: 78px 0 0;
+  margin: 138px 0 0;
 }
 
 .detail-action-tile {
@@ -1856,6 +1872,10 @@ button {
   color: var(--blue);
   background: #fff;
   box-shadow: var(--shadow-sm);
+}
+
+.detail-action-tile.ai-tile {
+  width: 54px;
 }
 
 .detail-action-tile svg {
@@ -2015,27 +2035,47 @@ button {
 .detail-entry {
   position: relative;
   direction: ltr;
-  margin-top: 20px;
-  padding: 14px 0 16px;
-  border-top: 1px solid #d9dce2;
-  border-bottom: 1px solid #d9dce2;
+  min-height: 82px;
+  margin-top: 34px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: #f3f3f3;
   text-align: left;
 }
 
+.detail-entry::before,
+.detail-entry::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #d4d4d4;
+}
+
+.detail-entry::before {
+  top: -16px;
+}
+
+.detail-entry::after {
+  bottom: -16px;
+}
+
 .detail-entry.compact {
-  padding-bottom: 14px;
+  padding-bottom: 10px;
 }
 
 .detail-entry-header {
   display: grid;
-  grid-template-columns: 54px minmax(0, 1fr);
+  grid-template-columns: 44px minmax(0, 1fr) 30px;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .detail-entry-avatar {
-  width: 54px;
-  height: 54px;
+  width: 44px;
+  height: 44px;
   overflow: hidden;
   border-radius: 8px;
   background: #eef2f7;
@@ -2051,14 +2091,14 @@ button {
 
 .detail-entry-header strong {
   color: #111;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 800;
 }
 
 .detail-entry-header span {
   margin-top: 2px;
   color: #777f8c;
-  font-size: 0.92rem;
+  font-size: 0.86rem;
 }
 
 .detail-entry-actions {
@@ -2071,8 +2111,8 @@ button {
 .detail-entry-menu-button {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   border: 0;
   border-radius: 8px;
   color: #111;
@@ -2267,12 +2307,12 @@ button {
   left: 50%;
   z-index: 35;
   width: min(100vw, 430px);
-  min-height: 112px;
+  min-height: 78px;
   transform: translateX(-50%);
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   align-items: start;
-  padding-top: 18px;
+  padding-top: 10px;
   background: var(--blue);
   box-shadow: 0 -8px 28px rgba(15, 23, 42, 0.08);
 }
@@ -2281,12 +2321,16 @@ button {
   display: grid;
   place-items: center;
   gap: 2px;
-  min-height: 72px;
+  min-height: 62px;
   border: 0;
   color: #fff;
   background: transparent;
   font-size: var(--nav-label-size);
   font-weight: 650;
+}
+
+.bottom-nav .nav-label {
+  line-height: 1;
 }
 
 .bottom-nav button:not(.nav-active) .nav-label {
@@ -2302,10 +2346,21 @@ button {
   color: currentColor;
 }
 
+.bottom-nav .nav-featured .nav-icon {
+  border-radius: 50%;
+  color: var(--blue);
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.16);
+}
+
 .bottom-nav .nav-icon svg {
   width: var(--nav-icon-size);
   height: var(--nav-icon-size);
   stroke-width: var(--nav-icon-stroke);
+}
+
+.bottom-nav .nav-featured .nav-icon svg {
+  stroke-width: 4;
 }
 
 .bottom-nav .nav-active .nav-icon svg {
