@@ -1887,23 +1887,24 @@ button {
 .detail-card {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 28px 24px 120px;
+  align-items: stretch;
+  padding: 12px 18px 124px;
 }
 
 .detail-hero {
   direction: ltr;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
   width: 100%;
 }
 
 .detail-photo {
-  width: clamp(204px, 53.6vw, 232px);
-  aspect-ratio: 1 / 1.25;
+  width: 100%;
+  aspect-ratio: 132 / 242;
   border: 1px solid var(--line);
-  border-radius: 2px;
+  border-radius: 3px;
   overflow: hidden;
   background: #f2f2f2;
 }
@@ -1917,7 +1918,7 @@ button {
 .detail-summary {
   min-width: 0;
   width: 100%;
-  padding-top: 30px;
+  padding-top: 17px;
   text-align: center;
 }
 
@@ -1926,18 +1927,18 @@ button {
 }
 
 .detail-summary h2 {
-  margin: 0 0 16px;
-  color: var(--blue);
-  font-size: 2rem;
-  line-height: 1.16;
+  margin: 0 0 14px;
+  color: #111;
+  font-size: 1.28rem;
+  line-height: 1.18;
   font-weight: 850;
   overflow-wrap: anywhere;
 }
 
 .detail-father-name {
-  margin: 0 0 18px;
+  margin: 0 0 7px;
   color: #687482;
-  font-size: 1.05rem;
+  font-size: 0.82rem;
   font-weight: 750;
 }
 
@@ -1950,9 +1951,9 @@ button {
 }
 
 .detail-dates {
-  color: #5f6670;
-  font-size: 1.12rem;
-  font-weight: 550;
+  color: var(--blue);
+  font-size: 1.03rem;
+  font-weight: 520;
 }
 
 .detail-age {
@@ -1970,25 +1971,71 @@ button {
   font-size: 1.13rem;
 }
 
-.detail-actions {
+.detail-quick-actions {
   direction: ltr;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: 44px 84px 44px;
+  justify-content: start;
+  gap: 6px;
   width: 100%;
-  margin: 22px 0 18px;
+  margin: 78px 0 0;
 }
 
-.detail-actions .primary-button.small,
-.detail-actions .outline-button.small {
-  min-height: 52px;
+.detail-action-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 44px;
+  height: 48px;
+  min-width: 0;
+  border: 1px solid #e2e7ee;
   border-radius: 8px;
-  font-size: 1.05rem;
+  color: var(--blue);
+  background: #fff;
+  box-shadow: var(--shadow-sm);
 }
 
-.detail-actions svg {
-  width: 20px;
-  height: 20px;
+.detail-action-tile svg {
+  width: 23px;
+  height: 23px;
+  stroke-width: 2.45;
+}
+
+.detail-action-tile .rose-graphic.small {
+  width: 25px;
+  filter: drop-shadow(0 2px 3px rgba(110, 18, 28, 0.15));
+}
+
+.detail-action-tile.rose-tile {
+  width: 84px;
+}
+
+.rose-tile {
+  color: #247fbd;
+}
+
+.rose-tile svg {
+  color: #cc2442;
+}
+
+.rose-tile span {
+  color: var(--blue);
+  font-size: 0.9rem;
+  font-weight: 850;
+}
+
+.rose-tile.selected {
+  border-color: rgba(36, 148, 232, 0.45);
+  background: #eef8ff;
+}
+
+.ai-tile {
+  color: #3457c9;
+}
+
+.detail-block-action {
+  display: none;
 }
 
 .flower-offerings {
