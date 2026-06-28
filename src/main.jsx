@@ -25,15 +25,14 @@ import {
   LogOut,
   Mail,
   MapPin,
-  MessageSquare,
   MoreVertical,
   Pencil,
+  Plus,
   Search,
   Settings,
   Share2,
   ShieldCheck,
   Sparkles,
-  SquarePen,
   Trash2,
   UserRound,
   UserRoundPlus,
@@ -3229,8 +3228,8 @@ function ContactScreen({ language, t, goBack, setToast }) {
 function BottomNav({ active, setScreen, setModal, canUseAccount, t }) {
   const items = [
     { id: "home", label: t("home"), icon: <ContactRound size={36} /> },
-    { id: "search", label: t("search"), icon: <MessageSquare size={38} /> },
-    { id: "add", label: t("add"), icon: <SquarePen size={36} />, featured: true },
+    { id: "add", label: t("add"), icon: <Plus size={30} />, featured: true },
+    { id: "search", label: t("search"), icon: <Search size={42} /> },
     { id: "settings", label: t("settings"), icon: <Settings size={42} /> }
   ];
   const go = (id) => {
