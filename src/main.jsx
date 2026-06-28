@@ -1840,7 +1840,7 @@ function App() {
           key={`edit-${state.selectedPersonId || "missing"}`}
           {...commonProps}
           mode="update"
-          initialPerson={state.people.find((person) => person.id === state.selectedPersonId)}
+          initialPerson={canEditSelectedShrine ? selectedPerson : null}
           onSubmit={updatePerson}
         />
       )}
@@ -3522,7 +3522,9 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
   }
 
   const creator = state.users.find((user) => user.id === person.createdBy);
-  const creatorName = person.createdByName || (creator ? getUserName(creator) : person.createdBy === "guest" ? t("guestAccount") : "Shrine");
+  const creatorName =
+    person.createdByName ||
+    (creator ? getUserName(creator) : !person.createdBy || person.createdBy === "guest" ? t("guestAccount") : "Shrine");
   const createdDate = personCreatedDate(person);
   const detailInfo = person.info?.trim();
   const lifeYears = personLifeYears(person, t);
