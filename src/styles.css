@@ -2051,7 +2051,7 @@ button {
   flex-direction: column;
   align-items: stretch;
   min-height: calc(100vh - 107px);
-  padding: 16px 21px 168px;
+  padding: 16px 17px 168px;
 }
 
 .detail-card::before {
@@ -2217,8 +2217,8 @@ button {
   gap: 7px;
   width: calc(100% - var(--detail-photo-width) - var(--detail-hero-gap));
   min-width: 184px;
-  margin: -68px 0 31px calc(var(--detail-photo-width) + var(--detail-hero-gap));
-  padding-bottom: 23px;
+  margin: -68px 0 14px calc(var(--detail-photo-width) + var(--detail-hero-gap));
+  padding-bottom: 10px;
 }
 
 .detail-tools::after {
@@ -2342,9 +2342,9 @@ button {
   position: relative;
   direction: ltr;
   width: 100%;
-  min-height: 104px;
+  min-height: 82px;
   margin-top: 0;
-  padding: 12px 10px;
+  padding: 9px;
   border: 0;
   border-radius: 10px;
   background: #f3f3f3;
@@ -2362,6 +2362,7 @@ button {
 }
 
 .detail-entry::before {
+  display: none;
   top: -17px;
 }
 
@@ -2375,16 +2376,16 @@ button {
 
 .detail-entry-header {
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr) 34px;
+  grid-template-columns: 36px minmax(0, 1fr) 30px;
   align-items: center;
-  gap: 11px;
+  gap: 9px;
 }
 
 .detail-entry-avatar {
-  width: 56px;
-  height: 56px;
+  width: 36px;
+  height: 48px;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: 7px;
   background: #eef2f7;
 }
 
@@ -2398,14 +2399,14 @@ button {
 
 .detail-entry-header strong {
   color: #111;
-  font-size: 1.12rem;
+  font-size: 1.04rem;
   font-weight: 800;
 }
 
 .detail-entry-header span {
   margin-top: 2px;
   color: #777f8c;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
 }
 
 .detail-entry-actions {

@@ -3791,7 +3791,7 @@ function RoseGraphic({ small = false }) {
 
 function AvatarSilhouette() {
   return (
-    <svg className="avatar-svg" viewBox="0 0 120 190" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Default avatar">
+    <svg className="avatar-svg" viewBox="0 0 120 190" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Default avatar">
       <defs>
         <linearGradient id="avatarFade" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#d0d0d0" />
