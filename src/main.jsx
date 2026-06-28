@@ -41,13 +41,9 @@ import {
 import "./styles.css";
 
 const STORAGE_KEY = "shrine_mobile_state_v1";
-const PRODUCTION_API_BASE_URL = "https://book-of-heaven.bodammohamed204.workers.dev";
+const PRODUCTION_API_BASE_URL = "https://book-of-heaven.onholding.workers.dev";
 const PRODUCTION_APP_URL = "https://app.shrine-app.com";
-const SAME_ORIGIN_API_HOSTS = new Set([
-  "app.shrine-app.com",
-  "book-of-heaven.bodammohamed204.workers.dev",
-  "shrine-the-book-of-heaven.bodammohamed204.workers.dev"
-]);
+const SAME_ORIGIN_API_HOSTS = new Set(["book-of-heaven.onholding.workers.dev"]);
 const DEFAULT_META_DESCRIPTION = "Create and share memorial shrines.";
 const SHRINE_API_PATH_PREFIX = "/api/shrines/";
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
@@ -606,6 +602,9 @@ const copy = {
     errSurname: "Surname is required",
     errPhone: "Enter a valid mobile number",
     errEmail: "Enter a valid email",
+    errEmailOrPhone: "Enter a valid email or mobile number",
+    phoneAlreadyExists: "This mobile number is already registered.",
+    emailAlreadyExists: "This email address is already registered.",
     errGender: "Gender is required",
     errPassword: "Password is required",
     errPasswordLength: "Use at least 8 characters",
@@ -629,6 +628,7 @@ const copy = {
     dontHaveAccount: "Don't Have An Account?",
     createNew: "Create New",
     phoneRequired: "Phone is Required",
+    identifierRequired: "Email or mobile number is required",
     passwordRequired: "Password is Required",
     back: "Back",
     newHere: "New here?",
@@ -685,6 +685,8 @@ const copy = {
     contactUs: "Contact Us",
     terms: "Terms & Conditions",
     logout: "Logout",
+    logoutConfirmMessage: "Are you sure?",
+    logoutSuccess: "Successfully logged out",
     done: "Done",
     myAccount: "My Account",
     editProfile: "Edit Profile",
@@ -778,6 +780,9 @@ const copy = {
     errSurname: "اسم العائلة مطلوب",
     errPhone: "أدخل رقم هاتف صحيحًا",
     errEmail: "أدخل بريدًا إلكترونيًا صحيحًا",
+    errEmailOrPhone: "أدخل بريدًا إلكترونيًا أو رقم هاتف صحيحًا",
+    phoneAlreadyExists: "رقم الهاتف مستخدم بالفعل",
+    emailAlreadyExists: "البريد الإلكتروني مستخدم بالفعل",
     errGender: "النوع مطلوب",
     errPassword: "كلمة المرور مطلوبة",
     errPasswordLength: "استخدم 8 أحرف على الأقل",
@@ -801,6 +806,7 @@ const copy = {
     dontHaveAccount: "ليس لديك حساب؟",
     createNew: "إنشاء حساب جديد",
     phoneRequired: "رقم الهاتف مطلوب",
+    identifierRequired: "البريد الإلكتروني أو رقم الهاتف مطلوب",
     passwordRequired: "كلمة المرور مطلوبة",
     back: "رجوع",
     newHere: "مستخدم جديد؟",
@@ -857,6 +863,8 @@ const copy = {
     contactUs: "تواصل معنا",
     terms: "الشروط والأحكام",
     logout: "تسجيل الخروج",
+    logoutConfirmMessage: "هل أنت متأكد؟",
+    logoutSuccess: "تم تسجيل الخروج بنجاح",
     done: "تم",
     myAccount: "حسابي",
     editProfile: "تعديل الملف",
@@ -1149,6 +1157,39 @@ function normalizePhoneDigits(value) {
   return String(value || "").replace(/\D/g, "");
 }
 
+function normalizeAccountEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function canonicalAccountPhone(user) {
+  const localDigits = normalizePhoneDigits(user?.phone).replace(/^0+/, "");
+  const countryDigits = normalizePhoneDigits(user?.phoneCode);
+  const otpDigits = normalizePhoneDigits(user?.otpPhone);
+
+  if (countryDigits && localDigits) return `${countryDigits}${localDigits}`;
+  return otpDigits;
+}
+
+function findUserByAccountPhone(users, user, ignoredUserId = "") {
+  const targetPhone = canonicalAccountPhone(user);
+  if (!targetPhone) return null;
+
+  return users.find((item) => item.id !== ignoredUserId && canonicalAccountPhone(item) === targetPhone) || null;
+}
+
+function findUserByAccountEmail(users, email, ignoredUserId = "") {
+  const normalizedEmail = normalizeAccountEmail(email);
+  if (!normalizedEmail) return null;
+
+  return users.find((user) => user.id !== ignoredUserId && normalizeAccountEmail(user?.email) === normalizedEmail) || null;
+}
+
+function accountConflictKey(users, user, ignoredUserId = "") {
+  if (findUserByAccountPhone(users, user, ignoredUserId)) return "phoneAlreadyExists";
+  if (findUserByAccountEmail(users, user.email, ignoredUserId)) return "emailAlreadyExists";
+  return "";
+}
+
 function resetPhoneCandidates(countryCode, phone) {
   const localDigits = normalizePhoneDigits(phone).replace(/^0+/, "");
   const countryDigits = normalizePhoneDigits(countryCode);
@@ -1181,10 +1222,7 @@ function findUserByResetPhone(users, countryCode, phone) {
 }
 
 function findUserByResetEmail(users, email) {
-  const normalizedEmail = String(email || "").trim().toLowerCase();
-  if (!normalizedEmail) return null;
-
-  return users.find((user) => String(user?.email || "").trim().toLowerCase() === normalizedEmail) || null;
+  return findUserByAccountEmail(users, email);
 }
 
 function findCountry(name) {
@@ -1243,6 +1281,7 @@ function App() {
   const [homeIntroLoading, setHomeIntroLoading] = useState(true);
   const [modal, setModal] = useState(null);
   const [toast, setToast] = useState("");
+  const [toastKind, setToastKind] = useState("");
   const [registerResetKey, setRegisterResetKey] = useState(0);
   const [sharedTarget, setSharedTarget] = useState(initialAppRef.current.sharedTarget);
   const screenRef = useRef(screen);
@@ -1365,9 +1404,17 @@ function App() {
 
   useEffect(() => {
     if (!toast) return;
-    const timeout = setTimeout(() => setToast(""), 2400);
+    const timeout = setTimeout(() => {
+      setToast("");
+      setToastKind("");
+    }, 2400);
     return () => clearTimeout(timeout);
   }, [toast]);
+
+  const showToast = (message, kind = "") => {
+    setToastKind(kind);
+    setToast(message);
+  };
 
   const updateState = (patch) => {
     setState((current) => {
@@ -1422,7 +1469,7 @@ function App() {
         ...current.people
       ]
     }));
-    setToast(t("memorialCreated"));
+    showToast(t("memorialCreated"));
     setScreen("home", { reset: true });
   };
 
@@ -1454,17 +1501,31 @@ function App() {
         return { ...person, flowers: [...flowers, flower] };
       })
     }));
-    setToast(t("flowerAdded"));
+    showToast(t("flowerAdded"));
     return true;
   };
 
   const registerUser = (user) => {
     const accountCountry = findCountry(user.country || state.currentCountry);
-    const completeUser = { ...user, country: accountCountry.name, id: uid(), createdAt: new Date().toISOString() };
+    const completeUser = {
+      ...user,
+      email: normalizeAccountEmail(user.email),
+      country: accountCountry.name,
+      id: uid(),
+      createdAt: new Date().toISOString()
+    };
+    const conflictKey = accountConflictKey(state.users, completeUser);
+    if (conflictKey) {
+      setModal(null);
+      setScreen("register", { replace: true });
+      showToast(t(conflictKey));
+      return false;
+    }
+
     setState((current) => ({
       ...current,
       currentUser: completeUser,
-      users: [completeUser, ...current.users.filter((item) => item.email !== completeUser.email)],
+      users: [completeUser, ...current.users],
       guest: false,
       language: user.language,
       currentCountry: accountCountry.name,
@@ -1472,13 +1533,14 @@ function App() {
       countryPreferenceTouched: true
     }));
     setScreen("success", { replace: true });
+    return true;
   };
 
   const cancelRegistrationAttempt = () => {
     setModal(null);
     setRegisterResetKey((key) => key + 1);
     setScreen("register", { replace: true });
-    setToast(t("registrationCancelled"));
+    showToast(t("registrationCancelled"));
   };
 
   const loginUser = (identifier, password) => {
@@ -1486,33 +1548,28 @@ function App() {
     const identifierDigits = normalizePhoneDigits(identifier);
     const user = state.users.find((item) => {
       const emailMatches = item.email?.toLowerCase() === normalizedIdentifier;
-      const phoneDigits = normalizePhoneDigits(`${item.phoneCode || ""}${item.phone || ""}`);
-      const mobileMatches = Boolean(identifierDigits && phoneDigits.endsWith(identifierDigits));
+      const mobileMatches = Boolean(
+        identifierDigits &&
+          userPhoneCandidates(item).some(
+            (savedDigits) =>
+              savedDigits === identifierDigits || savedDigits.endsWith(identifierDigits) || identifierDigits.endsWith(savedDigits)
+          )
+      );
       return item.password === password && (emailMatches || mobileMatches);
     });
     if (!user) {
-      setToast(t("badLogin"));
+      showToast(t("badLogin"));
       return false;
     }
-    const loginUserWithOtp = {
-      ...user,
-      otpPhone: user.otpPhone || `${user.phoneCode || ""}${String(user.phone || "").replace(/^0+/, "")}`
-    };
-    setModal({
-      type: "verify",
-      user: loginUserWithOtp,
-      onProceed: () => {
-        const accountCountry = findCountry(loginUserWithOtp.country || state.currentCountry);
-        updateState({
-          currentUser: loginUserWithOtp,
-          guest: false,
-          language: user.language || state.language,
-          currentCountry: accountCountry.name,
-          homeFilter: accountCountry.name
-        });
-        setScreen("home", { reset: true });
-      }
+    const accountCountry = findCountry(user.country || state.currentCountry);
+    updateState({
+      currentUser: user,
+      guest: false,
+      language: user.language || state.language,
+      currentCountry: accountCountry.name,
+      homeFilter: accountCountry.name
     });
+    setScreen("home", { reset: true });
     return true;
   };
 
@@ -1565,12 +1622,18 @@ function App() {
     });
     setModal(null);
     setScreen("login", { replace: true });
-    setToast(t("passwordResetSuccess"));
+    showToast(t("passwordResetSuccess"));
   };
 
   const logout = () => {
+    setModal({ type: "logoutConfirm" });
+  };
+
+  const confirmLogout = () => {
+    setModal(null);
     updateState({ currentUser: null, guest: true });
-    setScreen("home", { reset: true });
+    setScreen("login", { reset: true });
+    showToast(t("logoutSuccess"), "logout");
   };
 
   const activeUser = state.currentUser;
@@ -1584,7 +1647,7 @@ function App() {
     setScreen,
     goBack,
     setModal,
-    setToast,
+    setToast: showToast,
     activeUser,
     canUseAccount,
     onGiveFlower: giveFlowerToPerson,
@@ -1612,7 +1675,7 @@ function App() {
           }}
           goBack={goBack}
           setModal={setModal}
-          setToast={setToast}
+          setToast={showToast}
         />
       )}
       {screen === "login" && (
@@ -1704,6 +1767,7 @@ function App() {
           t={t}
           toggleLanguage={toggleLanguage}
           initialChannel={modal.preferredChannel}
+          autoSendInitial={modal.autoSend}
           onCancel={() => setModal(null)}
           onBackFromCode={modal.onBackFromCode}
           onLoginFromCode={modal.onLoginFromCode}
@@ -1760,8 +1824,9 @@ function App() {
           }}
         />
       )}
+      {modal?.type === "logoutConfirm" && <LogoutConfirmModal t={t} onCancel={() => setModal(null)} onConfirm={confirmLogout} />}
       {modal?.type === "aiSoon" && <AiSoonModal onClose={() => setModal(null)} />}
-      {toast && <div className="toast">{toast}</div>}
+      {toast && <div className={`toast ${toastKind ? `toast-${toastKind}` : ""}`}>{toast}</div>}
     </div>
   );
 }
@@ -1914,11 +1979,20 @@ function RegisterScreen({ state, language, t, updateState, onRegister, onCancelR
   };
 
   const submit = () => {
+    const cleanPhone = normalizePhoneDigits(form.phone);
+    const cleanEmail = normalizeAccountEmail(form.email);
+    const pendingUser = {
+      phone: cleanPhone,
+      phoneCode: form.phoneCountry.code,
+      otpPhone: `${form.phoneCountry.code}${cleanPhone.replace(/^0+/, "")}`,
+      email: cleanEmail
+    };
     const nextErrors = {};
+    let duplicateMessage = "";
     if (!form.firstName.trim()) nextErrors.firstName = t("errFirstName");
     if (!form.surname.trim()) nextErrors.surname = t("errSurname");
-    if (!/^\d{7,14}$/.test(form.phone)) nextErrors.phone = t("errPhone");
-    if (!/^\S+@\S+\.\S+$/.test(form.email)) nextErrors.email = t("errEmail");
+    if (!/^\d{7,14}$/.test(cleanPhone)) nextErrors.phone = t("errPhone");
+    if (!/^\S+@\S+\.\S+$/.test(cleanEmail)) nextErrors.email = t("errEmail");
     if (!form.gender) nextErrors.gender = t("errGender");
     if (!form.password) nextErrors.password = t("errPassword");
     if (form.password.length > 0 && form.password.length < 8) {
@@ -1927,24 +2001,36 @@ function RegisterScreen({ state, language, t, updateState, onRegister, onCancelR
     if (form.confirmPassword !== form.password) {
       nextErrors.confirmPassword = t("errPasswordMatch");
     }
+    if (!nextErrors.phone && findUserByAccountPhone(state.users, pendingUser)) {
+      nextErrors.phone = t("phoneAlreadyExists");
+      duplicateMessage = nextErrors.phone;
+    }
+    if (!nextErrors.email && findUserByAccountEmail(state.users, cleanEmail)) {
+      nextErrors.email = t("emailAlreadyExists");
+      duplicateMessage ||= nextErrors.email;
+    }
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) {
-      setToast(t("startRequired"));
+      setToast(duplicateMessage || t("startRequired"));
       return;
     }
 
     const user = {
       ...form,
+      phone: cleanPhone,
+      email: cleanEmail,
       phoneCountry: form.phoneCountry.name,
       phoneCode: form.phoneCountry.code,
       phoneIso: form.phoneCountry.iso,
-      otpPhone: `${form.phoneCountry.code}${form.phone.replace(/^0+/, "")}`
+      otpPhone: pendingUser.otpPhone
     };
 
     setModal({
       type: "verify",
       user,
+      preferredChannel: "email",
+      autoSend: true,
       onBackFromCode: onCancelRegistration,
       onLoginFromCode: () => {
         setModal(null);
@@ -2525,7 +2611,6 @@ function PersonCard({ person, onOpen }) {
         {person.photo ? <img src={person.photo} alt={person.fullName} /> : <AvatarSilhouette />}
       </div>
       <span className="person-name-lines">
-        {person.fatherName && <em>{person.fatherName}</em>}
         <strong>{person.fullName}</strong>
       </span>
     </button>
@@ -3157,7 +3242,6 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
             {person.photo ? <img src={person.photo} alt={person.fullName} /> : <AvatarSilhouette />}
           </div>
           <div className="detail-summary">
-            {person.fatherName && <p className="detail-father-name">{person.fatherName}</p>}
             <h2>{person.fullName}</h2>
             <p className="detail-dates">{lifeYears}</p>
             {displayAge && <p className="detail-age">{displayAge} Year</p>}
@@ -3567,7 +3651,18 @@ function FlowerModal({ t, onGive, onClose }) {
   );
 }
 
-function VerifyModal({ user, language = "EN", t, toggleLanguage, initialChannel, onProceed, onCancel, onBackFromCode, onLoginFromCode }) {
+function VerifyModal({
+  user,
+  language = "EN",
+  t,
+  toggleLanguage,
+  initialChannel,
+  autoSendInitial = false,
+  onProceed,
+  onCancel,
+  onBackFromCode,
+  onLoginFromCode
+}) {
   const channels = useMemo(() => {
     const phoneValue = [user.phoneCode, user.phone].filter(Boolean).join(" ").trim() || user.otpPhone;
     return [
@@ -3606,6 +3701,7 @@ function VerifyModal({ user, language = "EN", t, toggleLanguage, initialChannel,
   const [resendAvailableAt, setResendAvailableAt] = useState(0);
   const [now, setNow] = useState(Date.now());
   const codeInputRef = useRef(null);
+  const autoSentRef = useRef(false);
   const selectedChannel = channels.find((channel) => channel.id === channelId) || channels[0];
   const codeStep = step === "code";
   const registrationCodeStep = codeStep && Boolean(onBackFromCode);
@@ -3724,6 +3820,12 @@ function VerifyModal({ user, language = "EN", t, toggleLanguage, initialChannel,
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!autoSendInitial || autoSentRef.current || !selectedChannel) return;
+    autoSentRef.current = true;
+    sendCode();
+  }, [autoSendInitial, selectedChannel]);
 
   const chooseDifferentMethod = () => {
     setStep("choose");
@@ -3894,6 +3996,31 @@ function AccountPrompt({ t, intent = "follow", onCreate, onLogin, onClose }) {
         <button className="ghost-link" onClick={onClose}>
           {t("continueBrowsing")}
         </button>
+      </div>
+    </div>
+  );
+}
+
+function LogoutConfirmModal({ t, onCancel, onConfirm }) {
+  return (
+    <div className="modal-backdrop logout-backdrop" onClick={onCancel}>
+      <div
+        className="logout-confirm-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="logout-confirm-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <h2 id="logout-confirm-title">{t("logout")}</h2>
+        <p>{t("logoutConfirmMessage")}</p>
+        <div className="logout-actions">
+          <button type="button" className="logout-cancel-button" onClick={onCancel}>
+            {t("cancel")}
+          </button>
+          <button type="button" className="logout-confirm-button" onClick={onConfirm}>
+            {t("logout")}
+          </button>
+        </div>
       </div>
     </div>
   );

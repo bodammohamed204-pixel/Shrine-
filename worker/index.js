@@ -717,6 +717,10 @@ export default {
       return verifyOtp(request, env);
     }
 
-    return env.ASSETS.fetch(request);
+    if (env.ASSETS) {
+      return env.ASSETS.fetch(request);
+    }
+
+    return jsonResponse({ success: false, error: "Not found." }, 404, corsHeaders(request, env));
   }
 };

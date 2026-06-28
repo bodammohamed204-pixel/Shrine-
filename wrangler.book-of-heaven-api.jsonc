@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "book-of-heaven",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-06-01",
+  "workers_dev": true,
+  "send_email": [
+    { "name": "EMAIL" }
+  ],
+  "vars": {
+    "APP_URL": "https://app.shrine-app.com",
+    "ALLOWED_ORIGINS": "https://app.shrine-app.com,https://book-of-heaven.onholding.workers.dev,https://book-of-heaven.bodammohamed204.workers.dev,https://shrine-the-book-of-heaven.bodammohamed204.workers.dev,http://localhost,capacitor://localhost",
+    "OTP_EMAIL_FROM": "noreply@shrine-app.com",
+    "OTP_EMAIL_FROM_NAME": "Shrine"
+  },
+  "observability": {
+    "enabled": true
+  }
+}
