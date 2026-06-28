@@ -2991,6 +2991,13 @@ button {
   font-size: 12.5px;
 }
 
+.detail-message-actions {
+  position: relative;
+  direction: ltr;
+  justify-self: end;
+  align-self: start;
+}
+
 .detail-message-menu-button {
   display: grid;
   place-items: center;
@@ -3002,6 +3009,15 @@ button {
   border-radius: 8px;
   color: #111;
   background: transparent;
+}
+
+.detail-message-menu-button:focus-visible {
+  outline: 2px solid rgba(36, 148, 232, 0.45);
+  outline-offset: 2px;
+}
+
+.detail-message-menu {
+  right: -18px;
 }
 
 .detail-message-image {

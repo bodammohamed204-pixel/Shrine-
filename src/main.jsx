@@ -3498,6 +3498,7 @@ function MessageScreen({ state, language, t, goBack, setScreen, onSendMessage, a
 
 function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedTarget, onSharedTargetHandled }) {
   const [entryMenuOpen, setEntryMenuOpen] = useState(false);
+  const [openMessageMenuId, setOpenMessageMenuId] = useState("");
   const entryRef = useRef(null);
   const person = state.people.find((item) => item.id === state.selectedPersonId);
   const sharedCommentPersonId = sharedTarget?.type === "comment" ? sharedTarget.personId : "";
@@ -3543,10 +3544,11 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
     });
   };
 
-  const shareMessage = () => {
+  const shareMessage = (message) => {
+    const messageText = String(message?.text || "").trim();
     shareContent({
       title: `${person.fullName} - ${t("message")}`,
-      text: detailInfo || person.fullName,
+      text: messageText || detailInfo || person.fullName,
       url: buildShareUrl(person, "comment")
     });
   };
@@ -3616,7 +3618,10 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
             <div className="detail-entry-actions">
               <button
                 className="detail-entry-menu-button"
-                onClick={() => setEntryMenuOpen((open) => !open)}
+                onClick={() => {
+                  setOpenMessageMenuId("");
+                  setEntryMenuOpen((open) => !open);
+                }}
                 aria-label="More"
                 aria-expanded={entryMenuOpen}
               >
@@ -3650,9 +3655,32 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
                     <strong>{message.userName || t("guestAccount")}</strong>
                     <span>{formatStoredDate(message.createdAt)}</span>
                   </div>
-                  <button className="detail-message-menu-button" type="button" aria-label="More">
-                    <MoreVertical size={27} />
-                  </button>
+                  <div className="detail-message-actions">
+                    <button
+                      className="detail-message-menu-button"
+                      type="button"
+                      aria-label="More"
+                      aria-expanded={openMessageMenuId === message.id}
+                      onClick={() => {
+                        setEntryMenuOpen(false);
+                        setOpenMessageMenuId((openId) => (openId === message.id ? "" : message.id));
+                      }}
+                    >
+                      <MoreVertical size={27} />
+                    </button>
+                    {openMessageMenuId === message.id && (
+                      <div className="detail-entry-menu detail-message-menu">
+                        <button
+                          onClick={() => {
+                            shareMessage(message);
+                            setOpenMessageMenuId("");
+                          }}
+                        >
+                          <Share2 size={29} /> Share
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 {message.attachment && (
                   <img className="detail-message-image" src={message.attachment} alt={message.attachmentName || t("message")} />
@@ -4497,19 +4525,16 @@ function AvatarSilhouette() {
     <svg className="avatar-svg" viewBox="0 0 120 190" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Default avatar">
       <defs>
         <linearGradient id="avatarFade" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#d7d7d7" />
-          <stop offset="0.68" stopColor="#d0d0d0" />
-          <stop offset="1" stopColor="#bbbbbb" />
+          <stop offset="0" stopColor="#d6d6d6" />
+          <stop offset="0.72" stopColor="#cecece" />
+          <stop offset="1" stopColor="#b8b8b8" />
         </linearGradient>
       </defs>
       <rect width="120" height="190" fill="#fafafa" />
       <path
-        d="M60 18c-18 0-31 15-31 38v13c0 20 11 38 25 45v13c-27 8-44 27-50 63h112c-6-36-23-55-50-63v-13c14-7 25-25 25-45V56c0-23-13-38-31-38Z"
+        d="M0 190v-18c0-16 20-29 47-38l2-16C38 109 31 91 30 76c-5-4-6-17 0-22 1-23 13-39 31-39 7 0 14 3 19 8 13 2 20 13 20 31 6 5 5 18 0 22-1 15-8 33-19 42l2 16c27 9 47 22 47 38v18H0Z"
         fill="url(#avatarFade)"
       />
-      <path d="M11 190c5-29 21-46 49-53 28 7 44 24 49 53H11Z" fill="#c7c7c7" opacity=".82" />
-      <path d="M43 130c4 12 10 19 17 19s13-7 17-19v26c-5 6-11 9-17 9s-12-3-17-9v-26Z" fill="#d9d9d9" opacity=".86" />
-      <path d="M30 73c-5-2-8-8-8-15 0-8 3-13 7-15 3-19 15-31 31-31 16 0 28 12 31 31 4 2 7 7 7 15 0 7-3 13-8 15-3 22-15 39-30 39S33 95 30 73Z" fill="#d3d3d3" opacity=".95" />
     </svg>
   );
 }
