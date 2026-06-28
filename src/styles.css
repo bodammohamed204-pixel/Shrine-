@@ -1,7 +1,9 @@
 :root {
-  --font-latin: Roboto, Arial, sans-serif;
-  --font-arabic: 'Noto Sans Arabic', sans-serif;
-  --font-app: var(--font-latin);
+  --font-ios: 'SF Arabic', 'San Francisco Arabic', -apple-system, BlinkMacSystemFont, 'Noto Sans Arabic', sans-serif;
+  --font-android: 'Noto Sans Arabic', Arial, sans-serif;
+  --font-latin: var(--font-android);
+  --font-arabic: var(--font-android);
+  --font-app: var(--font-android);
   --blue: #2494e8;
   --blue-dark: #1675bd;
   --ink: #172033;
@@ -60,13 +62,13 @@ button {
 }
 
 .app-shell.ios-font {
-  --font-latin: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
-  --font-arabic: 'SF Arabic', 'San Francisco Arabic', -apple-system, BlinkMacSystemFont, 'Noto Sans Arabic', sans-serif;
+  --font-latin: var(--font-ios);
+  --font-arabic: var(--font-ios);
 }
 
 .app-shell.android-font {
-  --font-latin: Roboto, Arial, sans-serif;
-  --font-arabic: 'Noto Sans Arabic', Roboto, Arial, sans-serif;
+  --font-latin: var(--font-android);
+  --font-arabic: var(--font-android);
 }
 
 .app-shell:not(.rtl) {
@@ -2323,7 +2325,7 @@ button {
 .detail-summary h2 {
   margin: 0 0 24px;
   color: #050505;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-family: var(--font-app);
   font-size: 20px;
   line-height: 1.12;
   font-weight: 900;
