@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "book-of-heaven",
+  "name": "shrine-the-book-of-heaven",
   "main": "worker/index.js",
   "compatibility_date": "2026-06-01",
   "workers_dev": true,
