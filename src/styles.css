@@ -2609,8 +2609,8 @@ button {
 }
 
 .bottom-nav {
-  --nav-icon-box: 36px;
-  --nav-icon-size: 27px;
+  --nav-icon-box: 52px;
+  --nav-icon-size: 34px;
   --nav-icon-stroke: 2.25;
   --nav-label-size: 13px;
   position: fixed;
@@ -2618,14 +2618,14 @@ button {
   left: 50%;
   z-index: 35;
   width: var(--app-frame-width);
-  min-height: calc(72px + env(safe-area-inset-bottom));
+  min-height: calc(92px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   align-items: start;
-  padding: 26px 0 env(safe-area-inset-bottom);
+  padding: 30px 21px calc(8px + env(safe-area-inset-bottom));
   background:
-    linear-gradient(180deg, #0d91ca 0 43%, #061e28 43% 100%);
+    linear-gradient(180deg, #0d91ca 0 36%, #061e28 36% 100%);
   box-shadow: none;
 }
 
@@ -2633,7 +2633,7 @@ button {
   display: grid;
   place-items: center;
   gap: 2px;
-  min-height: 42px;
+  min-height: 52px;
   border: 0;
   color: rgba(96, 100, 100, 0.9);
   background: transparent;
@@ -2655,7 +2655,7 @@ button {
   place-items: center;
   width: var(--nav-icon-box);
   height: var(--nav-icon-box);
-  border: 1px solid transparent;
+  border: 2px solid transparent;
   border-radius: 7px;
   color: currentColor;
 }
