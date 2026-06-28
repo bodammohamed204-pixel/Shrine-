@@ -207,17 +207,17 @@ function normalizeBaseUrl(value) {
   return /^https?:\/\//i.test(text) ? text : `https://${text}`;
 }
 
-function isWorkersDevUrl(value) {
+function requestBaseUrl(request) {
   try {
-    return new URL(value).hostname.toLowerCase().endsWith(".workers.dev");
+    return new URL(request.url).origin;
   } catch {
-    return false;
+    return "";
   }
 }
 
-function appBaseUrl(env) {
+function appBaseUrl(env, request) {
   const configuredBase = normalizeBaseUrl(env.VITE_APP_URL || env.APP_URL || env.VITE_SHARE_BASE_URL);
-  return configuredBase && !isWorkersDevUrl(configuredBase) ? configuredBase : PRODUCTION_APP_URL;
+  return configuredBase || requestBaseUrl(request) || PRODUCTION_APP_URL;
 }
 
 function safeDecodeURIComponent(value) {
@@ -304,8 +304,8 @@ function previewText(value, maxLength = 100) {
   return text.length > maxLength ? `${text.slice(0, maxLength).trim()}...` : text;
 }
 
-function defaultAvatarUrl(env) {
-  return `${appBaseUrl(env)}/share/default-avatar.svg`;
+function defaultAvatarUrl(env, request) {
+  return `${appBaseUrl(env, request)}/share/default-avatar.svg`;
 }
 
 function httpsImageUrl(value, env) {
@@ -592,9 +592,10 @@ async function shrineCommentApiResponse(request, env, personId, commentId) {
   return jsonResponse({ success: true, comment }, 200, corsHeaders(request, env));
 }
 
-function shrinePreviewMeta(personId, shrine, env) {
+function shrinePreviewMeta(personId, shrine, env, request) {
   const sharePersonId = firstText(shrine?.publicId, personId);
-  const fallbackImage = httpsImageUrl(env.SHARE_IMAGE_URL, env) || defaultAvatarUrl(env);
+  const baseUrl = appBaseUrl(env, request);
+  const fallbackImage = httpsImageUrl(env.SHARE_IMAGE_URL, env) || defaultAvatarUrl(env, request);
   const image = httpsImageUrl(shrine?.photo, env) || fallbackImage;
   const title = shrine?.fullName || "Shrine";
   console.log("[share-preview] shrine og:image", image || "(none)");
@@ -604,14 +605,15 @@ function shrinePreviewMeta(personId, shrine, env) {
     description: shrine
       ? shrinePreviewDescription(shrine.fullName, shrine.birthDate, shrine.deathDate)
       : DEFAULT_META_DESCRIPTION,
-    url: sharePersonId ? `${appBaseUrl(env)}${shrineInfoPath(sharePersonId)}` : appBaseUrl(env),
+    url: sharePersonId ? `${baseUrl}${shrineInfoPath(sharePersonId)}` : baseUrl,
     image
   };
 }
 
-function shrineCommentPreviewMeta(personId, commentId, shrine, comment, env) {
+function shrineCommentPreviewMeta(personId, commentId, shrine, comment, env, request) {
   const sharePersonId = firstText(shrine?.publicId, personId);
-  const fallbackImage = httpsImageUrl(env.SHARE_IMAGE_URL, env) || defaultAvatarUrl(env);
+  const baseUrl = appBaseUrl(env, request);
+  const fallbackImage = httpsImageUrl(env.SHARE_IMAGE_URL, env) || defaultAvatarUrl(env, request);
   const titleParts = [shrine?.fullName || "Shrine", comment?.userName || "Guest"].filter(Boolean);
   const image =
     httpsImageUrl(comment?.userPhoto, env) ||
@@ -623,7 +625,7 @@ function shrineCommentPreviewMeta(personId, commentId, shrine, comment, env) {
   return {
     title: titleParts.join(" - "),
     description: previewText(comment?.text || shrine?.info || DEFAULT_META_DESCRIPTION),
-    url: sharePersonId ? `${appBaseUrl(env)}${shrineCommentPath(sharePersonId, commentId || "info")}` : appBaseUrl(env),
+    url: sharePersonId ? `${baseUrl}${shrineCommentPath(sharePersonId, commentId || "info")}` : baseUrl,
     image
   };
 }
@@ -703,7 +705,7 @@ async function shrineInfoPage(request, env, url) {
   const personId = match ? safeDecodeURIComponent(match[1]) : "";
   const shrine = personId ? await fetchShrineFromApi(personId, request, env) : null;
 
-  return new Response(injectSharePreviewMeta(html, shrinePreviewMeta(personId, shrine, env)), {
+  return new Response(injectSharePreviewMeta(html, shrinePreviewMeta(personId, shrine, env, request)), {
     status: assetResponse.status,
     statusText: assetResponse.statusText,
     headers
@@ -739,7 +741,7 @@ async function shrineCommentPage(request, env, url) {
       ])
     : [null, null];
 
-  return new Response(injectSharePreviewMeta(html, shrineCommentPreviewMeta(personId, commentId, shrine, comment, env)), {
+  return new Response(injectSharePreviewMeta(html, shrineCommentPreviewMeta(personId, commentId, shrine, comment, env, request)), {
     status: assetResponse.status,
     statusText: assetResponse.statusText,
     headers
@@ -747,6 +749,11 @@ async function shrineCommentPage(request, env, url) {
 }
 
 function defaultAvatarImage() {
+  const headers = {
+    "Content-Type": "image/svg+xml; charset=utf-8",
+    "Cache-Control": "public, max-age=86400"
+  };
+
   return new Response(
     `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
       <rect width="1200" height="630" fill="#dff5ff"/>
@@ -754,13 +761,17 @@ function defaultAvatarImage() {
       <path d="M352 536c38-120 130-186 248-186s210 66 248 186" fill="#ffffff"/>
       <text x="600" y="590" text-anchor="middle" font-family="Arial, sans-serif" font-size="54" font-weight="700" fill="#1f8edc">Shrine</text>
     </svg>`,
-    {
-      headers: {
-        "Content-Type": "image/svg+xml; charset=utf-8",
-        "Cache-Control": "public, max-age=86400"
-      }
-    }
+    { headers }
   );
+}
+
+function defaultAvatarHead() {
+  return new Response(null, {
+    headers: {
+      "Content-Type": "image/svg+xml; charset=utf-8",
+      "Cache-Control": "public, max-age=86400"
+    }
+  });
 }
 
 async function parseJson(request) {
@@ -1002,8 +1013,9 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    if (request.method === "GET" && url.pathname === "/share/default-avatar.svg") {
-      return defaultAvatarImage();
+    if (url.pathname === "/share/default-avatar.svg") {
+      if (request.method === "HEAD") return defaultAvatarHead();
+      if (request.method === "GET") return defaultAvatarImage();
     }
 
     if (request.method === "GET" && shrineCommentMatch(url.pathname)) {

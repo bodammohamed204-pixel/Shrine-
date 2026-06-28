@@ -48,7 +48,12 @@ import "./styles.css";
 const STORAGE_KEY = "shrine_mobile_state_v1";
 const PRODUCTION_API_BASE_URL = "https://book-of-heaven.onholding.workers.dev";
 const PRODUCTION_APP_URL = "https://app.shrine-app.com";
-const SAME_ORIGIN_API_HOSTS = new Set(["book-of-heaven.onholding.workers.dev"]);
+const SAME_ORIGIN_API_HOSTS = new Set([
+  "app.shrine-app.com",
+  "book-of-heaven.bodammohamed204.workers.dev",
+  "book-of-heaven.onholding.workers.dev",
+  "shrine-the-book-of-heaven.bodammohamed204.workers.dev"
+]);
 const DEFAULT_META_DESCRIPTION = "Create and share memorial shrines.";
 const SHRINE_API_PATH_PREFIX = "/api/shrines/";
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
@@ -95,11 +100,21 @@ function safeDecodeURIComponent(value) {
 
 function appBaseUrl() {
   const configuredBase = normalizeBaseUrl(import.meta.env.VITE_APP_URL || import.meta.env.VITE_SHARE_BASE_URL);
-  return configuredBase || PRODUCTION_APP_URL;
+  if (configuredBase) return configuredBase;
+
+  if (typeof window !== "undefined" && /^https?:$/i.test(window.location.protocol)) {
+    return window.location.origin;
+  }
+
+  return PRODUCTION_APP_URL;
 }
 
 function shrineInfoPath(personId) {
   return `/shrines/${encodeURIComponent(personId)}/info`;
+}
+
+function shrineCommentPath(personId, commentId) {
+  return `/shrines/${encodeURIComponent(personId)}/comments/${encodeURIComponent(commentId)}`;
 }
 
 function cleanShareId(value) {
