@@ -1,5 +1,5 @@
 :root {
-  --font-arabic: 'SF Arabic', 'San Francisco Arabic', 'Noto Sans Arabic', sans-serif;
+  --font-arabic: 'Noto Sans Arabic', sans-serif;
   --blue: #2494e8;
   --blue-dark: #1675bd;
   --ink: #172033;
@@ -44,6 +44,14 @@ button {
   overflow: hidden;
   background: #fff;
   box-shadow: 0 0 28px rgba(15, 23, 42, 0.08);
+}
+
+.app-shell.ios-font {
+  --font-arabic: 'SF Arabic', 'San Francisco Arabic', -apple-system, BlinkMacSystemFont, 'Noto Sans Arabic', sans-serif;
+}
+
+.app-shell.android-font {
+  --font-arabic: 'Noto Sans Arabic', sans-serif;
 }
 
 .splash-intro {
@@ -1765,24 +1773,23 @@ button {
 .detail-card {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  padding: 12px 18px 124px;
+  align-items: center;
+  padding: 28px 24px 120px;
 }
 
 .detail-hero {
   direction: ltr;
-  display: grid;
-  grid-template-columns: 132px minmax(0, 1fr);
-  align-items: start;
-  gap: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   width: 100%;
 }
 
 .detail-photo {
-  width: 100%;
-  aspect-ratio: 132 / 242;
+  width: clamp(204px, 53.6vw, 232px);
+  aspect-ratio: 1 / 1.25;
   border: 1px solid var(--line);
-  border-radius: 3px;
+  border-radius: 2px;
   overflow: hidden;
   background: #f2f2f2;
 }
@@ -1796,7 +1803,7 @@ button {
 .detail-summary {
   min-width: 0;
   width: 100%;
-  padding-top: 17px;
+  padding-top: 30px;
   text-align: center;
 }
 
@@ -1805,18 +1812,18 @@ button {
 }
 
 .detail-summary h2 {
-  margin: 0 0 14px;
-  color: #111;
-  font-size: 1.28rem;
-  line-height: 1.18;
+  margin: 0 0 16px;
+  color: var(--blue);
+  font-size: 2rem;
+  line-height: 1.16;
   font-weight: 850;
   overflow-wrap: anywhere;
 }
 
 .detail-father-name {
-  margin: 0 0 7px;
+  margin: 0 0 18px;
   color: #687482;
-  font-size: 0.82rem;
+  font-size: 1.05rem;
   font-weight: 750;
 }
 
@@ -1829,9 +1836,9 @@ button {
 }
 
 .detail-dates {
-  color: var(--blue);
-  font-size: 1.03rem;
-  font-weight: 520;
+  color: #5f6670;
+  font-size: 1.12rem;
+  font-weight: 550;
 }
 
 .detail-age {
@@ -2312,7 +2319,7 @@ button {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   align-items: start;
-  padding-top: 10px;
+  padding-top: 8px;
   background: var(--blue);
   box-shadow: 0 -8px 28px rgba(15, 23, 42, 0.08);
 }
@@ -2321,7 +2328,7 @@ button {
   display: grid;
   place-items: center;
   gap: 2px;
-  min-height: 62px;
+  min-height: 56px;
   border: 0;
   color: #fff;
   background: transparent;

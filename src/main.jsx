@@ -36,7 +36,6 @@ import {
   Sparkles,
   Trash2,
   UserRound,
-  UsersRound,
   UserRoundPlus,
   X
 } from "lucide-react";
@@ -2017,7 +2016,6 @@ function SettingsScreen({ state, language, t, updateState, setScreen, logout }) 
             </div>
           )}
         </div>
-        <SettingsItem icon={<UsersRound />} label={t("userDashboard")} onClick={() => setScreen("userDashboard")} />
         <SettingsItem icon={<Ban />} label={t("blockedUsers")} onClick={() => setScreen("blocked")} />
         <SettingsItem icon={<Headset />} label={t("contactUs")} onClick={() => setScreen("contact")} />
         <SettingsItem icon={<FileText />} label={t("terms")} onClick={() => setScreen("terms")} />
@@ -2127,6 +2125,165 @@ function EditProfileScreen({ activeUser, state, language, t, updateState, setScr
         <button className="primary-button" onClick={save}>
           {t("save")}
         </button>
+      </section>
+    </main>
+  );
+}
+
+function UserDashboardScreen({ state, language, t, updateState, setScreen, setModal, setToast }) {
+  const [editingId, setEditingId] = useState("");
+  const [form, setForm] = useState(null);
+
+  const beginEdit = (user) => {
+    setEditingId(user.id);
+    setForm({
+      firstName: user.firstName || "",
+      surname: user.surname || "",
+      email: user.email || "",
+      phone: user.phone || "",
+      gender: user.gender || "",
+      country: normalizeCountryName(user.country || state.currentCountry, state.currentCountry),
+      password: user.password || ""
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId("");
+    setForm(null);
+  };
+
+  const saveUser = () => {
+    const user = state.users.find((item) => item.id === editingId);
+    if (!user || !form) return;
+
+    const accountCountry = findCountry(form.country || user.country || state.currentCountry);
+    const phoneDigits = String(form.phone || "").replace(/^0+/, "");
+    const updatedUser = {
+      ...user,
+      firstName: form.firstName.trim(),
+      surname: form.surname.trim(),
+      email: form.email.trim(),
+      phone: form.phone.trim(),
+      gender: form.gender,
+      country: accountCountry.name,
+      phoneCountry: accountCountry.name,
+      phoneCode: accountCountry.code,
+      phoneIso: accountCountry.iso,
+      otpPhone: phoneDigits ? `${accountCountry.code}${phoneDigits}` : user.otpPhone || "",
+      password: form.password
+    };
+
+    updateState({
+      users: state.users.map((item) => (item.id === updatedUser.id ? updatedUser : item)),
+      currentUser: state.currentUser?.id === updatedUser.id ? updatedUser : state.currentUser
+    });
+    setToast(t("userSaved"));
+    cancelEdit();
+  };
+
+  const deleteUser = (userId) => {
+    if (typeof window !== "undefined" && !window.confirm(t("deleteUserConfirm"))) return;
+
+    const isCurrentUser = state.currentUser?.id === userId;
+    updateState({
+      users: state.users.filter((user) => user.id !== userId),
+      currentUser: isCurrentUser ? null : state.currentUser,
+      guest: isCurrentUser ? true : state.guest,
+      following: isCurrentUser ? [] : state.following,
+      people: state.people.map((person) => ({
+        ...person,
+        flowers: (person.flowers || []).filter((flower) => flower.userId !== userId)
+      }))
+    });
+    setToast(t("userDeleted"));
+    if (editingId === userId) cancelEdit();
+  };
+
+  return (
+    <main className="main-screen user-dashboard-screen scroll-screen">
+      <Header title={t("userDashboard")} compact back={() => setScreen("settings")} language={language} t={t} />
+      <section className="dashboard-intro">
+        <p>{t("dashboardIntro")}</p>
+      </section>
+      {!state.users.length && <EmptyState title={t("noUsers")} body={t("noUsersBody")} />}
+      <section className="user-dashboard-list">
+        {state.users.map((user) => {
+          const isEditing = editingId === user.id && form;
+          const userName = getUserName(user) || t("guestAccount");
+
+          return (
+            <article className="user-dashboard-card" key={user.id}>
+              <div className="user-dashboard-card-header">
+                <span className="user-dashboard-avatar">
+                  <UserRound size={24} />
+                </span>
+                <div>
+                  <strong>{userName}</strong>
+                  <span>{user.email || user.phone || t("notSelected")}</span>
+                </div>
+              </div>
+
+              {isEditing ? (
+                <div className="user-dashboard-form">
+                  <div className="two-grid">
+                    <Input label={t("firstName")} value={form.firstName} onChange={(value) => setForm((current) => ({ ...current, firstName: value }))} />
+                    <Input label={t("surname")} value={form.surname} onChange={(value) => setForm((current) => ({ ...current, surname: value }))} />
+                  </div>
+                  <Input label={t("emailAddress")} value={form.email} onChange={(value) => setForm((current) => ({ ...current, email: value }))} />
+                  <Input label={t("mobileNumber")} value={form.phone} onChange={(value) => setForm((current) => ({ ...current, phone: value.replace(/\D/g, "").slice(0, 14) }))} />
+                  <SelectField
+                    label={t("gender")}
+                    value={genderLabel(form.gender, t)}
+                    placeholder={t("gender")}
+                    onClick={() =>
+                      setModal({
+                        type: "gender",
+                        onPick: (gender) => setForm((current) => ({ ...current, gender }))
+                      })
+                    }
+                  />
+                  <SelectField
+                    label={t("country")}
+                    value={countryLabel(form.country, language)}
+                    onClick={() =>
+                      setModal({
+                        type: "country",
+                        title: t("country"),
+                        selectedCountry: form.country,
+                        onPick: (country) => setForm((current) => ({ ...current, country: country.name }))
+                      })
+                    }
+                  />
+                  <Input label={t("password")} value={form.password} type="text" onChange={(value) => setForm((current) => ({ ...current, password: value }))} />
+                  <div className="user-dashboard-actions">
+                    <button className="primary-button small" type="button" onClick={saveUser}>
+                      {t("save")}
+                    </button>
+                    <button className="outline-button small" type="button" onClick={cancelEdit}>
+                      {t("cancel")}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="user-dashboard-meta">
+                    <span>{countryLabel(user.country, language) || t("notSelected")}</span>
+                    <span>{genderLabel(user.gender, t) || t("notSelected")}</span>
+                    <span>{user.phoneCode || ""} {user.phone || ""}</span>
+                  </div>
+                  <div className="user-dashboard-actions">
+                    <button className="outline-button small" type="button" onClick={() => beginEdit(user)}>
+                      <Pencil size={18} /> {t("editUser")}
+                    </button>
+                    <button className="danger-button small" type="button" onClick={() => deleteUser(user.id)}>
+                      <Trash2 size={18} /> {t("deleteUser")}
+                    </button>
+                  </div>
+                </>
+              )}
+            </article>
+          );
+        })}
       </section>
     </main>
   );
@@ -2247,42 +2404,24 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
           <div className="detail-summary">
             {person.fatherName && <p className="detail-father-name">{person.fatherName}</p>}
             <h2>{person.fullName}</h2>
-            <p className="detail-dates">{lifeYears}</p>
-            {displayAge && <p className="detail-age">{displayAge} Year</p>}
-            <div className="detail-quick-actions">
-              <button className="detail-action-tile" type="button" aria-label={t("gallery")} onClick={() => setScreen("gallery")}>
-                <ImageIcon size={23} />
-              </button>
-              <button
-                className={`detail-action-tile rose-tile ${activeFlowers.length ? "selected" : ""}`}
-                type="button"
-                aria-label={t("giveFlower")}
-                aria-pressed={Boolean(activeFlowers.length)}
-                onClick={openFlowerPicker}
-              >
-                <RoseGraphic small />
-                <span>{activeFlowers.length}</span>
-              </button>
-              <button className="detail-action-tile ai-tile" type="button" aria-label="AI" onClick={() => setModal({ type: "aiSoon" })}>
-                <AiMark />
-              </button>
-            </div>
+            <p className="detail-dates">
+              {person.birthDate || t("unknownBirth")} - {person.deathDate}
+            </p>
+            <p className="detail-country">
+              <Flag country={findCountry(person.country)} /> {countryLabel(person.country, language)}
+            </p>
           </div>
         </div>
-        <button className="detail-block-action" type="button" onClick={toggleBlock}>
-          <Ban size={18} /> {blocked ? t("unblock") : t("block")}
-        </button>
-        {activeFlowers.length > 0 && (
-          <div className="flower-offerings" aria-label={formatText(t("flowerCount"), { count: activeFlowers.length })}>
-            {activeFlowers.slice(-6).map((flower) => (
-              <span className="flower-offering" key={flower.id} title={flower.userName || t("flower")}>
-                <RoseGraphic small />
-              </span>
-            ))}
-            {activeFlowers.length > 6 && <span className="flower-count-badge">+{activeFlowers.length - 6}</span>}
-          </div>
-        )}
-        <article className={`detail-entry ${detailInfo ? "" : "compact"}`}>
+        <div className="detail-actions">
+          <button className={followed ? "primary-button small active" : "primary-button small"} onClick={toggleFollow}>
+            <UserRoundPlus size={20} /> {followed ? t("following") : t("follow")}
+          </button>
+          <button className="outline-button small" onClick={toggleBlock}>
+            <Ban size={20} /> {blocked ? t("unblock") : t("block")}
+          </button>
+        </div>
+        {detailInfo && (
+          <article className="detail-entry">
             <div className="detail-entry-header">
               <div className="detail-entry-avatar">
                 <AvatarSilhouette />
@@ -2291,29 +2430,10 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
                 <strong>{creatorName}</strong>
                 {createdDate && <span>{createdDate}</span>}
               </div>
-              <div className="detail-entry-actions">
-                <button
-                  className="detail-entry-menu-button"
-                  type="button"
-                  aria-label="Share"
-                  aria-haspopup="menu"
-                  aria-expanded={commentMenuOpen}
-                  onClick={() => setCommentMenuOpen((open) => !open)}
-                >
-                  <MoreVertical size={24} />
-                </button>
-                {commentMenuOpen && (
-                  <div className="detail-entry-menu" role="menu">
-                    <button type="button" role="menuitem" onClick={shareComment}>
-                      <Share2 size={22} />
-                      <span>Share</span>
-                    </button>
-                  </div>
-                )}
-              </div>
             </div>
-            {detailInfo && <p className="detail-info">{detailInfo}</p>}
+            <p className="detail-info">{detailInfo}</p>
           </article>
+        )}
       </section>
     </main>
   );
