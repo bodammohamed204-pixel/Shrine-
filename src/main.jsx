@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   ArrowLeft,
+  ArrowUp,
   Ban,
   Calendar,
   Check,
@@ -717,6 +718,7 @@ const copy = {
     removeAttachment: "Remove attachment",
     send: "Send",
     messageSaved: "Message saved locally",
+    postAdded: "Post Added Successfully",
     home: "Home",
     hidePassword: "Hide password",
     showPassword: "Show password",
@@ -2931,7 +2933,7 @@ function SearchScreen({ state, language, t, updateState, setScreen, goBack }) {
   );
 }
 
-function SettingsScreen({ state, language, t, updateState, setScreen, goBack, logout }) {
+function SettingsScreen({ state, language, t, updateState, setScreen, goBack, logout, activeUser }) {
   const [languageOpen, setLanguageOpen] = useState(false);
   const currentLanguage = normalizeLanguage(language || state.language);
   const arabicLanguageFlag = countries.find((country) => country.iso === "kw");
@@ -2970,7 +2972,11 @@ function SettingsScreen({ state, language, t, updateState, setScreen, goBack, lo
         <SettingsItem icon={<Ban />} label={t("blockedUsers")} onClick={() => setScreen("blocked")} />
         <SettingsItem icon={<Headset />} label={t("contactUs")} onClick={() => setScreen("contact")} />
         <SettingsItem icon={<FileText />} label={t("terms")} onClick={() => setScreen("terms")} />
-        <SettingsItem icon={<LogOut />} label={t("logout")} onClick={logout} />
+        {activeUser ? (
+          <SettingsItem icon={<LogOut />} label={t("logout")} onClick={logout} />
+        ) : (
+          <SettingsItem icon={<UserRoundPlus />} label={t("createAccount")} onClick={() => setScreen("register")} />
+        )}
       </div>
       <button className="primary-button settings-done" onClick={() => setScreen("home", { reset: true })}>
         {t("done")}
