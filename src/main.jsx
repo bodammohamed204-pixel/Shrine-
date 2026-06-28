@@ -1466,16 +1466,11 @@ function isDefaultPerson(person) {
   return defaultPeople.some((sample) => sample.id === person?.id) || person?.createdBy === "sample";
 }
 
-function canEditPersonShrine(person, currentUser) {
+function canEditPersonShrine(person) {
   if (!person || isDefaultPerson(person)) return false;
-
-  const creatorId = String(person.createdBy || "").trim();
-  const currentUserId = String(currentUser?.id || "").trim();
-  if (person.createdLocally) return true;
-  if (person.importedFromShare && creatorId && creatorId !== "guest" && creatorId !== currentUserId) return false;
-  if (!creatorId) return true;
-
-  return creatorId === "guest" || creatorId === currentUserId;
+  // Memorial edits are stored locally in this app, so stale creator ids from
+  // shared/imported records should not lock the saved local copy.
+  return true;
 }
 
 function canViewFlowerSenders(person, currentUser) {
