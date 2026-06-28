@@ -63,7 +63,7 @@ button {
   box-shadow: 0 0 28px rgba(15, 23, 42, 0.08);
 }
 
-.app-shell svg:not(.avatar-svg):not(.rose-graphic) {
+.app-shell svg:not(.avatar-svg):not(.rose-graphic):not(.shrine-home-nav-icon) {
   transform: scale(var(--visual-icon-scale));
   transform-origin: center;
 }
@@ -3180,6 +3180,18 @@ button {
   width: var(--nav-icon-size);
   height: var(--nav-icon-size);
   stroke-width: var(--nav-icon-stroke);
+}
+
+.bottom-nav:not(.detail-bottom-nav) .nav-icon .shrine-home-nav-icon {
+  width: 34px;
+  height: 34px;
+  transform: none;
+}
+
+.bottom-nav.detail-bottom-nav .nav-icon .shrine-home-nav-icon {
+  width: 34px;
+  height: 34px;
+  transform: none;
 }
 
 .bottom-nav .nav-featured .nav-icon svg {
