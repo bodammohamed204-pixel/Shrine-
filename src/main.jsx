@@ -287,7 +287,7 @@ const copy = {
     follow: "المتابعين",
     sponsorTab: "الرعاية",
     followersTab: "المتابعون",
-    noMemorials: "لا توجد مزارات بعد",
+    noMemorials: "لسه مفيش مزارات",
     noMemorialsBody: "اضغط على زر إضافة عشان تضيف أول مزار ببياناتك.",
     browseCountry: "تصفح حسب الدولة",
     add: "إضافة",
@@ -308,7 +308,7 @@ const copy = {
     errInfo: "استخدم 250 كلمة أو أقل",
     search: "بحث",
     startTyping: "ابدأ الكتابة للبحث",
-    noResults: "لا توجد نتائج",
+    noResults: "مفيش نتائج",
     noResultsBody: "جرّب اسم أو دولة أو كلمة من الوصف.",
     settings: "الإعدادات",
     profile: "الملف الشخصي",
@@ -328,12 +328,12 @@ const copy = {
     save: "حفظ",
     profileUpdated: "تم تحديث الملف",
     memorial: "المزار",
-    entryNotFound: "المزار غير موجود",
+    entryNotFound: "المزار مش موجود",
     unknownBirth: "تاريخ الميلاد غير معروف",
     following: "تتم متابعته",
     block: "حظر",
     unblock: "إلغاء الحظر",
-    noBlockedUsers: "لا يوجد مستخدمون محظورون",
+    noBlockedUsers: "مفيش مستخدمين محظورين",
     lastUpdated: "آخر تحديث",
     yourEmail: "بريدك الإلكتروني",
     message: "الرسالة",
@@ -787,9 +787,10 @@ function Header({ title, back, action, compact = false, flagCountry, onFlag, lan
 
 function LanguageButton({ value, onClick }) {
   const language = normalizeLanguage(value);
+  const ariaLabel = language === "AR" ? "تغيير اللغة" : "Change language";
 
   return (
-    <button type="button" className="language-mini" onClick={onClick} aria-label="Change language">
+    <button type="button" className="language-mini" onClick={onClick} aria-label={ariaLabel}>
       <span>{language}</span>
       <ChevronDown size={18} />
     </button>
@@ -1244,6 +1245,12 @@ function AddScreen({ state, language, t, setModal, onCreate, activeUser }) {
         </label>
 
         <Input
+          label={t("fatherName")}
+          placeholder={t("fatherName")}
+          value={form.fatherName}
+          onChange={(value) => setField("fatherName", value)}
+        />
+        <Input
           label={t("fullName")}
           required
           requiredLabel={t("required")}
@@ -1336,7 +1343,7 @@ function AddScreen({ state, language, t, setModal, onCreate, activeUser }) {
 function SearchScreen({ state, language, t, updateState, setScreen }) {
   const [query, setQuery] = useState("");
   const results = state.people.filter((person) => {
-    const value = `${person.fullName} ${person.country} ${person.info}`.toLowerCase();
+    const value = `${person.fatherName || ""} ${person.fullName} ${person.country} ${person.info}`.toLowerCase();
     return query.trim() && value.includes(query.toLowerCase());
   });
 
@@ -1564,6 +1571,7 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
         <div className="detail-photo">
           {person.photo ? <img src={person.photo} alt={person.fullName} /> : <AvatarSilhouette />}
         </div>
+        {person.fatherName && <p className="detail-father-name">{person.fatherName}</p>}
         <h2>{person.fullName}</h2>
         <p className="detail-dates">
           {person.birthDate || t("unknownBirth")} - {person.deathDate}
