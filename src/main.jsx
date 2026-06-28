@@ -1311,7 +1311,6 @@ function RegisterScreen({ state, language, t, updateState, onRegister, onCancelR
 
     setModal({
       type: "verify",
-      source: "register",
       user,
       onBackFromCode: onCancelRegistration,
       onProceed: () => onRegister(user)
