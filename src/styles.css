@@ -1665,6 +1665,15 @@ button {
   display: grid;
 }
 
+.verify-options.sent .verify-option:not(.selected) {
+  display: none;
+}
+
+.verify-options.sent .verify-option {
+  min-height: 88px;
+  margin-bottom: 14px;
+}
+
 .verify-option {
   appearance: none;
   display: grid;

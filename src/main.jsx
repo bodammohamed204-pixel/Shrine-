@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   ArrowLeft,
@@ -1869,7 +1869,16 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const codeInputRef = useRef(null);
   const selectedChannel = channels.find((channel) => channel.id === channelId) || channels[0];
+
+  useEffect(() => {
+    if (!sent) return;
+    window.requestAnimationFrame(() => {
+      codeInputRef.current?.focus();
+      codeInputRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+  }, [sent]);
 
   const resetChannel = (nextChannelId) => {
     if (loading || nextChannelId === channelId) return;
@@ -1910,9 +1919,22 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
       });
       const data = await readApiJson(response, t("couldNotSend"));
       if (!response.ok || data.success === false) {
-        throw new Error(data.error || data.message || t("couldNotSend"));
+        const errorMessage = data.error || data.message || t("couldNotSend");
+        const canEnterExistingCode =
+          selectedChannel.id === "mobile" && (response.status === 429 || /rate limit/i.test(errorMessage));
+
+        if (canEnterExistingCode) {
+          setSent(true);
+          setChallenge(data.challenge || "");
+          setExpiresAt(data.expiresAt || "");
+          setMessage(errorMessage);
+          return;
+        }
+
+        throw new Error(errorMessage);
       }
       setSent(true);
+      setCode("");
       setChallenge(data.challenge || "");
       setExpiresAt(data.expiresAt || "");
       const sentMessage = data.message || (selectedChannel.id === "email" ? t("emailCodeSent") : t("codeSent"));
@@ -1958,7 +1980,7 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
     <div className="modal-backdrop" onClick={onCancel}>
       <div className="verify-modal" onClick={(event) => event.stopPropagation()}>
         <h2>{t("receiveActivationCode")}</h2>
-        <div className="verify-options">
+        <div className={`verify-options ${sent ? "sent" : ""}`}>
           {channels.map((channel) => (
             <button
               type="button"
@@ -1980,11 +2002,16 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
           <label className="otp-code-field">
             <span>{t("activationCode")}</span>
             <input
+              ref={codeInputRef}
+              autoComplete="one-time-code"
               inputMode="numeric"
               maxLength={8}
               placeholder={t("sixDigitCode")}
               value={code}
               onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") verifyCode();
+              }}
             />
           </label>
         )}
@@ -1996,7 +2023,7 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
         )}
         {error && <p className="verify-error">{error}</p>}
         <button className="primary-button" disabled={loading || !selectedChannel} onClick={sent ? verifyCode : sendCode}>
-          {loading ? t("pleaseWait") : t("verifyProceed")}
+          {loading ? t("pleaseWait") : sent ? t("verifyProceed") : selectedChannel?.id === "mobile" ? t("sendWhatsappCode") : t("send")}
         </button>
         {sent && (
           <button className="ghost-link resend-link" disabled={loading} onClick={sendCode}>
