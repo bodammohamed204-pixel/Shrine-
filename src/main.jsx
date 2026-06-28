@@ -2356,7 +2356,28 @@ function GalleryScreen({ state, t, setScreen }) {
 }
 
 function DetailScreen({ state, language, t, updateState, setScreen, setModal, canUseAccount }) {
+  const [commentMenuOpen, setCommentMenuOpen] = useState(false);
   const person = state.people.find((item) => item.id === state.selectedPersonId);
+
+  useEffect(() => {
+    if (!commentMenuOpen) return undefined;
+
+    const closeMenu = (event) => {
+      if (!event.target.closest?.(".detail-entry-actions")) {
+        setCommentMenuOpen(false);
+      }
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setCommentMenuOpen(false);
+    };
+
+    document.addEventListener("pointerdown", closeMenu);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeMenu);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [commentMenuOpen]);
 
   if (!person) {
     return (
@@ -2373,6 +2394,36 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
   const creatorName = person.createdByName || (creator ? getUserName(creator) : person.createdBy === "guest" ? t("guestAccount") : "Shrine");
   const createdDate = personCreatedDate(person);
   const detailInfo = person.info?.trim();
+  const activeFlowers = activeFlowerGifts(person.flowers);
+  const lifeYears = personLifeYears(person, t);
+  const displayAge = personDisplayAge(person);
+  const shareUrl = typeof window !== "undefined" ? window.location?.href || "" : "";
+  const shareTitle = person.fullName || t("memorial");
+
+  const sharePerson = () => {
+    shareContent({
+      title: shareTitle,
+      text: [shareTitle, lifeYears].filter(Boolean).join("\n"),
+      url: shareUrl
+    });
+  };
+
+  const shareComment = () => {
+    shareContent({
+      title: shareTitle,
+      text: [shareTitle, creatorName, createdDate, detailInfo].filter(Boolean).join("\n"),
+      url: shareUrl
+    });
+    setCommentMenuOpen(false);
+  };
+
+  const openFlowerPicker = () => {
+    if (!canUseAccount) {
+      setModal({ type: "accountPrompt", intent: "flower" });
+      return;
+    }
+    setModal({ type: "flower", personId: person.id });
+  };
 
   const toggleFollow = () => {
     if (!canUseAccount) {
@@ -2394,7 +2445,17 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
 
   return (
     <main className="main-screen detail-screen scroll-screen">
-      <Header title="" back={() => setScreen("home")} language={language} t={t} />
+      <Header
+        title=""
+        back={() => setScreen("home")}
+        language={language}
+        t={t}
+        action={
+          <button className="header-icon detail-share" onClick={sharePerson} aria-label="Share">
+            <Share2 size={28} />
+          </button>
+        }
+      />
       <section className="detail-card">
         <div className="detail-hero">
           <div className="detail-photo">
