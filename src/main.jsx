@@ -6,6 +6,8 @@ import {
   Calendar,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronUp,
   CircleUserRound,
   ContactRound,
@@ -13,20 +15,26 @@ import {
   Eye,
   EyeOff,
   FileText,
+  Flower2,
   Headset,
   Home,
+  Image as ImageIcon,
   ImageUp,
   LockKeyhole,
   LogOut,
   Mail,
   MapPin,
+  MoreVertical,
   Pencil,
   Plus,
   Search,
   Settings,
+  Share2,
   ShieldCheck,
+  Sparkles,
   UserRound,
-  UserRoundPlus
+  UserRoundPlus,
+  X
 } from "lucide-react";
 import "./styles.css";
 
@@ -34,6 +42,8 @@ const STORAGE_KEY = "shrine_mobile_state_v1";
 const PRODUCTION_API_BASE_URL = "https://book-of-heaven.bodammohamed204.workers.dev";
 const PRODUCTION_API_HOST = "book-of-heaven.bodammohamed204.workers.dev";
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
+const FLOWER_LIFETIME_DAYS = 7;
+const FLOWER_LIFETIME_MS = FLOWER_LIFETIME_DAYS * 24 * 60 * 60 * 1000;
 const AGE_OPTIONS = Array.from({ length: 120 }, (_, index) => String(index + 1));
 
 function defaultApiBaseUrl() {
@@ -56,6 +66,25 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || defaultApiBaseUrl()).
 
 function apiUrl(path) {
   return `${API_BASE_URL}${path}`;
+}
+
+function shareContent({ title, text, url }) {
+  if (typeof navigator === "undefined") return;
+
+  const payload = {};
+  if (title) payload.title = title;
+  if (text) payload.text = text;
+  if (url) payload.url = url;
+
+  if (navigator.share) {
+    navigator.share(payload).catch(() => {});
+    return;
+  }
+
+  const fallbackText = [title, text, url].filter(Boolean).join("\n");
+  if (fallbackText) {
+    navigator.clipboard?.writeText?.(fallbackText).catch(() => {});
+  }
 }
 
 async function readApiJson(response, fallbackMessage) {
@@ -431,7 +460,15 @@ const copy = {
     accountPromptBody: "Your following list belongs to your account, so it stays separate from guest browsing.",
     accountPromptAddTitle: "Create an account to add a shrine",
     accountPromptAddBody: "Add a shrine, preserve details, and manage it safely from your own account.",
-    signIn: "Sign in"
+    accountPromptFlowerTitle: "Create an account to give a flower",
+    accountPromptFlowerBody: "Each user can give one flower per day, so your daily flower needs to belong to your account.",
+    signIn: "Sign in",
+    giveFlower: "Give Flower",
+    flower: "Flower",
+    flowerAdded: "Flower added to the shrine",
+    flowerUsedToday: "You have one flower per day",
+    flowerLasts: "The flower lasts for seven days",
+    flowerCount: "{count} flowers"
   },
   AR: {
     shrine: "مزارات",
@@ -560,7 +597,15 @@ const copy = {
     accountPromptBody: "قائمة المتابعين مرتبطة بحسابك، وبتفضل منفصلة عن تصفح الزائر.",
     accountPromptAddTitle: "اعمل حساب عشان تضيف مزار",
     accountPromptAddBody: "أضف مزار واحفظ التفاصيل وتحكم فيه بأمان من حسابك.",
-    signIn: "تسجيل الدخول"
+    accountPromptFlowerTitle: "اعمل حساب عشان تهدي وردة",
+    accountPromptFlowerBody: "كل مستخدم ليه وردة واحدة في اليوم، فخليها محفوظة على حسابك.",
+    signIn: "تسجيل الدخول",
+    giveFlower: "إهداء وردة",
+    flower: "وردة",
+    flowerAdded: "تمت إضافة الوردة إلى المزار",
+    flowerUsedToday: "لديك وردة واحدة فقط في اليوم",
+    flowerLasts: "الوردة تستمر سبعة أيام",
+    flowerCount: "{count} وردة"
   }
 };
 
@@ -646,7 +691,7 @@ function loadState() {
     const people = [
       ...defaultPeople,
       ...savedPeople.filter((person) => !defaultPeople.some((sample) => sample.id === person.id))
-    ];
+    ].map(normalizePersonFlowers);
 
     return {
       ...merged,
@@ -682,6 +727,86 @@ function formatStoredDate(value) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return "";
   return date.toISOString().slice(0, 10);
+}
+
+function localDateKey(value = new Date()) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  const localTime = date.getTime() - date.getTimezoneOffset() * 60 * 1000;
+  return new Date(localTime).toISOString().slice(0, 10);
+}
+
+function activeFlowerGifts(flowers, now = Date.now()) {
+  if (!Array.isArray(flowers)) return [];
+
+  return flowers.filter((flower) => {
+    const givenTime = Date.parse(flower?.givenAt);
+    return Number.isFinite(givenTime) && now - givenTime < FLOWER_LIFETIME_MS;
+  });
+}
+
+function normalizeFlowerGifts(flowers) {
+  if (!Array.isArray(flowers)) return [];
+
+  return flowers
+    .map((flower) => {
+      const givenAt = flower?.givenAt ? new Date(flower.givenAt) : null;
+      if (!givenAt || !Number.isFinite(givenAt.getTime()) || !flower?.userId) return null;
+      const isoGivenAt = givenAt.toISOString();
+      const dayKey = flower.dayKey || localDateKey(givenAt);
+
+      return {
+        id: flower.id || `${flower.userId}-${dayKey}-${givenAt.getTime()}`,
+        userId: String(flower.userId),
+        userName: flower.userName || "",
+        givenAt: isoGivenAt,
+        dayKey
+      };
+    })
+    .filter(Boolean)
+    .filter((flower) => activeFlowerGifts([flower]).length);
+}
+
+function normalizePersonFlowers(person) {
+  return {
+    ...person,
+    flowers: normalizeFlowerGifts(person?.flowers)
+  };
+}
+
+function userHasGivenFlowerToday(people, userId, dayKey = localDateKey()) {
+  if (!userId) return false;
+
+  return people.some((person) =>
+    (person.flowers || []).some((flower) => flower.userId === userId && (flower.dayKey || localDateKey(flower.givenAt)) === dayKey)
+  );
+}
+
+function yearFromDate(value) {
+  const match = String(value || "").match(/\d{4}/);
+  return match ? match[0] : "";
+}
+
+function personLifeYears(person, t) {
+  const birthYear = yearFromDate(person?.birthDate);
+  const deathYear = yearFromDate(person?.deathDate);
+  return `(${birthYear || t("unknownBirth")} - ${deathYear || ""})`;
+}
+
+function personDisplayAge(person) {
+  if (person?.age) return person.age;
+
+  const birthYearText = yearFromDate(person?.birthDate);
+  const deathYearText = yearFromDate(person?.deathDate);
+  if (!birthYearText || !deathYearText) return "";
+
+  const birthYear = Number(birthYearText);
+  const deathYear = Number(deathYearText);
+  if (Number.isFinite(birthYear) && Number.isFinite(deathYear) && deathYear >= birthYear) {
+    return String(deathYear - birthYear);
+  }
+
+  return "";
 }
 
 function personCreatedDate(person) {
@@ -805,13 +930,47 @@ function App() {
           id: uid(),
           createdAt: new Date().toISOString(),
           createdBy: current.currentUser?.id || "guest",
-          createdByName: current.currentUser ? getUserName(current.currentUser) : ""
+          createdByName: current.currentUser ? getUserName(current.currentUser) : "",
+          flowers: []
         },
         ...current.people
       ]
     }));
     setToast(t("memorialCreated"));
     setScreen("home");
+  };
+
+  const giveFlowerToPerson = (personId) => {
+    const user = state.currentUser;
+    if (!user) {
+      setModal({ type: "accountPrompt", intent: "flower" });
+      return false;
+    }
+
+    const dayKey = localDateKey();
+    if (userHasGivenFlowerToday(state.people, user.id, dayKey)) {
+      setToast(t("flowerUsedToday"));
+      return false;
+    }
+
+    const flower = {
+      id: uid(),
+      userId: user.id,
+      userName: getUserName(user),
+      givenAt: new Date().toISOString(),
+      dayKey
+    };
+
+    setState((current) => ({
+      ...current,
+      people: current.people.map((person) => {
+        const flowers = activeFlowerGifts(person.flowers);
+        if (person.id !== personId) return { ...person, flowers };
+        return { ...person, flowers: [...flowers, flower] };
+      })
+    }));
+    setToast(t("flowerAdded"));
+    return true;
   };
 
   const registerUser = (user) => {
@@ -883,6 +1042,7 @@ function App() {
     setToast,
     activeUser,
     canUseAccount,
+    onGiveFlower: giveFlowerToPerson,
     toggleLanguage
   };
 
@@ -937,7 +1097,7 @@ function App() {
       {screen === "contact" && <ContactScreen {...commonProps} />}
       {screen === "detail" && <DetailScreen {...commonProps} />}
 
-      {["home", "add", "search", "settings"].includes(screen) && (
+      {["home", "add", "search", "settings", "detail"].includes(screen) && (
         <BottomNav active={screen} setScreen={setScreen} setModal={setModal} canUseAccount={canUseAccount} t={t} />
       )}
 
@@ -994,6 +1154,17 @@ function App() {
           }}
         />
       )}
+      {modal?.type === "flower" && (
+        <FlowerModal
+          t={t}
+          onClose={() => setModal(null)}
+          onGive={() => {
+            if (giveFlowerToPerson(modal.personId)) {
+              setModal(null);
+            }
+          }}
+        />
+      )}
       {modal?.type === "accountPrompt" && (
         <AccountPrompt
           t={t}
@@ -1009,6 +1180,7 @@ function App() {
           }}
         />
       )}
+      {modal?.type === "aiSoon" && <AiSoonModal onClose={() => setModal(null)} />}
       {toast && <div className="toast">{toast}</div>}
     </div>
   );
@@ -1793,7 +1965,29 @@ function InfoLine({ icon, label, value }) {
 }
 
 function DetailScreen({ state, language, t, updateState, setScreen, setModal, canUseAccount }) {
+  const [commentMenuOpen, setCommentMenuOpen] = useState(false);
   const person = state.people.find((item) => item.id === state.selectedPersonId);
+
+  useEffect(() => {
+    if (!commentMenuOpen) return undefined;
+
+    const closeMenu = (event) => {
+      if (!event.target.closest?.(".detail-entry-actions")) {
+        setCommentMenuOpen(false);
+      }
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setCommentMenuOpen(false);
+    };
+
+    document.addEventListener("pointerdown", closeMenu);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeMenu);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [commentMenuOpen]);
+
   if (!person) {
     return (
       <main className="main-screen">
@@ -1809,6 +2003,34 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
   const creatorName = person.createdByName || (creator ? getUserName(creator) : person.createdBy === "guest" ? t("guestAccount") : "Shrine");
   const createdDate = personCreatedDate(person);
   const detailInfo = person.info?.trim();
+  const activeFlowers = activeFlowerGifts(person.flowers);
+  const lifeYears = personLifeYears(person, t);
+  const displayAge = personDisplayAge(person);
+  const shareUrl = typeof window !== "undefined" ? window.location?.href || "" : "";
+  const shareTitle = person.fullName || t("memorial");
+  const sharePerson = () => {
+    shareContent({
+      title: shareTitle,
+      text: [shareTitle, lifeYears].filter(Boolean).join("\n"),
+      url: shareUrl
+    });
+  };
+  const shareComment = () => {
+    shareContent({
+      title: shareTitle,
+      text: [shareTitle, creatorName, createdDate, detailInfo].filter(Boolean).join("\n"),
+      url: shareUrl
+    });
+    setCommentMenuOpen(false);
+  };
+
+  const openFlowerPicker = () => {
+    if (!canUseAccount) {
+      setModal({ type: "accountPrompt", intent: "flower" });
+      return;
+    }
+    setModal({ type: "flower", personId: person.id });
+  };
 
   const toggleFollow = () => {
     if (!canUseAccount) {
@@ -1830,7 +2052,17 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
 
   return (
     <main className="main-screen detail-screen scroll-screen">
-      <Header title={t("memorial")} back={() => setScreen("home")} language={language} t={t} />
+      <Header
+        title=""
+        back={() => setScreen("home")}
+        language={language}
+        t={t}
+        action={
+          <button className="header-icon flower-header-button" onClick={openFlowerPicker} aria-label={t("giveFlower")}>
+            <Plus size={33} />
+          </button>
+        }
+      />
       <section className="detail-card">
         <div className="detail-hero">
           <div className="detail-photo">
@@ -1839,23 +2071,41 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
           <div className="detail-summary">
             {person.fatherName && <p className="detail-father-name">{person.fatherName}</p>}
             <h2>{person.fullName}</h2>
-            <p className="detail-dates">
-              {person.birthDate || t("unknownBirth")} - {person.deathDate}
-            </p>
-            {person.age && <p className="detail-age">{person.age} {t("years")}</p>}
-            <p className="detail-country">
-              <Flag country={findCountry(person.country)} /> {countryLabel(person.country, language)}
-            </p>
+            <p className="detail-dates">{lifeYears}</p>
+            {displayAge && <p className="detail-age">{displayAge} Year</p>}
           </div>
         </div>
-        <div className="detail-actions">
-          <button className={followed ? "primary-button small active" : "primary-button small"} onClick={toggleFollow}>
-            <UserRoundPlus size={20} /> {followed ? t("following") : t("follow")}
+        <div className="detail-quick-actions">
+          <button className="detail-action-tile" type="button" aria-label={t("information")}>
+            <ImageIcon size={30} />
           </button>
-          <button className="outline-button small" onClick={toggleBlock}>
-            <Ban size={20} /> {blocked ? t("unblock") : t("block")}
+          <button
+            className={`detail-action-tile rose-tile ${activeFlowers.length ? "selected" : ""}`}
+            type="button"
+            aria-label={t("giveFlower")}
+            aria-pressed={Boolean(activeFlowers.length)}
+            onClick={openFlowerPicker}
+          >
+            <Flower2 size={30} />
+            <span>{activeFlowers.length}</span>
+          </button>
+          <button className="detail-action-tile ai-tile" type="button" aria-label="AI" onClick={() => setModal({ type: "aiSoon" })}>
+            <AiMark />
           </button>
         </div>
+        <button className="detail-block-action" type="button" onClick={toggleBlock}>
+          <Ban size={18} /> {blocked ? t("unblock") : t("block")}
+        </button>
+        {activeFlowers.length > 0 && (
+          <div className="flower-offerings" aria-label={formatText(t("flowerCount"), { count: activeFlowers.length })}>
+            {activeFlowers.slice(-6).map((flower) => (
+              <span className="flower-offering" key={flower.id} title={flower.userName || t("flower")}>
+                <RoseGraphic small />
+              </span>
+            ))}
+            {activeFlowers.length > 6 && <span className="flower-count-badge">+{activeFlowers.length - 6}</span>}
+          </div>
+        )}
         {detailInfo && (
           <article className="detail-entry">
             <div className="detail-entry-header">
@@ -1866,12 +2116,41 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
                 <strong>{creatorName}</strong>
                 {createdDate && <span>{createdDate}</span>}
               </div>
+              <div className="detail-entry-actions">
+                <button
+                  className="detail-entry-menu-button"
+                  type="button"
+                  aria-label="Share"
+                  aria-haspopup="menu"
+                  aria-expanded={commentMenuOpen}
+                  onClick={() => setCommentMenuOpen((open) => !open)}
+                >
+                  <MoreVertical size={27} />
+                </button>
+                {commentMenuOpen && (
+                  <div className="detail-entry-menu" role="menu">
+                    <button type="button" role="menuitem" onClick={shareComment}>
+                      <Share2 size={25} />
+                      <span>Share</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
             <p className="detail-info">{detailInfo}</p>
           </article>
         )}
       </section>
     </main>
+  );
+}
+
+function AiMark({ large = false }) {
+  return (
+    <span className={`ai-mark ${large ? "large" : ""}`} aria-hidden="true">
+      <span>AI</span>
+      <Sparkles size={large ? 18 : 14} />
+    </span>
   );
 }
 
@@ -1947,8 +2226,8 @@ function ContactScreen({ language, t, setScreen, setToast }) {
 function BottomNav({ active, setScreen, setModal, canUseAccount, t }) {
   const items = [
     { id: "home", label: t("home"), icon: <ContactRound size={36} /> },
-    { id: "add", label: t("add"), icon: <Plus size={30} />, featured: true },
-    { id: "search", label: t("search"), icon: <Search size={42} /> },
+    { id: "add", label: t("add"), icon: <Plus size={30} />, matched: true },
+    { id: "search", label: t("search"), icon: <Search size={42} />, matched: true },
     { id: "settings", label: t("settings"), icon: <Settings size={42} /> }
   ];
   const go = (id) => {
@@ -1964,12 +2243,12 @@ function BottomNav({ active, setScreen, setModal, canUseAccount, t }) {
       {items.map((item) => (
         <button
           key={item.id}
-          className={`${active === item.id ? "nav-active" : ""}${item.featured ? " nav-featured" : ""}`}
+          className={`${active === item.id ? "nav-active" : ""}${item.matched ? " nav-matched" : ""}`}
           aria-label={item.label}
           onClick={() => go(item.id)}
         >
-          {item.featured ? <span className="nav-featured-icon">{item.icon}</span> : item.icon}
-          <span>{item.label}</span>
+          <span className="nav-icon">{item.icon}</span>
+          <span className="nav-label">{item.label}</span>
         </button>
       ))}
       <div className="home-indicator" />
@@ -2136,6 +2415,28 @@ function Sheet({ children, onClose }) {
     <div className="modal-backdrop bottom" onClick={onClose}>
       <div className="sheet" onClick={(event) => event.stopPropagation()}>
         {children}
+      </div>
+    </div>
+  );
+}
+
+function FlowerModal({ t, onGive, onClose }) {
+  return (
+    <div className="modal-backdrop flower-backdrop" onClick={onClose}>
+      <div className="flower-modal" onClick={(event) => event.stopPropagation()}>
+        <button className="flower-close-button" type="button" onClick={onClose} aria-label={t("back")}>
+          <X size={36} />
+        </button>
+        <button className="flower-nav-button left" type="button" aria-hidden="true" tabIndex={-1}>
+          <ChevronLeft size={50} />
+        </button>
+        <button className="flower-nav-button right" type="button" aria-hidden="true" tabIndex={-1}>
+          <ChevronRight size={50} />
+        </button>
+        <button className="flower-pick-button" type="button" onClick={onGive} aria-label={t("giveFlower")}>
+          <RoseGraphic />
+        </button>
+        <p className="flower-note">{t("flowerLasts")}</p>
       </div>
     </div>
   );
@@ -2399,6 +2700,7 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
 
 function AccountPrompt({ t, intent = "follow", onCreate, onLogin, onClose }) {
   const isAdd = intent === "add";
+  const isFlower = intent === "flower";
   return (
     <div className="modal-backdrop bottom" onClick={onClose}>
       <div className="account-prompt" onClick={(event) => event.stopPropagation()}>
@@ -2406,8 +2708,8 @@ function AccountPrompt({ t, intent = "follow", onCreate, onLogin, onClose }) {
         <div className="prompt-icon">
           <LockKeyhole size={34} />
         </div>
-        <h2>{isAdd ? t("accountPromptAddTitle") : t("accountPromptTitle")}</h2>
-        <p>{isAdd ? t("accountPromptAddBody") : t("accountPromptBody")}</p>
+        <h2>{isAdd ? t("accountPromptAddTitle") : isFlower ? t("accountPromptFlowerTitle") : t("accountPromptTitle")}</h2>
+        <p>{isAdd ? t("accountPromptAddBody") : isFlower ? t("accountPromptFlowerBody") : t("accountPromptBody")}</p>
         <button className="primary-button" onClick={onCreate}>
           <UserRoundPlus size={20} /> {t("createAccount")}
         </button>
@@ -2416,6 +2718,29 @@ function AccountPrompt({ t, intent = "follow", onCreate, onLogin, onClose }) {
         </button>
         <button className="ghost-link" onClick={onClose}>
           {t("continueBrowsing")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AiSoonModal({ onClose }) {
+  return (
+    <div className="modal-backdrop ai-modal-backdrop" onClick={onClose}>
+      <div
+        className="ai-soon-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ai-soon-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="ai-modal-icon">
+          <AiMark large />
+        </div>
+        <h2 id="ai-soon-title">Soon</h2>
+        <p>The AI feature will be launched + Other features Please Keep updating</p>
+        <button className="primary-button ai-ok-button" onClick={onClose}>
+          OK
         </button>
       </div>
     </div>
@@ -2442,6 +2767,37 @@ function Flag({ country, large = false }) {
     >
       <span>{code.toUpperCase()}</span>
     </span>
+  );
+}
+
+function RoseGraphic({ small = false }) {
+  return (
+    <svg
+      className={`rose-graphic ${small ? "small" : ""}`}
+      viewBox="0 0 220 320"
+      role="img"
+      aria-label="Rose"
+      focusable="false"
+    >
+      <path className="rose-stem-shadow" d="M109 130 C94 184 101 238 82 303" />
+      <path className="rose-stem" d="M112 126 C98 184 104 235 86 302" />
+      <path className="rose-leaf back" d="M98 220 C55 197 42 166 80 166 C111 167 119 191 98 220Z" />
+      <path className="rose-leaf front" d="M100 251 C143 229 163 200 126 194 C94 190 78 220 100 251Z" />
+      <path className="rose-leaf small-leaf" d="M109 185 C142 172 151 148 123 144 C102 144 95 164 109 185Z" />
+      <g className="rose-bloom">
+        <path className="petal p1" d="M111 40 C142 25 174 43 180 78 C160 62 136 66 120 91 C114 75 108 58 111 40Z" />
+        <path className="petal p2" d="M105 42 C69 26 39 49 40 88 C62 67 89 70 105 96 C111 73 111 55 105 42Z" />
+        <path className="petal p3" d="M58 83 C38 111 52 149 91 161 C79 131 89 104 117 92 C93 79 72 75 58 83Z" />
+        <path className="petal p4" d="M162 79 C190 103 181 144 142 162 C152 127 142 105 113 92 C133 78 151 74 162 79Z" />
+        <path className="petal p5" d="M80 67 C104 49 139 51 157 72 C132 75 111 91 103 121 C91 102 82 86 80 67Z" />
+        <path className="petal p6" d="M74 113 C91 83 127 73 154 92 C134 104 120 125 119 154 C96 145 80 132 74 113Z" />
+        <path className="petal p7" d="M143 112 C121 83 84 76 62 99 C87 107 103 126 106 157 C126 146 140 131 143 112Z" />
+        <path className="petal p8" d="M86 145 C107 159 133 159 153 143 C148 173 124 192 97 181 C79 173 73 157 86 145Z" />
+        <path className="petal center" d="M91 91 C105 68 139 67 151 91 C132 88 117 99 111 123 C105 105 99 96 91 91Z" />
+        <path className="petal core" d="M103 96 C113 82 132 83 141 97 C128 99 119 107 115 121 C112 110 108 102 103 96Z" />
+        <path className="petal fold" d="M95 111 C112 96 137 100 148 119 C129 115 113 122 101 140 C96 129 94 119 95 111Z" />
+      </g>
+    </svg>
   );
 }
 
