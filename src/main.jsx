@@ -268,7 +268,7 @@ const copy = {
     mobileWhatsapp: "Mobile (WhatsApp)",
     emailCode: "E-Mail",
     activationCode: "Activation Code",
-    sixDigitCode: "8-digit code",
+    sixDigitCode: "6-digit code",
     codeSent: "Activation code sent.",
     emailCodeSent: "Email code sent.",
     rateLimited: "Too many activation code requests. Try again in {time}.",
@@ -396,7 +396,7 @@ const copy = {
     mobileWhatsapp: "الهاتف (واتساب)",
     emailCode: "البريد الإلكتروني",
     activationCode: "كود التفعيل",
-    sixDigitCode: "كود من 8 أرقام",
+    sixDigitCode: "كود من 6 أرقام",
     codeSent: "تم إرسال كود التفعيل.",
     emailCodeSent: "تم إرسال كود البريد الإلكتروني.",
     rateLimited: "طلبات كود التفعيل كثيرة. حاول مرة أخرى بعد {time}.",
@@ -1903,6 +1903,7 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
     ].filter(Boolean);
   }, [t, user.email, user.otpPhone, user.phone, user.phoneCode]);
   const [channelId, setChannelId] = useState(channels[0]?.id || "mobile");
+  const [step, setStep] = useState("choose");
   const [code, setCode] = useState("");
   const [sent, setSent] = useState(false);
   const [challenge, setChallenge] = useState("");
@@ -1914,16 +1915,17 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
   const [now, setNow] = useState(Date.now());
   const codeInputRef = useRef(null);
   const selectedChannel = channels.find((channel) => channel.id === channelId) || channels[0];
+  const codeStep = step === "code";
   const resendWaitSeconds = Math.max(0, Math.ceil((resendAvailableAt - now) / 1000));
   const resendBlocked = resendWaitSeconds > 0;
 
   useEffect(() => {
-    if (!sent) return;
+    if (!codeStep) return;
     window.requestAnimationFrame(() => {
       codeInputRef.current?.focus();
       codeInputRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
     });
-  }, [sent]);
+  }, [codeStep]);
 
   useEffect(() => {
     if (!resendAvailableAt) return undefined;
@@ -1942,6 +1944,7 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
   const resetChannel = (nextChannelId) => {
     if (loading || nextChannelId === channelId) return;
     setChannelId(nextChannelId);
+    setStep("choose");
     setCode("");
     setSent(false);
     setChallenge("");
@@ -1961,13 +1964,13 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
   const requestBody = () => {
     if (selectedChannel?.id === "email") {
       return {
-        send: { email: user.email, codeLength: 8 },
+        send: { email: user.email, codeLength: 6 },
         verify: { email: user.email, code, challenge }
       };
     }
 
     return {
-      send: { phone: user.otpPhone, codeLength: 8 },
+      send: { phone: user.otpPhone, codeLength: 6 },
       verify: { phone: user.otpPhone, code }
     };
   };
@@ -1975,7 +1978,7 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
   const sendCode = async () => {
     if (!selectedChannel) return;
     if (resendBlocked) {
-      setMessage(formatText(t("rateLimited"), { time: formatWaitTime(resendWaitSeconds) }));
+      setError(formatText(t("rateLimited"), { time: formatWaitTime(resendWaitSeconds) }));
       return;
     }
     setLoading(true);
@@ -1996,17 +1999,19 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
 
         if (canEnterExistingCode) {
           const retryAfterSeconds = retryAfterSecondsForResponse(response, data) || OTP_RESEND_COOLDOWN_SECONDS;
-          setSent(true);
+          setSent(false);
+          setStep("choose");
           setChallenge(data.challenge || "");
           setExpiresAt(data.expiresAt || "");
           startResendCooldown(retryAfterSeconds);
-          setMessage(formatText(t("rateLimited"), { time: formatWaitTime(retryAfterSeconds) }));
+          setError(formatText(t("rateLimited"), { time: formatWaitTime(retryAfterSeconds) }));
           return;
         }
 
         throw new Error(errorMessage);
       }
       setSent(true);
+      setStep("code");
       setCode("");
       setChallenge(data.challenge || "");
       setExpiresAt(data.expiresAt || "");
@@ -2018,6 +2023,13 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const chooseDifferentMethod = () => {
+    setStep("choose");
+    setCode("");
+    setMessage("");
+    setError("");
   };
 
   const verifyCode = async () => {
@@ -2053,41 +2065,49 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
   return (
     <div className="modal-backdrop" onClick={onCancel}>
       <div className="verify-modal" onClick={(event) => event.stopPropagation()}>
-        <h2>{t("receiveActivationCode")}</h2>
-        <div className={`verify-options ${sent ? "sent" : ""}`}>
-          {channels.map((channel) => (
-            <button
-              type="button"
-              key={channel.id}
-              className={`verify-option ${channel.id === selectedChannel?.id ? "selected" : ""}`}
-              aria-pressed={channel.id === selectedChannel?.id}
-              disabled={loading}
-              onClick={() => resetChannel(channel.id)}
-            >
-              <span className="radio" />
-              <div>
-                <strong>{channel.label}</strong>
-                <p>{channel.value}</p>
-              </div>
-            </button>
-          ))}
-        </div>
-        {sent && (
-          <label className="otp-code-field">
-            <span>{t("activationCode")}</span>
-            <input
-              ref={codeInputRef}
-              autoComplete="one-time-code"
-              inputMode="numeric"
-              maxLength={8}
-              placeholder={t("sixDigitCode")}
-              value={code}
-              onChange={(event) => setCode(event.target.value.replace(/\D/g, ""))}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") verifyCode();
-              }}
-            />
-          </label>
+        <h2>{codeStep ? t("activationCode") : t("receiveActivationCode")}</h2>
+        {!codeStep && (
+          <div className="verify-options">
+            {channels.map((channel) => (
+              <button
+                type="button"
+                key={channel.id}
+                className={`verify-option ${channel.id === selectedChannel?.id ? "selected" : ""}`}
+                aria-pressed={channel.id === selectedChannel?.id}
+                disabled={loading}
+                onClick={() => resetChannel(channel.id)}
+              >
+                <span className="radio" />
+                <div>
+                  <strong>{channel.label}</strong>
+                  <p>{channel.value}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+        {codeStep && (
+          <div className="verify-code-page">
+            <div className="verify-destination">
+              <strong>{selectedChannel?.label}</strong>
+              <p>{selectedChannel?.value}</p>
+            </div>
+            <label className="otp-code-field">
+              <span>{t("activationCode")}</span>
+              <input
+                ref={codeInputRef}
+                autoComplete="one-time-code"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder={t("sixDigitCode")}
+                value={code}
+                onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, 6))}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") verifyCode();
+                }}
+              />
+            </label>
+          </div>
         )}
         {message && <p className="verify-message">{message}</p>}
         {expiresAt && (
@@ -2096,12 +2116,17 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
           </p>
         )}
         {error && <p className="verify-error">{error}</p>}
-        <button className="primary-button" disabled={loading || !selectedChannel} onClick={sent ? verifyCode : sendCode}>
-          {loading ? t("pleaseWait") : sent ? t("verifyProceed") : selectedChannel?.id === "mobile" ? t("sendWhatsappCode") : t("send")}
+        <button className="primary-button" disabled={loading || !selectedChannel} onClick={codeStep ? verifyCode : sendCode}>
+          {loading ? t("pleaseWait") : codeStep ? t("verifyProceed") : selectedChannel?.id === "mobile" ? t("sendWhatsappCode") : t("send")}
         </button>
-        {sent && (
+        {codeStep && (
           <button className="ghost-link resend-link" disabled={loading || resendBlocked} onClick={sendCode}>
             {resendBlocked ? formatText(t("resendIn"), { time: formatWaitTime(resendWaitSeconds) }) : t("resendCode")}
+          </button>
+        )}
+        {codeStep && (
+          <button className="ghost-link resend-link" disabled={loading} onClick={chooseDifferentMethod}>
+            {t("back")}
           </button>
         )}
       </div>

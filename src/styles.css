@@ -1665,15 +1665,6 @@ button {
   display: grid;
 }
 
-.verify-options.sent .verify-option:not(.selected) {
-  display: none;
-}
-
-.verify-options.sent .verify-option {
-  min-height: 88px;
-  margin-bottom: 14px;
-}
-
 .verify-option {
   appearance: none;
   display: grid;
@@ -1733,6 +1724,32 @@ button {
   margin: 0;
   color: #111;
   font-size: 1.05rem;
+  overflow-wrap: anywhere;
+}
+
+.verify-code-page {
+  display: grid;
+  gap: 14px;
+}
+
+.verify-destination {
+  display: grid;
+  gap: 6px;
+  min-height: 76px;
+  padding: 16px 18px;
+  border: 1px solid #e1e8f0;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.verify-destination strong {
+  color: #1c2636;
+  font-size: 1.05rem;
+}
+
+.verify-destination p {
+  margin: 0;
+  color: #475569;
   overflow-wrap: anywhere;
 }
 

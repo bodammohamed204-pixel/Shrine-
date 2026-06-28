@@ -102,7 +102,7 @@ async function signEmailOtp(value, env) {
 }
 
 function generateNumericCode(codeLength) {
-  const length = Math.min(8, Math.max(4, Number(codeLength || 8)));
+  const length = Math.min(8, Math.max(4, Number(codeLength || 6)));
   const bytes = new Uint8Array(length);
   crypto.getRandomValues(bytes);
   return Array.from(bytes, (byte) => String(byte % 10)).join("");
@@ -243,7 +243,7 @@ async function sendOtp(request, env) {
   }
 
   const phone = normalizePhone(body.phone);
-  const codeLength = Number(body.codeLength || 8);
+  const codeLength = Number(body.codeLength || 6);
 
   if (!/^\+\d{7,15}$/.test(phone)) {
     return jsonResponse(
@@ -303,7 +303,7 @@ async function sendEmailOtp(request, env) {
   }
 
   const email = normalizeEmail(body.email);
-  const codeLength = Number(body.codeLength || 8);
+  const codeLength = Number(body.codeLength || 6);
 
   if (!/^\S+@\S+\.\S+$/.test(email)) {
     return jsonResponse({ success: false, error: "A valid email address is required." }, 400, corsHeaders(request, env));
