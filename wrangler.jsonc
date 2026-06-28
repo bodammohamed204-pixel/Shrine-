@@ -17,7 +17,7 @@
     { "name": "EMAIL" }
   ],
   "vars": {
-    "ALLOWED_ORIGINS": "https://book-of-heaven.onholding.workers.dev,https://book-of-heaven.bodammohamed204.workers.dev,http://localhost,capacitor://localhost",
+    "ALLOWED_ORIGINS": "https://book-of-heaven.onholding.workers.dev,https://book-of-heaven.bodammohamed204.workers.dev,https://shrine-the-book-of-heaven.bodammohamed204.workers.dev,http://localhost,capacitor://localhost",
     "OTP_EMAIL_FROM": "noreply@yourdomain.com",
     "OTP_EMAIL_FROM_NAME": "Shrine"
   },

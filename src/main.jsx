@@ -42,7 +42,10 @@ import "./styles.css";
 
 const STORAGE_KEY = "shrine_mobile_state_v1";
 const PRODUCTION_API_BASE_URL = "https://book-of-heaven.bodammohamed204.workers.dev";
-const PRODUCTION_API_HOST = "book-of-heaven.bodammohamed204.workers.dev";
+const SAME_ORIGIN_API_HOSTS = new Set([
+  "book-of-heaven.bodammohamed204.workers.dev",
+  "shrine-the-book-of-heaven.bodammohamed204.workers.dev"
+]);
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
 const FLOWER_LIFETIME_DAYS = 7;
 const FLOWER_LIFETIME_MS = FLOWER_LIFETIME_DAYS * 24 * 60 * 60 * 1000;
@@ -57,7 +60,7 @@ function defaultApiBaseUrl() {
     return `http://${hostname === "localhost" ? "localhost" : "127.0.0.1"}:5184`;
   }
 
-  if (!import.meta.env.DEV && hostname !== PRODUCTION_API_HOST) {
+  if (!import.meta.env.DEV && !SAME_ORIGIN_API_HOSTS.has(hostname)) {
     return PRODUCTION_API_BASE_URL;
   }
 
@@ -3069,7 +3072,11 @@ function DateField({ label, required, requiredLabel = "Required", value, error, 
     const input = inputRef.current;
     if (!input) return;
 
-    input.focus({ preventScroll: true });
+    try {
+      input.focus({ preventScroll: true });
+    } catch {
+      input.focus();
+    }
 
     if (typeof input.showPicker === "function") {
       try {
