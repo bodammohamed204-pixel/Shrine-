@@ -1126,39 +1126,61 @@ button {
 }
 
 .plain-title {
-  margin: 22px 0 22px;
+  margin: 24px 0 26px;
   color: var(--blue);
   text-align: center;
   font-size: 1.22rem;
+  font-weight: 800;
+}
+
+.settings-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 26px 0 calc(116px + env(safe-area-inset-bottom));
+  background: #fff;
+}
+
+.settings-screen .plain-title {
+  margin: 0 0 40px;
+  font-size: 1.28rem;
+  line-height: 1.15;
 }
 
 .settings-list {
   display: grid;
-  gap: 12px;
-  padding: 0 16px;
+  gap: 18px;
+  padding: 0 14px;
 }
 
 .settings-card {
   width: 100%;
   border: 1px solid #e7e9ee;
-  border-radius: 8px;
+  border-radius: 16px;
   background: #fff;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
 }
 
 .settings-row {
   display: grid;
-  grid-template-columns: 40px 1fr 24px;
+  grid-template-columns: 34px minmax(0, 1fr) 24px;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
   min-height: 58px;
-  padding: 0 16px;
+  padding: 0 14px;
   border: 0;
   background: transparent;
   color: #151a22;
   text-align: left;
   font-size: 1rem;
+}
+
+.settings-row > svg {
+  justify-self: end;
+  color: var(--blue);
+  stroke-width: 2.7;
 }
 
 .settings-row > span:nth-child(2) {
@@ -1173,21 +1195,28 @@ button {
 }
 
 .setting-icon svg {
-  width: 25px;
-  height: 25px;
+  width: 24px;
+  height: 24px;
+  stroke-width: 2.1;
+}
+
+.settings-screen .setting-icon .flag-visual {
+  width: 30px;
+  height: 20px;
 }
 
 .language-options {
   display: grid;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid #edf1f5;
+  padding: 8px 0 10px;
 }
 
 .language-options button {
   display: flex;
   align-items: center;
   gap: 16px;
-  min-height: 52px;
-  padding: 0 18px;
+  min-height: 50px;
+  padding: 0 20px;
   border: 0;
   background: #fff;
   color: #111;
@@ -1195,12 +1224,11 @@ button {
   font-size: 0.98rem;
 }
 
-.language-options button.active {
-  color: var(--blue);
-  font-weight: 800;
+.language-options button .flag-visual {
+  flex: 0 0 auto;
 }
 
-.language-options button span {
+.language-options button > span:not(.flag-visual) {
   flex: 1;
   min-width: 0;
 }
@@ -1215,8 +1243,12 @@ button {
 }
 
 .settings-done {
-  width: calc(100% - 32px);
-  margin: 36px 16px 0;
+  width: calc(100% - 48px);
+  min-height: 56px;
+  margin: auto 24px 0;
+  border-radius: 14px;
+  font-size: 1.05rem;
+  box-shadow: 0 14px 24px rgba(36, 148, 232, 0.18);
 }
 
 .profile-screen {
@@ -1487,6 +1519,10 @@ button {
   font-weight: 650;
 }
 
+.bottom-nav button:not(.nav-active) span:not(.nav-featured-icon) {
+  display: none;
+}
+
 .bottom-nav svg {
   width: 34px;
   height: 34px;
@@ -1497,15 +1533,29 @@ button {
   filter: drop-shadow(0 0 0 #fff);
 }
 
+.bottom-nav .nav-featured {
+  gap: 3px;
+}
+
+.bottom-nav .nav-featured-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  color: var(--blue);
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.16);
+}
+
+.bottom-nav .nav-featured-icon svg {
+  width: 28px;
+  height: 28px;
+  stroke-width: 4;
+}
+
 .home-indicator {
-  position: absolute;
-  left: 50%;
-  bottom: 10px;
-  width: 120px;
-  height: 4px;
-  transform: translateX(-50%);
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.42);
+  display: none;
 }
 
 .modal-backdrop {
@@ -1648,24 +1698,43 @@ button {
 }
 
 .age-modal {
-  padding: 28px 24px;
+  overflow: hidden;
+  padding: 0;
   background: #fff;
 }
 
 .age-modal h2 {
-  margin: 0 0 18px;
+  margin: 0;
+  padding: 20px 24px;
+  border-bottom: 1px solid #ddd7e1;
   font-size: 1.4rem;
 }
 
-.age-modal input {
+.age-options {
+  display: grid;
+  max-height: min(62vh, 560px);
+  overflow-y: auto;
+}
+
+.age-options button {
   width: 100%;
-  min-height: 64px;
-  margin-bottom: 18px;
-  padding: 0 22px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  outline: none;
-  font-size: 1.1rem;
+  min-height: 56px;
+  padding: 0 24px;
+  border: 0;
+  border-bottom: 1px solid #ece8ef;
+  background: #fff;
+  text-align: left;
+  font-size: 1.15rem;
+}
+
+.age-options button.selected {
+  background: rgba(37, 155, 220, 0.12);
+  color: var(--blue);
+  font-weight: 800;
+}
+
+.rtl .age-options button {
+  text-align: right;
 }
 
 .verify-modal h2 {

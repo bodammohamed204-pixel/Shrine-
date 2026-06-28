@@ -13,10 +13,11 @@ import {
   Eye,
   EyeOff,
   FileText,
-  Headphones,
+  Headset,
   Home,
   ImageUp,
   LockKeyhole,
+  LogOut,
   Mail,
   MapPin,
   Pencil,
@@ -33,6 +34,7 @@ const STORAGE_KEY = "shrine_mobile_state_v1";
 const PRODUCTION_API_BASE_URL = "https://book-of-heaven.bodammohamed204.workers.dev";
 const PRODUCTION_API_HOST = "book-of-heaven.bodammohamed204.workers.dev";
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
+const AGE_OPTIONS = Array.from({ length: 120 }, (_, index) => String(index + 1));
 
 function defaultApiBaseUrl() {
   if (typeof window === "undefined") return "";
@@ -1426,7 +1428,6 @@ function PersonCard({ person, onOpen }) {
 function AddScreen({ state, language, t, setModal, onCreate, activeUser }) {
   const [form, setForm] = useState({
     photo: "",
-    fatherName: "",
     fullName: "",
     surnameCheck: "",
     deathDate: "",
@@ -1476,13 +1477,6 @@ function AddScreen({ state, language, t, setModal, onCreate, activeUser }) {
           </span>
           <input type="file" accept="image/*" onChange={pickImage} />
         </label>
-
-        <Input
-          label={t("fatherName")}
-          placeholder={t("fatherName")}
-          value={form.fatherName}
-          onChange={(value) => setField("fatherName", value)}
-        />
         <Input
           label={t("fullName")}
           required
@@ -1614,7 +1608,9 @@ function SearchScreen({ state, language, t, updateState, setScreen }) {
 function SettingsScreen({ state, language, t, updateState, setScreen, logout }) {
   const [languageOpen, setLanguageOpen] = useState(false);
   const currentLanguage = normalizeLanguage(language || state.language);
-  const currentLanguageFlag = countries.find((country) => country.iso === (currentLanguage === "AR" ? "eg" : "gb"));
+  const arabicLanguageFlag = countries.find((country) => country.iso === "kw");
+  const englishLanguageFlag = countries.find((country) => country.iso === "gb");
+  const currentLanguageFlag = currentLanguage === "AR" ? arabicLanguageFlag : englishLanguageFlag;
 
   return (
     <main className="main-screen settings-screen scroll-screen">
@@ -1631,23 +1627,21 @@ function SettingsScreen({ state, language, t, updateState, setScreen, logout }) 
           </button>
           {languageOpen && (
             <div className="language-options">
-              <button className={currentLanguage === "AR" ? "active" : ""} onClick={() => updateState({ language: "AR" })}>
-                <Flag country={countries.find((country) => country.iso === "eg")} />
+              <button aria-pressed={currentLanguage === "AR"} onClick={() => updateState({ language: "AR" })}>
+                <Flag country={arabicLanguageFlag} />
                 <span>{t("arabic")}</span>
-                {currentLanguage === "AR" && <Check size={18} />}
               </button>
-              <button className={currentLanguage === "EN" ? "active" : ""} onClick={() => updateState({ language: "EN" })}>
-                <Flag country={countries.find((country) => country.iso === "gb")} />
+              <button aria-pressed={currentLanguage === "EN"} onClick={() => updateState({ language: "EN" })}>
+                <Flag country={englishLanguageFlag} />
                 <span>{t("english")}</span>
-                {currentLanguage === "EN" && <Check size={18} />}
               </button>
             </div>
           )}
         </div>
         <SettingsItem icon={<Ban />} label={t("blockedUsers")} onClick={() => setScreen("blocked")} />
-        <SettingsItem icon={<Headphones />} label={t("contactUs")} onClick={() => setScreen("contact")} />
+        <SettingsItem icon={<Headset />} label={t("contactUs")} onClick={() => setScreen("contact")} />
         <SettingsItem icon={<FileText />} label={t("terms")} onClick={() => setScreen("terms")} />
-        <SettingsItem icon={<DoorOpen />} label={t("logout")} onClick={logout} />
+        <SettingsItem icon={<LogOut />} label={t("logout")} onClick={logout} />
       </div>
       <button className="primary-button settings-done" onClick={() => setScreen("home")}>
         {t("done")}
@@ -1903,7 +1897,7 @@ function ContactScreen({ language, t, setScreen, setToast }) {
 function BottomNav({ active, setScreen, setModal, canUseAccount, t }) {
   const items = [
     { id: "home", label: t("home"), icon: <ContactRound size={36} /> },
-    { id: "add", label: t("add"), icon: <Plus size={42} /> },
+    { id: "add", label: t("add"), icon: <Plus size={30} />, featured: true },
     { id: "search", label: t("search"), icon: <Search size={42} /> },
     { id: "settings", label: t("settings"), icon: <Settings size={42} /> }
   ];
@@ -1920,10 +1914,11 @@ function BottomNav({ active, setScreen, setModal, canUseAccount, t }) {
       {items.map((item) => (
         <button
           key={item.id}
-          className={active === item.id ? "nav-active" : ""}
+          className={`${active === item.id ? "nav-active" : ""}${item.featured ? " nav-featured" : ""}`}
+          aria-label={item.label}
           onClick={() => go(item.id)}
         >
-          {item.icon}
+          {item.featured ? <span className="nav-featured-icon">{item.icon}</span> : item.icon}
           <span>{item.label}</span>
         </button>
       ))}
@@ -2010,22 +2005,34 @@ function DateField({ label, required, requiredLabel = "Required", value, error, 
 }
 
 function AgeModal({ value, t, onSave, onCancel }) {
-  const [age, setAge] = useState(value || "");
+  const selectedRef = useRef(null);
+
+  useEffect(() => {
+    selectedRef.current?.scrollIntoView({ block: "center" });
+  }, [value]);
 
   return (
     <div className="modal-backdrop" onClick={onCancel}>
       <div className="age-modal" onClick={(event) => event.stopPropagation()}>
         <h2>{t("age")}</h2>
-        <input
-          autoFocus
-          inputMode="numeric"
-          placeholder={t("age")}
-          value={age}
-          onChange={(event) => setAge(event.target.value.replace(/\D/g, "").slice(0, 3))}
-        />
-        <button className="primary-button" onClick={() => onSave(age)}>
-          {t("save")}
-        </button>
+        <div className="age-options" role="listbox" aria-label={t("age")}>
+          {AGE_OPTIONS.map((age) => {
+            const isSelected = age === value;
+
+            return (
+              <button
+                key={age}
+                ref={isSelected ? selectedRef : null}
+                className={isSelected ? "selected" : ""}
+                role="option"
+                aria-selected={isSelected}
+                onClick={() => onSave(age)}
+              >
+                {age}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
