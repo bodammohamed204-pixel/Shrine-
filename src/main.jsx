@@ -1009,12 +1009,14 @@ function App() {
   const t = translator(language);
   const isArabic = language === "AR";
   const platformFontClass = getPlatformFontClass();
-  const [screen, setScreen] = useState("home");
+  const [screen, setScreenState] = useState("home");
   const [opening, setOpening] = useState(true);
   const [homeIntroLoading, setHomeIntroLoading] = useState(true);
   const [modal, setModal] = useState(null);
   const [toast, setToast] = useState("");
   const [registerResetKey, setRegisterResetKey] = useState(0);
+  const screenRef = useRef(screen);
+  const screenHistoryRef = useRef([]);
 
   useEffect(() => {
     const splashTimer = setTimeout(() => setOpening(false), 2600);
@@ -1028,6 +1030,41 @@ function App() {
   useEffect(() => {
     saveState(state);
   }, [state]);
+
+  useEffect(() => {
+    screenRef.current = screen;
+  }, [screen]);
+
+  const setScreen = (nextScreen, options = {}) => {
+    const targetScreen = typeof nextScreen === "function" ? nextScreen(screenRef.current) : nextScreen;
+    if (!targetScreen || targetScreen === screenRef.current) return;
+
+    const currentScreen = screenRef.current;
+    screenRef.current = targetScreen;
+    if (options.reset) {
+      screenHistoryRef.current = [];
+    } else if (!options.replace) {
+      screenHistoryRef.current = [...screenHistoryRef.current, currentScreen].slice(-30);
+    }
+    setScreenState(targetScreen);
+  };
+
+  const goBack = (fallbackScreen = "home") => {
+    const safeFallbackScreen = typeof fallbackScreen === "string" ? fallbackScreen : "home";
+    const nextHistory = [...screenHistoryRef.current];
+    let previousScreen = nextHistory.pop();
+    while (previousScreen === screenRef.current && nextHistory.length) {
+      previousScreen = nextHistory.pop();
+    }
+
+    const targetScreen = previousScreen || safeFallbackScreen;
+    screenHistoryRef.current = nextHistory;
+
+    if (targetScreen && targetScreen !== screenRef.current) {
+      screenRef.current = targetScreen;
+      setScreenState(targetScreen);
+    }
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -1120,7 +1157,7 @@ function App() {
       ]
     }));
     setToast(t("memorialCreated"));
-    setScreen("home");
+    setScreen("home", { reset: true });
   };
 
   const giveFlowerToPerson = (personId) => {
@@ -1168,13 +1205,13 @@ function App() {
       homeFilter: accountCountry.name,
       countryPreferenceTouched: true
     }));
-    setScreen("success");
+    setScreen("success", { replace: true });
   };
 
   const cancelRegistrationAttempt = () => {
     setModal(null);
     setRegisterResetKey((key) => key + 1);
-    setScreen("register");
+    setScreen("register", { replace: true });
     setToast(t("registrationCancelled"));
   };
 
@@ -1207,7 +1244,7 @@ function App() {
           currentCountry: accountCountry.name,
           homeFilter: accountCountry.name
         });
-        setScreen("home");
+        setScreen("home", { reset: true });
       }
     });
     return true;
@@ -1261,13 +1298,13 @@ function App() {
       };
     });
     setModal(null);
-    setScreen("login");
+    setScreen("login", { replace: true });
     setToast(t("passwordResetSuccess"));
   };
 
   const logout = () => {
     updateState({ currentUser: null, guest: true });
-    setScreen("home");
+    setScreen("home", { reset: true });
   };
 
   const activeUser = state.currentUser;
@@ -1279,6 +1316,7 @@ function App() {
     t,
     updateState,
     setScreen,
+    goBack,
     setModal,
     setToast,
     activeUser,
@@ -1302,8 +1340,9 @@ function App() {
           onLogin={() => setScreen("login")}
           onGuest={() => {
             updateState({ guest: true });
-            setScreen("home");
+            setScreen("home", { reset: true });
           }}
+          goBack={goBack}
           setModal={setModal}
           setToast={setToast}
         />
@@ -1316,7 +1355,7 @@ function App() {
           toggleLanguage={toggleLanguage}
           onLogin={loginUser}
           onForgotPassword={openPasswordReset}
-          onBack={() => setScreen("home")}
+          onBack={goBack}
           setScreen={setScreen}
           setModal={setModal}
         />
@@ -1328,6 +1367,7 @@ function App() {
           t={t}
           toggleLanguage={toggleLanguage}
           setScreen={setScreen}
+          goBack={goBack}
         />
       )}
       {screen === "home" && <HomeScreen {...commonProps} bootLoading={homeIntroLoading && !opening} />}
@@ -1547,7 +1587,7 @@ function LanguageButton({ value, onClick }) {
   );
 }
 
-function RegisterScreen({ state, language, t, updateState, onRegister, onCancelRegistration, onLogin, onGuest, setModal, setToast }) {
+function RegisterScreen({ state, language, t, updateState, onRegister, onCancelRegistration, onLogin, onGuest, goBack, setModal, setToast }) {
   const [form, setForm] = useState(() => {
     const accountCountry = findCountry(state.currentCountry || initialState.currentCountry);
 
@@ -1648,10 +1688,15 @@ function RegisterScreen({ state, language, t, updateState, onRegister, onCancelR
 
   return (
     <main className="auth-screen scroll-screen">
-      <LanguageButton
-        value={form.language}
-        onClick={setLanguage}
-      />
+      <div className="auth-topbar">
+        <button type="button" className="auth-back-button" onClick={goBack} aria-label={t("back")}>
+          <ArrowLeft size={30} />
+        </button>
+        <LanguageButton
+          value={form.language}
+          onClick={setLanguage}
+        />
+      </div>
       <section className="auth-intro">
         <h1>{t("registerTitle")}</h1>
         <p>{t("registerIntro")}</p>
@@ -2035,7 +2080,12 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onForgotPass
 
   return (
     <main className="auth-screen login-screen scroll-screen">
-      <LanguageButton value={language} onClick={toggleLanguage} />
+      <div className="auth-topbar">
+        <button type="button" className="auth-back-button" onClick={onBack} aria-label={t("back")}>
+          <ArrowLeft size={30} />
+        </button>
+        <LanguageButton value={language} onClick={toggleLanguage} />
+      </div>
       <section className="auth-intro login">
         <h1>{t("loginTitle")}</h1>
       </section>
@@ -2091,10 +2141,15 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onForgotPass
   );
 }
 
-function SuccessScreen({ state, language, t, toggleLanguage, setScreen }) {
+function SuccessScreen({ state, language, t, toggleLanguage, setScreen, goBack }) {
   return (
     <main className="success-screen">
-      <LanguageButton value={language || state.language} onClick={toggleLanguage} />
+      <div className="auth-topbar">
+        <button type="button" className="auth-back-button" onClick={goBack} aria-label={t("back")}>
+          <ArrowLeft size={30} />
+        </button>
+        <LanguageButton value={language || state.language} onClick={toggleLanguage} />
+      </div>
       <h1>{t("success")}</h1>
       <div className="success-mark">
         <div>
@@ -2103,7 +2158,7 @@ function SuccessScreen({ state, language, t, toggleLanguage, setScreen }) {
       </div>
       <h2>{t("congrats")}</h2>
       <p>{t("successBody")}</p>
-      <button className="primary-button" onClick={() => setScreen("home")}>
+      <button className="primary-button" onClick={() => setScreen("home", { reset: true })}>
         {t("letsStart")}
       </button>
     </main>
@@ -2209,7 +2264,7 @@ function PersonCard({ person, onOpen }) {
   );
 }
 
-function AddScreen({ state, language, t, setModal, onCreate, activeUser }) {
+function AddScreen({ state, language, t, setModal, onCreate, activeUser, goBack }) {
   const [form, setForm] = useState({
     photo: "",
     fullName: "",
@@ -2252,7 +2307,7 @@ function AddScreen({ state, language, t, setModal, onCreate, activeUser }) {
 
   return (
     <main className="main-screen add-screen scroll-screen">
-      <Header title={t("add")} compact language={language} t={t} />
+      <Header title={t("add")} compact back={goBack} language={language} t={t} />
       <section className="add-form">
         <label className="photo-picker">
           {form.photo ? <img src={form.photo} alt={t("selected")} /> : <AvatarSilhouette />}
@@ -2352,7 +2407,7 @@ function AddScreen({ state, language, t, setModal, onCreate, activeUser }) {
   );
 }
 
-function SearchScreen({ state, language, t, updateState, setScreen }) {
+function SearchScreen({ state, language, t, updateState, setScreen, goBack }) {
   const [query, setQuery] = useState("");
   const results = state.people.filter((person) => {
     const value = `${person.fatherName || ""} ${person.fullName} ${person.country} ${person.info}`.toLowerCase();
@@ -2361,7 +2416,7 @@ function SearchScreen({ state, language, t, updateState, setScreen }) {
 
   return (
     <main className="main-screen search-screen">
-      <Header title={t("search")} compact language={language} t={t} />
+      <Header title={t("search")} compact back={goBack} language={language} t={t} />
       <section className="search-box">
         <Search size={30} />
         <input
@@ -2389,7 +2444,7 @@ function SearchScreen({ state, language, t, updateState, setScreen }) {
   );
 }
 
-function SettingsScreen({ state, language, t, updateState, setScreen, logout }) {
+function SettingsScreen({ state, language, t, updateState, setScreen, goBack, logout }) {
   const [languageOpen, setLanguageOpen] = useState(false);
   const currentLanguage = normalizeLanguage(language || state.language);
   const arabicLanguageFlag = countries.find((country) => country.iso === "kw");
@@ -2398,6 +2453,9 @@ function SettingsScreen({ state, language, t, updateState, setScreen, logout }) 
 
   return (
     <main className="main-screen settings-screen scroll-screen">
+      <button type="button" className="header-icon settings-back-button" onClick={goBack} aria-label={t("back")}>
+        <ArrowLeft size={32} />
+      </button>
       <h1 className="plain-title">{t("settings")}</h1>
       <div className="settings-list">
         <SettingsItem icon={<UserRound />} label={t("profile")} onClick={() => setScreen("profile")} />
@@ -2427,7 +2485,7 @@ function SettingsScreen({ state, language, t, updateState, setScreen, logout }) 
         <SettingsItem icon={<FileText />} label={t("terms")} onClick={() => setScreen("terms")} />
         <SettingsItem icon={<LogOut />} label={t("logout")} onClick={logout} />
       </div>
-      <button className="primary-button settings-done" onClick={() => setScreen("home")}>
+      <button className="primary-button settings-done" onClick={() => setScreen("home", { reset: true })}>
         {t("done")}
       </button>
     </main>
@@ -2443,12 +2501,12 @@ function SettingsItem({ icon, label, onClick }) {
   );
 }
 
-function ProfileScreen({ activeUser, language, t, setScreen }) {
+function ProfileScreen({ activeUser, language, t, setScreen, goBack }) {
   const user = activeUser;
 
   return (
     <main className="profile-screen main-screen">
-      <button className="header-icon profile-back" onClick={() => setScreen("settings")} aria-label={t("back")}>
+      <button className="header-icon profile-back" onClick={goBack} aria-label={t("back")}>
         <ArrowLeft size={34} />
       </button>
       <button className="profile-edit" onClick={() => setScreen("editProfile")} aria-label={t("editProfile")}>
@@ -2469,7 +2527,7 @@ function ProfileScreen({ activeUser, language, t, setScreen }) {
   );
 }
 
-function EditProfileScreen({ activeUser, state, language, t, updateState, setScreen, setModal, setToast }) {
+function EditProfileScreen({ activeUser, state, language, t, updateState, setScreen, goBack, setModal, setToast }) {
   const [form, setForm] = useState({
     firstName: activeUser?.firstName || "",
     surname: activeUser?.surname || "",
@@ -2491,12 +2549,12 @@ function EditProfileScreen({ activeUser, state, language, t, updateState, setScr
       homeFilter: accountCountry.name
     });
     setToast(t("profileUpdated"));
-    setScreen("profile");
+    setScreen("profile", { replace: true });
   };
 
   return (
     <main className="main-screen scroll-screen edit-screen">
-      <Header title={t("editProfile")} back={() => setScreen("profile")} language={language} t={t} />
+      <Header title={t("editProfile")} back={goBack} language={language} t={t} />
       <section className="add-form">
         <Input
           label={t("firstName")}
@@ -2536,7 +2594,7 @@ function EditProfileScreen({ activeUser, state, language, t, updateState, setScr
   );
 }
 
-function UserDashboardScreen({ state, language, t, updateState, setScreen, setModal, setToast }) {
+function UserDashboardScreen({ state, language, t, updateState, goBack, setModal, setToast }) {
   const [editingId, setEditingId] = useState("");
   const [form, setForm] = useState(null);
 
@@ -2607,7 +2665,7 @@ function UserDashboardScreen({ state, language, t, updateState, setScreen, setMo
 
   return (
     <main className="main-screen user-dashboard-screen scroll-screen">
-      <Header title={t("userDashboard")} compact back={() => setScreen("settings")} language={language} t={t} />
+      <Header title={t("userDashboard")} compact back={goBack} language={language} t={t} />
       <section className="dashboard-intro">
         <p>{t("dashboardIntro")}</p>
       </section>
@@ -2707,14 +2765,14 @@ function InfoLine({ icon, label, value }) {
   );
 }
 
-function GalleryScreen({ state, t, setScreen }) {
+function GalleryScreen({ state, t, setScreen, goBack }) {
   const [viewMode, setViewMode] = useState("list");
   const person = state.people.find((item) => item.id === state.selectedPersonId);
 
   if (!person) {
     return (
       <main className="main-screen gallery-screen scroll-screen">
-        <Header title={t("gallery")} back={() => setScreen("home")} t={t} />
+        <Header title={t("gallery")} back={goBack} t={t} />
         <EmptyState title={t("entryNotFound")} />
       </main>
     );
@@ -2724,7 +2782,7 @@ function GalleryScreen({ state, t, setScreen }) {
 
   return (
     <main className="main-screen gallery-screen scroll-screen">
-      <Header title={t("gallery")} back={() => setScreen("detail")} t={t} />
+      <Header title={t("gallery")} back={goBack} t={t} />
       <section className="gallery-owner-row">
         <div className="gallery-owner-avatar">
           {person.photo ? <img src={person.photo} alt={person.fullName} /> : <AvatarSilhouette />}
@@ -2762,14 +2820,14 @@ function GalleryScreen({ state, t, setScreen }) {
   );
 }
 
-function DetailScreen({ state, language, t, setScreen, setModal }) {
+function DetailScreen({ state, language, t, setScreen, goBack, setModal }) {
   const [entryMenuOpen, setEntryMenuOpen] = useState(false);
   const person = state.people.find((item) => item.id === state.selectedPersonId);
 
   if (!person) {
     return (
       <main className="main-screen">
-        <Header title={t("memorial")} back={() => setScreen("home")} language={language} t={t} />
+        <Header title={t("memorial")} back={goBack} language={language} t={t} />
         <EmptyState title={t("entryNotFound")} />
       </main>
     );
@@ -2795,7 +2853,7 @@ function DetailScreen({ state, language, t, setScreen, setModal }) {
     <main className="main-screen detail-screen scroll-screen">
       <Header
         title=""
-        back={() => setScreen("home")}
+        back={goBack}
         language={language}
         t={t}
         action={
@@ -2880,11 +2938,11 @@ function AiMark({ large = false }) {
   );
 }
 
-function BlockedUsersScreen({ state, language, t, updateState, setScreen }) {
+function BlockedUsersScreen({ state, language, t, updateState, goBack }) {
   const blockedPeople = state.people.filter((person) => state.blocked.includes(person.id));
   return (
     <main className="main-screen blocked-screen">
-      <Header title={t("blockedUsers")} compact back={() => setScreen("settings")} language={language} t={t} />
+      <Header title={t("blockedUsers")} compact back={goBack} language={language} t={t} />
       {!blockedPeople.length && <EmptyState title={t("noBlockedUsers")} />}
       <section className="blocked-list">
         {blockedPeople.map((person) => (
@@ -2903,10 +2961,10 @@ function BlockedUsersScreen({ state, language, t, updateState, setScreen }) {
   );
 }
 
-function TermsScreen({ language, t, setScreen }) {
+function TermsScreen({ language, t, goBack }) {
   return (
     <main className="main-screen terms-screen scroll-screen">
-      <Header title={t("terms")} compact back={() => setScreen("settings")} language={language} t={t} />
+      <Header title={t("terms")} compact back={goBack} language={language} t={t} />
       <section className="terms-content">
         <p className="updated">{t("lastUpdated")}: {today()}</p>
         {termsSections[language].map((section) => (
@@ -2920,12 +2978,12 @@ function TermsScreen({ language, t, setScreen }) {
   );
 }
 
-function ContactScreen({ language, t, setScreen, setToast }) {
+function ContactScreen({ language, t, goBack, setToast }) {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   return (
     <main className="main-screen contact-screen scroll-screen">
-      <Header title={t("contactUs")} back={() => setScreen("settings")} language={language} t={t} />
+      <Header title={t("contactUs")} back={goBack} language={language} t={t} />
       <section className="add-form">
         <Input label={t("yourEmail")} placeholder="email@example.com" value={email} onChange={setEmail} />
         <label className="field-label">{t("message")}</label>

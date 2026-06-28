@@ -260,6 +260,26 @@ button {
   gap: 16px;
 }
 
+.auth-topbar .language-picker {
+  margin: 0;
+}
+
+.auth-back-button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--blue);
+  background: transparent;
+}
+
+.rtl .auth-back-button svg {
+  transform: scaleX(-1) scale(var(--visual-icon-scale));
+}
+
 .auth-intro {
   margin: 30px 0 22px;
 }
@@ -1464,11 +1484,30 @@ button {
 }
 
 .settings-screen {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
   padding: 22px 0 calc(127px + env(safe-area-inset-bottom));
   background: #fff;
+}
+
+.settings-back-button {
+  position: absolute;
+  top: 10px;
+  left: 16px;
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+}
+
+.rtl .settings-back-button {
+  right: 16px;
+  left: auto;
+}
+
+.rtl .settings-back-button svg {
+  transform: scaleX(-1) scale(var(--visual-icon-scale));
 }
 
 .settings-screen .plain-title {
@@ -1810,7 +1849,7 @@ button {
 }
 
 .detail-screen .header-icon {
-  color: #fff;
+  color: var(--blue);
 }
 
 .detail-share-button {
