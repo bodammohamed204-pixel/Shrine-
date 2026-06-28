@@ -250,6 +250,10 @@ function countryFromRegion(region) {
   return countryName ? findCountryExact(countryName) : null;
 }
 
+function countryFromNetworkData(data) {
+  return countryFromRegion(data?.countryCode || data?.country || data?.region) || findCountryExact(data?.countryName || data?.name);
+}
+
 function getLocaleRegion(locale) {
   const text = String(locale || "").trim();
   if (!text) return "";
@@ -287,6 +291,23 @@ function detectDeviceCountry() {
   }
 
   return findCountryExact(FALLBACK_COUNTRY_NAME) || countries[0];
+}
+
+async function detectNetworkCountry(signal) {
+  if (typeof fetch !== "function") return null;
+
+  try {
+    const response = await fetch(apiUrl("/api/geo/country"), {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal
+    });
+    if (!response.ok) return null;
+
+    return countryFromNetworkData(await response.json());
+  } catch {
+    return null;
+  }
 }
 
 function getDefaultCountryName() {
@@ -327,7 +348,7 @@ const initialState = {
   people: defaultPeople,
   following: [],
   blocked: [],
-  language: "AR",
+  language: "EN",
   currentCountry: initialCountryName,
   homeFilter: initialCountryName,
   countryPreferenceTouched: false,
@@ -457,6 +478,9 @@ const copy = {
     sendWhatsappCode: "Send WhatsApp Code",
     resendCode: "Resend code",
     resendIn: "Resend in {time}",
+    resendCodeIn: "Resend Code in {time} seconds",
+    codeSentToEmail: "We sent an activation code to your email:",
+    codeSentToMobile: "We sent an activation code to your mobile:",
     emailOrPhone: "Email or mobile number",
     emailOrPhonePlaceholder: "email@example.com or mobile number",
     accountPromptTitle: "Create an account to save your follows",
@@ -598,6 +622,9 @@ const copy = {
     sendWhatsappCode: "إرسال كود واتساب",
     resendCode: "إعادة إرسال الكود",
     resendIn: "إعادة الإرسال بعد {time}",
+    resendCodeIn: "إعادة إرسال الكود بعد {time} ثانية",
+    codeSentToEmail: "أرسلنا كود التفعيل إلى بريدك الإلكتروني:",
+    codeSentToMobile: "أرسلنا كود التفعيل إلى هاتفك:",
     emailOrPhone: "البريد الإلكتروني أو رقم الهاتف",
     emailOrPhonePlaceholder: "email@example.com أو رقم الهاتف",
     accountPromptTitle: "اعمل حساب عشان تحفظ المتابعات",
@@ -889,6 +916,37 @@ function App() {
   }, [state]);
 
   useEffect(() => {
+    const controller = new AbortController();
+
+    detectNetworkCountry(controller.signal).then((networkCountry) => {
+      if (!networkCountry) return;
+
+      setState((current) => {
+        if (current.countryPreferenceTouched || current.currentUser) return current;
+
+        const nextCountryName = networkCountry.name;
+        const currentCountryName = normalizeCountryName(current.currentCountry, initialState.currentCountry);
+        const nextHomeFilter =
+          !current.homeFilter || current.homeFilter === currentCountryName || current.homeFilter === LEGACY_DEFAULT_COUNTRY_NAME
+            ? nextCountryName
+            : current.homeFilter;
+
+        if (current.currentCountry === nextCountryName && current.homeFilter === nextHomeFilter) {
+          return current;
+        }
+
+        return {
+          ...current,
+          currentCountry: nextCountryName,
+          homeFilter: nextHomeFilter
+        };
+      });
+    });
+
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
     if (!toast) return;
     const timeout = setTimeout(() => setToast(""), 2400);
     return () => clearTimeout(timeout);
@@ -1117,7 +1175,7 @@ function App() {
       {screen === "detail" && <DetailScreen {...commonProps} />}
       {screen === "gallery" && <GalleryScreen {...commonProps} />}
 
-      {["home", "add", "search", "settings", "detail"].includes(screen) && (
+      {["home", "add", "search", "settings"].includes(screen) && (
         <BottomNav active={screen} setScreen={setScreen} setModal={setModal} canUseAccount={canUseAccount} t={t} />
       )}
 
@@ -1166,9 +1224,12 @@ function App() {
       {modal?.type === "verify" && (
         <VerifyModal
           user={modal.user}
+          language={language}
           t={t}
+          toggleLanguage={toggleLanguage}
           onCancel={() => setModal(null)}
           onBackFromCode={modal.onBackFromCode}
+          onLoginFromCode={modal.onLoginFromCode}
           onProceed={() => {
             setModal(null);
             modal.onProceed();
@@ -1268,15 +1329,34 @@ function RegisterScreen({ state, language, t, updateState, onRegister, onCancelR
       confirmPassword: ""
     };
   });
+  const [countryTouched, setCountryTouched] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    if (countryTouched) return;
+    const accountCountry = findCountry(state.currentCountry || initialState.currentCountry);
+
+    setForm((current) => {
+      if (current.country === accountCountry.name && current.phoneCountry?.name === accountCountry.name) {
+        return current;
+      }
+
+      return {
+        ...current,
+        phoneCountry: accountCountry,
+        country: accountCountry.name
+      };
+    });
+  }, [countryTouched, state.currentCountry]);
 
   const setField = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
   const setAccountCountry = (country) => {
+    setCountryTouched(true);
     setForm((current) => ({
       ...current,
       phoneCountry: country,
@@ -1323,6 +1403,10 @@ function RegisterScreen({ state, language, t, updateState, onRegister, onCancelR
       type: "verify",
       user,
       onBackFromCode: onCancelRegistration,
+      onLoginFromCode: () => {
+        setModal(null);
+        onLogin();
+      },
       onProceed: () => onRegister(user)
     });
   };
@@ -1453,16 +1537,54 @@ function RegisterScreen({ state, language, t, updateState, onRegister, onCancelR
 }
 
 function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setScreen, setModal }) {
-  const [phoneCountry, setPhoneCountry] = useState(findCountry(state.currentCountry || initialState.currentCountry));
+  const loginCountry = findCountryExact("Australia") || findCountry(state.currentCountry || initialState.currentCountry);
+  const [phoneCountry, setPhoneCountry] = useState(loginCountry);
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [visible, setVisible] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [countryTouched, setCountryTouched] = useState(false);
+  const phoneRequiredMessage = "Phone is Required";
+  const passwordRequiredMessage = "Password is Required";
+  const [errors, setErrors] = useState({
+    phone: phoneRequiredMessage,
+    password: passwordRequiredMessage
+  });
+
+  useEffect(() => {
+    if (countryTouched) return;
+    setPhoneCountry(loginCountry);
+  }, [countryTouched, loginCountry]);
+
+  const pickPhoneCountry = (country) => {
+    setCountryTouched(true);
+    setPhoneCountry(country);
+  };
+
+  const setPhoneValue = (value) => {
+    const cleanValue = value.replace(/\D/g, "").slice(0, 9);
+    setPhone(cleanValue);
+    setErrors((current) => ({
+      ...current,
+      phone: cleanValue ? "" : phoneRequiredMessage
+    }));
+  };
+
+  const setPasswordValue = (value) => {
+    setPassword(value);
+    setErrors((current) => ({
+      ...current,
+      password: value ? "" : passwordRequiredMessage
+    }));
+  };
 
   const submit = () => {
     const nextErrors = {};
-    if (!/^\d{7,14}$/.test(phone)) nextErrors.phone = t("errPhone");
-    if (!password) nextErrors.password = t("errPassword");
+    if (!phone) {
+      nextErrors.phone = phoneRequiredMessage;
+    } else if (!/^\d{7,9}$/.test(phone)) {
+      nextErrors.phone = "Enter a valid mobile number";
+    }
+    if (!password) nextErrors.password = passwordRequiredMessage;
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
@@ -1471,19 +1593,13 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setS
   };
 
   return (
-    <main className="auth-screen scroll-screen">
-      <div className="auth-topbar">
-        <button className="back-text" onClick={onBack}>
-          <ArrowLeft size={24} /> {t("back")}
-        </button>
-        <LanguageButton value={language} onClick={toggleLanguage} />
-      </div>
+    <main className="auth-screen login-screen scroll-screen">
+      <LanguageButton value={language} onClick={toggleLanguage} />
       <section className="auth-intro login">
-        <h1>{t("welcomeBack")}</h1>
-        <p>{t("loginIntro")}</p>
+        <h1>Let's Sign you in.</h1>
       </section>
-      <label className="field-label">{t("mobileNumber")}</label>
-      <div className={`phone-field ${errors.phone ? "has-error" : ""}`}>
+      <label className="field-label">Mobile Number</label>
+      <div className="phone-field">
         <button
           type="button"
           className="country-code-button"
@@ -1493,7 +1609,7 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setS
               title: t("selectCallingCode"),
               withCodes: true,
               selectedCountry: phoneCountry.name,
-              onPick: setPhoneCountry
+              onPick: pickPhoneCountry
             })
           }
         >
@@ -1505,27 +1621,30 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setS
           type="tel"
           inputMode="numeric"
           placeholder="1234567891"
-          maxLength={14}
+          maxLength={9}
           value={phone}
-          onChange={(event) => setPhone(event.target.value.replace(/\D/g, ""))}
+          onChange={(event) => setPhoneValue(event.target.value)}
         />
       </div>
-      <div className="counter">{phone.length}/14</div>
+      <div className="counter">{phone.length}/9</div>
       {errors.phone && <p className="error-text">* {errors.phone}</p>}
       <PasswordInput
-        label={t("password")}
+        label="Password"
         value={password}
         error={errors.password}
         visible={visible}
         onToggle={() => setVisible((value) => !value)}
-        onChange={setPassword}
+        onChange={setPasswordValue}
         t={t}
       />
+      <button type="button" className="forgot-password-link">
+        Forgot Password ?
+      </button>
       <button className="primary-button" onClick={submit}>
-        {t("login")}
+        Continue
       </button>
       <button className="text-link wide" onClick={() => setScreen("register")}>
-        {t("newHere")} <span>{t("createAccount")}</span>
+        Don't Have An Account? <span>Create New</span>
       </button>
     </main>
   );
@@ -2019,7 +2138,7 @@ function GalleryScreen({ state, t, setScreen }) {
             aria-pressed={viewMode === "grid"}
             onClick={() => setViewMode("grid")}
           >
-            <LayoutGrid size={31} />
+            <LayoutGrid size={24} />
           </button>
           <button
             type="button"
@@ -2028,7 +2147,7 @@ function GalleryScreen({ state, t, setScreen }) {
             aria-pressed={viewMode === "list"}
             onClick={() => setViewMode("list")}
           >
-            <LayoutList size={33} />
+            <LayoutList size={26} />
           </button>
         </div>
       </section>
@@ -2044,28 +2163,7 @@ function GalleryScreen({ state, t, setScreen }) {
 }
 
 function DetailScreen({ state, language, t, updateState, setScreen, setModal, canUseAccount }) {
-  const [commentMenuOpen, setCommentMenuOpen] = useState(false);
   const person = state.people.find((item) => item.id === state.selectedPersonId);
-
-  useEffect(() => {
-    if (!commentMenuOpen) return undefined;
-
-    const closeMenu = (event) => {
-      if (!event.target.closest?.(".detail-entry-actions")) {
-        setCommentMenuOpen(false);
-      }
-    };
-    const closeOnEscape = (event) => {
-      if (event.key === "Escape") setCommentMenuOpen(false);
-    };
-
-    document.addEventListener("pointerdown", closeMenu);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("pointerdown", closeMenu);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [commentMenuOpen]);
 
   if (!person) {
     return (
@@ -2082,34 +2180,6 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
   const creatorName = person.createdByName || (creator ? getUserName(creator) : person.createdBy === "guest" ? t("guestAccount") : "Shrine");
   const createdDate = personCreatedDate(person);
   const detailInfo = person.info?.trim();
-  const activeFlowers = activeFlowerGifts(person.flowers);
-  const lifeYears = personLifeYears(person, t);
-  const displayAge = personDisplayAge(person);
-  const shareUrl = typeof window !== "undefined" ? window.location?.href || "" : "";
-  const shareTitle = person.fullName || t("memorial");
-  const sharePerson = () => {
-    shareContent({
-      title: shareTitle,
-      text: [shareTitle, lifeYears].filter(Boolean).join("\n"),
-      url: shareUrl
-    });
-  };
-  const shareComment = () => {
-    shareContent({
-      title: shareTitle,
-      text: [shareTitle, creatorName, createdDate, detailInfo].filter(Boolean).join("\n"),
-      url: shareUrl
-    });
-    setCommentMenuOpen(false);
-  };
-
-  const openFlowerPicker = () => {
-    if (!canUseAccount) {
-      setModal({ type: "accountPrompt", intent: "flower" });
-      return;
-    }
-    setModal({ type: "flower", personId: person.id });
-  };
 
   const toggleFollow = () => {
     if (!canUseAccount) {
@@ -2137,8 +2207,8 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
         language={language}
         t={t}
         action={
-          <button className="header-icon flower-header-button" onClick={openFlowerPicker} aria-label={t("giveFlower")}>
-            <Plus size={33} />
+          <button className="header-icon detail-share" onClick={sharePerson} aria-label="Share">
+            <Share2 size={28} />
           </button>
         }
       />
@@ -2152,25 +2222,25 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
             <h2>{person.fullName}</h2>
             <p className="detail-dates">{lifeYears}</p>
             {displayAge && <p className="detail-age">{displayAge} Year</p>}
+            <div className="detail-quick-actions">
+              <button className="detail-action-tile" type="button" aria-label={t("gallery")} onClick={() => setScreen("gallery")}>
+                <ImageIcon size={23} />
+              </button>
+              <button
+                className={`detail-action-tile rose-tile ${activeFlowers.length ? "selected" : ""}`}
+                type="button"
+                aria-label={t("giveFlower")}
+                aria-pressed={Boolean(activeFlowers.length)}
+                onClick={openFlowerPicker}
+              >
+                <Flower2 size={23} />
+                <span>{activeFlowers.length}</span>
+              </button>
+              <button className="detail-action-tile ai-tile" type="button" aria-label="AI" onClick={() => setModal({ type: "aiSoon" })}>
+                <AiMark />
+              </button>
+            </div>
           </div>
-        </div>
-        <div className="detail-quick-actions">
-          <button className="detail-action-tile" type="button" aria-label={t("gallery")} onClick={() => setScreen("gallery")}>
-            <ImageIcon size={30} />
-          </button>
-          <button
-            className={`detail-action-tile rose-tile ${activeFlowers.length ? "selected" : ""}`}
-            type="button"
-            aria-label={t("giveFlower")}
-            aria-pressed={Boolean(activeFlowers.length)}
-            onClick={openFlowerPicker}
-          >
-            <Flower2 size={30} />
-            <span>{activeFlowers.length}</span>
-          </button>
-          <button className="detail-action-tile ai-tile" type="button" aria-label="AI" onClick={() => setModal({ type: "aiSoon" })}>
-            <AiMark />
-          </button>
         </div>
         <button className="detail-block-action" type="button" onClick={toggleBlock}>
           <Ban size={18} /> {blocked ? t("unblock") : t("block")}
@@ -2204,12 +2274,12 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
                   aria-expanded={commentMenuOpen}
                   onClick={() => setCommentMenuOpen((open) => !open)}
                 >
-                  <MoreVertical size={27} />
+                  <MoreVertical size={24} />
                 </button>
                 {commentMenuOpen && (
                   <div className="detail-entry-menu" role="menu">
                     <button type="button" role="menuitem" onClick={shareComment}>
-                      <Share2 size={25} />
+                      <Share2 size={22} />
                       <span>Share</span>
                     </button>
                   </div>
@@ -2534,7 +2604,7 @@ function FlowerModal({ t, onGive, onClose }) {
   );
 }
 
-function VerifyModal({ user, t, onProceed, onCancel, onBackFromCode }) {
+function VerifyModal({ user, language = "EN", t, toggleLanguage, onProceed, onCancel, onBackFromCode, onLoginFromCode }) {
   const channels = useMemo(() => {
     const phoneValue = [user.phoneCode, user.phone].filter(Boolean).join(" ").trim() || user.otpPhone;
     return [
@@ -2572,6 +2642,9 @@ function VerifyModal({ user, t, onProceed, onCancel, onBackFromCode }) {
   const codeInputRef = useRef(null);
   const selectedChannel = channels.find((channel) => channel.id === channelId) || channels[0];
   const codeStep = step === "code";
+  const registrationCodeStep = codeStep && Boolean(onBackFromCode);
+  const codeDigits = Array.from({ length: 6 }, (_item, index) => code[index] || "");
+  const codeReady = code.length === 6;
   const resendWaitSeconds = Math.max(0, Math.ceil((resendAvailableAt - now) / 1000));
   const resendBlocked = resendWaitSeconds > 0;
 
@@ -2698,6 +2771,10 @@ function VerifyModal({ user, t, onProceed, onCancel, onBackFromCode }) {
   };
 
   const verifyCode = async () => {
+    if (codeStep && !codeReady) {
+      setError(t("enterCode"));
+      return;
+    }
     if (!code.trim()) {
       setError(t("enterCode"));
       return;
@@ -2728,8 +2805,9 @@ function VerifyModal({ user, t, onProceed, onCancel, onBackFromCode }) {
   };
 
   return (
-    <div className="modal-backdrop" onClick={onCancel}>
-      <div className="verify-modal" onClick={(event) => event.stopPropagation()}>
+    <div className={`modal-backdrop${registrationCodeStep ? " verification-page-backdrop" : ""}`} onClick={onCancel}>
+      <div className={`verify-modal${registrationCodeStep ? " verification-page" : ""}`} onClick={(event) => event.stopPropagation()}>
+        {registrationCodeStep && toggleLanguage && <LanguageButton value={language} onClick={toggleLanguage} />}
         {codeStep && (
           <button type="button" className="verify-back-button" disabled={loading} onClick={goBackFromCode} aria-label={t("back")}>
             <ArrowLeft size={30} />
@@ -2759,13 +2837,14 @@ function VerifyModal({ user, t, onProceed, onCancel, onBackFromCode }) {
         {codeStep && (
           <div className="verify-code-page">
             <div className="verify-destination">
-              <strong>{selectedChannel?.label}</strong>
+              <strong>{selectedChannel?.id === "email" ? t("codeSentToEmail") : t("codeSentToMobile")}</strong>
               <p>{selectedChannel?.value}</p>
             </div>
-            <label className="otp-code-field">
-              <span>{t("activationCode")}</span>
+            <label className={`otp-code-field${registrationCodeStep ? " verification-otp-field" : ""}`}>
+              {!registrationCodeStep && <span>{t("activationCode")}</span>}
               <input
                 ref={codeInputRef}
+                className={registrationCodeStep ? "otp-hidden-input" : ""}
                 autoComplete="one-time-code"
                 inputMode="numeric"
                 maxLength={6}
@@ -2776,27 +2855,46 @@ function VerifyModal({ user, t, onProceed, onCancel, onBackFromCode }) {
                   if (event.key === "Enter") verifyCode();
                 }}
               />
+              {registrationCodeStep && (
+                <span className="otp-boxes" aria-hidden="true">
+                  {codeDigits.map((digit, index) => (
+                    <span className={`otp-box ${digit ? "filled" : ""}`} key={index}>
+                      {digit}
+                    </span>
+                  ))}
+                </span>
+              )}
             </label>
           </div>
         )}
-        {message && <p className="verify-message">{message}</p>}
-        {expiresAt && (
+        {message && !registrationCodeStep && <p className="verify-message">{message}</p>}
+        {expiresAt && !registrationCodeStep && (
           <p className="verify-note">
             {t("expiresAt")} {new Date(expiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </p>
         )}
         {error && <p className="verify-error">{error}</p>}
-        <button className="primary-button" disabled={loading || !selectedChannel} onClick={codeStep ? verifyCode : sendCode}>
+        {registrationCodeStep && (
+          <button className="ghost-link resend-link verification-resend-link" disabled={loading || resendBlocked} onClick={sendCode}>
+            {resendBlocked ? formatText(t("resendCodeIn"), { time: resendWaitSeconds }) : t("resendCode")}
+          </button>
+        )}
+        <button className="primary-button" disabled={loading || !selectedChannel || (codeStep && !codeReady)} onClick={codeStep ? verifyCode : sendCode}>
           {loading ? t("pleaseWait") : codeStep ? t("verifyProceed") : selectedChannel?.id === "mobile" ? t("sendWhatsappCode") : t("send")}
         </button>
-        {codeStep && (
+        {codeStep && !registrationCodeStep && (
           <button className="ghost-link resend-link" disabled={loading || resendBlocked} onClick={sendCode}>
             {resendBlocked ? formatText(t("resendIn"), { time: formatWaitTime(resendWaitSeconds) }) : t("resendCode")}
           </button>
         )}
-        {codeStep && (
+        {codeStep && !registrationCodeStep && (
           <button className="ghost-link resend-link" disabled={loading} onClick={goBackFromCode}>
             {t("back")}
+          </button>
+        )}
+        {registrationCodeStep && onLoginFromCode && (
+          <button type="button" className="verify-login-link" onClick={onLoginFromCode}>
+            {t("alreadyHaveAccount")} <span>{t("login")}</span>
           </button>
         )}
       </div>

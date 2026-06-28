@@ -129,6 +129,11 @@ button {
   background: linear-gradient(180deg, #fff 0%, #fbfdff 100%);
 }
 
+.login-screen {
+  padding: 70px 18px 32px;
+  background: #fff;
+}
+
 .language-mini {
   display: inline-flex;
   align-items: center;
@@ -162,6 +167,10 @@ button {
   margin-top: 32px;
 }
 
+.login-screen .auth-intro.login {
+  margin: 96px 0 68px;
+}
+
 .auth-intro h1,
 .success-screen h1 {
   margin: 0 0 9px;
@@ -170,6 +179,14 @@ button {
   line-height: 1.12;
   letter-spacing: 0;
   font-weight: 800;
+}
+
+.login-screen .auth-intro h1 {
+  margin: 0;
+  color: #050505;
+  font-size: 1.98rem;
+  line-height: 1.14;
+  font-weight: 850;
 }
 
 .auth-intro p,
@@ -202,6 +219,14 @@ button {
   font-weight: 750;
 }
 
+.login-screen .field-label {
+  margin-bottom: 22px;
+  color: #050505;
+  font-size: 1.52rem;
+  line-height: 1.15;
+  font-weight: 850;
+}
+
 .field-label em {
   padding: 4px 10px;
   border: 1px solid #f4d8e0;
@@ -224,6 +249,18 @@ button {
   background: var(--field);
   color: #161b23;
   box-shadow: var(--shadow-sm);
+}
+
+.login-screen .phone-field,
+.login-screen .password-field input {
+  min-height: 62px;
+  border-color: #e8e8e8;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.login-screen .has-error {
+  border-color: #e8e8e8 !important;
 }
 
 .field-wrap input,
@@ -274,6 +311,26 @@ button {
   color: #236b9d;
 }
 
+.login-screen .country-code-button {
+  min-width: 116px;
+  padding: 0 20px 0 22px;
+  gap: 11px;
+  color: var(--blue);
+}
+
+.login-screen .country-code-button svg {
+  order: -1;
+  color: #4f5359;
+  fill: #4f5359;
+  stroke-width: 0;
+}
+
+.login-screen .country-code-button span:last-child {
+  color: var(--blue);
+  font-size: 1.3rem;
+  font-weight: 500;
+}
+
 .country-code-button span {
   white-space: nowrap;
 }
@@ -288,8 +345,18 @@ button {
   font-size: 0.98rem;
 }
 
+.login-screen .phone-field input {
+  color: #111;
+  font-size: 1.3rem;
+  letter-spacing: 0;
+}
+
 .phone-field input::placeholder {
   color: #b9bdc3;
+}
+
+.login-screen .phone-field input::placeholder {
+  color: #c8c8c8;
 }
 
 .counter {
@@ -297,6 +364,13 @@ button {
   color: #555a63;
   text-align: right;
   font-size: 0.86rem;
+}
+
+.login-screen .counter {
+  margin: 11px 18px 6px 0;
+  color: #383838;
+  font-size: 1.24rem;
+  line-height: 1;
 }
 
 .counter.left {
@@ -372,6 +446,14 @@ button {
   display: block;
 }
 
+.login-screen .field-wrap {
+  margin-bottom: 0;
+}
+
+.login-screen .field-wrap:has(.password-field) {
+  margin-top: 32px;
+}
+
 .password-field input {
   padding-right: 58px;
 }
@@ -396,6 +478,21 @@ button {
   color: #050505;
 }
 
+.login-screen .password-field input {
+  padding-right: 64px;
+  font-size: 1.08rem;
+}
+
+.login-screen .password-field button {
+  right: 22px;
+}
+
+.login-screen .password-field button svg {
+  width: 34px;
+  height: 34px;
+  stroke-width: 2.2;
+}
+
 .rtl .password-field button {
   right: auto;
   left: 16px;
@@ -413,6 +510,16 @@ button {
   font-size: 1rem;
   font-weight: 750;
   text-align: center;
+}
+
+.login-screen .primary-button {
+  min-height: 64px;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.82);
+  background: #2a9bec;
+  box-shadow: none;
+  font-size: 1.38rem;
+  font-weight: 400;
 }
 
 .primary-button {
@@ -463,9 +570,22 @@ button {
   text-align: center;
 }
 
+.login-screen .text-link.wide {
+  margin: 34px 0 0;
+  color: #111;
+  font-size: 1.15rem;
+  line-height: 1.35;
+}
+
 .text-link span {
   color: var(--blue);
   margin-left: 12px;
+}
+
+.login-screen .text-link span {
+  margin-left: 20px;
+  color: #329ce8;
+  font-size: 1.22rem;
 }
 
 .rtl .text-link span {
@@ -478,6 +598,32 @@ button {
   width: 100%;
   color: #777;
   font-weight: 700;
+}
+
+.forgot-password-link {
+  display: block;
+  width: fit-content;
+  margin: 34px 24px 56px auto;
+  border: 0;
+  background: transparent;
+  color: #111;
+  font-size: 1.13rem;
+  font-weight: 400;
+  text-align: right;
+}
+
+.login-screen .error-text {
+  margin: 9px 0 0;
+  color: #d97834;
+  font-size: 1.02rem;
+  font-weight: 800;
+  line-height: 1.22;
+}
+
+.login-screen .flag-visual {
+  width: 28px;
+  height: 20px;
+  border-radius: 2px;
 }
 
 .back-text {
@@ -1354,28 +1500,36 @@ button {
 
 .detail-screen .top-header {
   direction: ltr;
+  min-height: 64px;
 }
 
 .detail-screen .header-action {
-  right: 18px;
+  right: 16px;
   left: auto;
 }
 
 .flower-header-button {
-  width: 54px;
-  height: 54px;
-  border: 3px solid currentColor;
+  width: 36px;
+  height: 36px;
+  border: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.42);
+  background: transparent;
 }
 
 .flower-header-button svg {
-  stroke-width: 2.8;
+  width: 25px;
+  height: 25px;
+  stroke-width: 2.6;
 }
 
 .rtl .detail-screen .header-icon.left {
   right: auto;
   left: 16px;
+}
+
+.detail-screen .header-icon.left svg {
+  width: 26px;
+  height: 26px;
 }
 
 .rtl .detail-screen .header-icon.left svg {
@@ -1398,24 +1552,39 @@ button {
 }
 
 .gallery-screen .top-header {
-  min-height: 104px;
+  min-height: 66px;
+}
+
+.gallery-screen .top-header h1 {
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.gallery-screen .header-icon.left {
+  left: 17px;
+}
+
+.gallery-screen .header-icon.left svg {
+  width: 26px;
+  height: 26px;
+  stroke-width: 3;
 }
 
 .gallery-owner-row {
   direction: ltr;
   display: grid;
-  grid-template-columns: 126px minmax(0, 1fr) 112px;
+  grid-template-columns: 92px minmax(0, 1fr) 88px;
   align-items: center;
-  gap: 14px;
-  min-height: 164px;
-  padding: 20px 20px 18px 18px;
-  border-bottom: 2px solid #b8b8b8;
+  gap: 10px;
+  min-height: 100px;
+  padding: 12px 12px 10px 18px;
+  border-bottom: 1px solid #b8b8b8;
   background: #fff;
 }
 
 .gallery-owner-avatar {
-  width: 100px;
-  height: 100px;
+  width: 66px;
+  height: 76px;
   overflow: hidden;
   border-radius: 7px;
   background: #f1f2f4;
@@ -1431,9 +1600,9 @@ button {
 .gallery-owner-row strong {
   min-width: 0;
   color: #111;
-  font-size: 1.45rem;
+  font-size: 1.25rem;
   font-weight: 850;
-  line-height: 1.2;
+  line-height: 1.12;
   text-align: left;
   unicode-bidi: plaintext;
   overflow-wrap: anywhere;
@@ -1443,14 +1612,14 @@ button {
   display: flex;
   align-items: center;
   justify-content: end;
-  gap: 16px;
+  gap: 9px;
 }
 
 .gallery-view-toggle button {
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
+  width: 30px;
+  height: 30px;
   border: 0;
   color: #d0d0d0;
   background: transparent;
@@ -1461,12 +1630,12 @@ button {
 }
 
 .gallery-view-toggle svg {
-  stroke-width: 3;
+  stroke-width: 3.1;
 }
 
 .gallery-content {
-  min-height: calc(100vh - 268px);
-  padding: 24px 18px 90px;
+  min-height: calc(100vh - 166px);
+  padding: 18px 18px 90px;
   background: #fff;
 }
 
@@ -1507,13 +1676,13 @@ button {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  padding: 20px 16px 124px;
+  padding: 12px 18px 124px;
 }
 
 .detail-hero {
   direction: ltr;
   display: grid;
-  grid-template-columns: minmax(134px, 0.92fr) minmax(0, 1fr);
+  grid-template-columns: 132px minmax(0, 1fr);
   align-items: start;
   gap: 18px;
   width: 100%;
@@ -1521,7 +1690,7 @@ button {
 
 .detail-photo {
   width: 100%;
-  aspect-ratio: 1 / 1.25;
+  aspect-ratio: 132 / 242;
   border: 1px solid var(--line);
   border-radius: 3px;
   overflow: hidden;
@@ -1537,7 +1706,7 @@ button {
 .detail-summary {
   min-width: 0;
   width: 100%;
-  padding-top: 18px;
+  padding-top: 17px;
   text-align: center;
 }
 
@@ -1546,18 +1715,18 @@ button {
 }
 
 .detail-summary h2 {
-  margin: 0 0 15px;
+  margin: 0 0 14px;
   color: #111;
-  font-size: 1.58rem;
+  font-size: 1.28rem;
   line-height: 1.18;
   font-weight: 850;
   overflow-wrap: anywhere;
 }
 
 .detail-father-name {
-  margin: 0 0 8px;
+  margin: 0 0 7px;
   color: #687482;
-  font-size: 0.98rem;
+  font-size: 0.82rem;
   font-weight: 750;
 }
 
@@ -1571,13 +1740,13 @@ button {
 
 .detail-dates {
   color: var(--blue);
-  font-size: 1.12rem;
+  font-size: 1.03rem;
   font-weight: 520;
 }
 
 .detail-age {
   color: #b0b4bb;
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 700;
 }
 
@@ -1593,20 +1762,20 @@ button {
 .detail-quick-actions {
   direction: ltr;
   display: grid;
-  grid-template-columns: repeat(3, 76px);
-  justify-content: center;
-  gap: 12px;
+  grid-template-columns: repeat(3, 58px);
+  justify-content: start;
+  gap: 10px;
   width: 100%;
-  margin: 24px 0 16px;
+  margin: 78px 0 0;
 }
 
 .detail-action-tile {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  width: 76px;
-  height: 58px;
+  gap: 4px;
+  width: 58px;
+  height: 52px;
   min-width: 0;
   border: 1px solid #e2e7ee;
   border-radius: 8px;
@@ -1616,6 +1785,8 @@ button {
 }
 
 .detail-action-tile svg {
+  width: 25px;
+  height: 25px;
   stroke-width: 2.45;
 }
 
@@ -1629,7 +1800,7 @@ button {
 
 .rose-tile span {
   color: var(--blue);
-  font-size: 1.06rem;
+  font-size: 0.9rem;
   font-weight: 850;
 }
 
@@ -1648,12 +1819,12 @@ button {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  min-height: 34px;
-  margin: 0 0 8px;
+  min-height: 30px;
+  margin: 8px 0 8px;
   border: 0;
   color: #7a808a;
   background: transparent;
-  font-size: 0.88rem;
+  font-size: 0.78rem;
   font-weight: 800;
 }
 
@@ -1904,13 +2075,13 @@ button {
   position: relative;
   display: inline-grid;
   place-items: center;
-  width: 39px;
-  height: 39px;
+  width: 32px;
+  height: 32px;
   border: 2px solid #42bff0;
-  border-radius: 8px;
+  border-radius: 7px;
   color: #3657c8;
   background: #fff;
-  font-size: 1rem;
+  font-size: 0.84rem;
   font-weight: 900;
   line-height: 1;
 }
@@ -1921,23 +2092,23 @@ button {
 
 .ai-mark svg {
   position: absolute;
-  top: -8px;
-  right: -8px;
+  top: -7px;
+  right: -7px;
   color: #775de8;
   fill: #775de8;
   stroke-width: 2.4;
 }
 
 .ai-mark.large {
-  width: 58px;
-  height: 58px;
-  border-radius: 12px;
-  font-size: 1.38rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  font-size: 1.14rem;
 }
 
 .ai-mark.large svg {
-  top: -9px;
-  right: -9px;
+  top: -8px;
+  right: -8px;
 }
 
 .blocked-screen {
@@ -2015,6 +2186,10 @@ button {
 }
 
 .bottom-nav {
+  --nav-icon-box: 42px;
+  --nav-icon-size: 34px;
+  --nav-icon-stroke: 2.4;
+  --nav-label-size: 0.78rem;
   position: fixed;
   bottom: 0;
   left: 50%;
@@ -2038,7 +2213,7 @@ button {
   border: 0;
   color: #fff;
   background: transparent;
-  font-size: 0.78rem;
+  font-size: var(--nav-label-size);
   font-weight: 650;
 }
 
@@ -2049,16 +2224,16 @@ button {
 .bottom-nav .nav-icon {
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
+  width: var(--nav-icon-box);
+  height: var(--nav-icon-box);
   border-radius: 8px;
   color: currentColor;
 }
 
 .bottom-nav .nav-icon svg {
-  width: 34px;
-  height: 34px;
-  stroke-width: 2.4;
+  width: var(--nav-icon-size);
+  height: var(--nav-icon-size);
+  stroke-width: var(--nav-icon-stroke);
 }
 
 .bottom-nav .nav-active .nav-icon svg {
@@ -2066,25 +2241,24 @@ button {
 }
 
 .bottom-nav .nav-matched .nav-icon {
-  width: 44px;
-  height: 44px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  width: var(--nav-icon-box);
+  height: var(--nav-icon-box);
+  border: 0;
   border-radius: 8px;
-  color: #d5dde5;
-  background: rgba(2, 26, 39, 0.32);
+  color: currentColor;
+  background: transparent;
 }
 
 .bottom-nav .nav-matched .nav-icon svg {
-  width: 29px;
-  height: 29px;
-  stroke-width: 2.65;
+  width: var(--nav-icon-size);
+  height: var(--nav-icon-size);
+  stroke-width: var(--nav-icon-stroke);
 }
 
 .bottom-nav .nav-matched.nav-active .nav-icon {
-  color: var(--blue);
-  border-color: #fff;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.16);
+  color: currentColor;
+  background: transparent;
+  box-shadow: none;
 }
 
 .home-indicator {
@@ -2616,7 +2790,7 @@ button {
 
 .ai-soon-modal {
   width: min(86vw, 370px);
-  padding: 34px 34px 30px;
+  padding: 34px 32px 30px;
   border-radius: 26px;
   background: #fff;
   box-shadow: 0 22px 60px rgba(15, 23, 42, 0.2);
@@ -2626,34 +2800,34 @@ button {
 .ai-modal-icon {
   display: grid;
   place-items: center;
-  width: 82px;
-  height: 82px;
-  margin: 0 auto 26px;
-  border-radius: 22px;
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 25px;
+  border-radius: 18px;
   background: #eef8ff;
 }
 
 .ai-soon-modal h2 {
   margin: 0 0 22px;
   color: #222832;
-  font-size: 1.7rem;
+  font-size: 1.35rem;
   line-height: 1.15;
   font-weight: 850;
 }
 
 .ai-soon-modal p {
-  margin: 0 auto 26px;
+  margin: 0 auto 24px;
   color: #343942;
-  font-size: 1.08rem;
+  font-size: 1.02rem;
   font-weight: 750;
   line-height: 1.55;
 }
 
 .ai-ok-button {
-  width: min(100%, 214px);
-  min-height: 54px;
+  width: 132px;
+  min-height: 45px;
   border-radius: 12px;
-  font-size: 1.05rem;
+  font-size: 1rem;
 }
 
 .toast {

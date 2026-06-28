@@ -1,6 +1,13 @@
 const ONCALLOS_BASE_URL = "https://public.oncallos.com";
 const EMAIL_OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_RATE_LIMIT_FALLBACK_SECONDS = 60 * 60;
+const COUNTRY_HEADER_NAMES = [
+  "CF-IPCountry",
+  "X-Vercel-IP-Country",
+  "X-Country-Code",
+  "X-Country",
+  "CloudFront-Viewer-Country"
+];
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
@@ -45,10 +52,53 @@ function corsHeaders(request, env) {
   return {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "POST,OPTIONS",
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
     "Access-Control-Expose-Headers": "Retry-After, X-RateLimit-Remaining-Hour, X-RateLimit-Remaining-Day",
     Vary: "Origin"
   };
+}
+
+function publicGeoCorsHeaders(request, env) {
+  const trustedHeaders = corsHeaders(request, env);
+  if (trustedHeaders["Access-Control-Allow-Origin"]) return trustedHeaders;
+  if (!request.headers.get("Origin")) return {};
+
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "GET,OPTIONS"
+  };
+}
+
+function normalizeCountryCode(value) {
+  const text = String(value || "")
+    .split(",")[0]
+    .trim()
+    .toUpperCase();
+
+  return /^[A-Z]{2}$/.test(text) ? text : "";
+}
+
+function requestCountryCode(request) {
+  const cfCountry = normalizeCountryCode(request.cf?.country);
+  if (cfCountry) return cfCountry;
+
+  for (const headerName of COUNTRY_HEADER_NAMES) {
+    const countryCode = normalizeCountryCode(request.headers.get(headerName));
+    if (countryCode) return countryCode;
+  }
+
+  return "";
+}
+
+function geoCountry(request, env) {
+  return jsonResponse(
+    {
+      countryCode: requestCountryCode(request)
+    },
+    200,
+    publicGeoCorsHeaders(request, env)
+  );
 }
 
 function normalizePhone(phone) {
@@ -374,8 +424,19 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    if (request.method === "OPTIONS" && url.pathname === "/api/geo/country") {
+      return new Response(null, { status: 204, headers: publicGeoCorsHeaders(request, env) });
+    }
+
     if (request.method === "OPTIONS" && url.pathname.startsWith("/api/otp/")) {
       return new Response(null, { status: 204, headers: corsHeaders(request, env) });
+    }
+
+    if (url.pathname === "/api/geo/country") {
+      if (request.method !== "GET") {
+        return methodNotAllowed(request, env, "Use GET /api/geo/country.");
+      }
+      return geoCountry(request, env);
     }
 
     if (url.pathname === "/api/otp/email/send") {

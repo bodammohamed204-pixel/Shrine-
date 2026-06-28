@@ -26,6 +26,13 @@ const allowedOrigins = new Set(
     .map((origin) => origin.trim())
     .filter(Boolean)
 );
+const countryHeaderNames = [
+  "cf-ipcountry",
+  "x-vercel-ip-country",
+  "x-country-code",
+  "x-country",
+  "cloudfront-viewer-country"
+];
 
 app.use(express.json({ limit: "32kb" }));
 
@@ -50,7 +57,7 @@ app.use((req, res, next) => {
   if (origin && isAllowedOrigin(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
     res.setHeader("Access-Control-Expose-Headers", "Retry-After, X-RateLimit-Remaining-Hour, X-RateLimit-Remaining-Day");
     res.setHeader("Vary", "Origin");
   }
@@ -70,6 +77,28 @@ app.use((error, _req, res, next) => {
     });
   }
   return next(error);
+});
+
+function normalizeCountryCode(value) {
+  const text = String(Array.isArray(value) ? value[0] : value || "")
+    .split(",")[0]
+    .trim()
+    .toUpperCase();
+
+  return /^[A-Z]{2}$/.test(text) ? text : "";
+}
+
+function requestCountryCode(req) {
+  for (const headerName of countryHeaderNames) {
+    const countryCode = normalizeCountryCode(req.headers[headerName]);
+    if (countryCode) return countryCode;
+  }
+
+  return "";
+}
+
+app.get("/api/geo/country", (req, res) => {
+  res.json({ countryCode: requestCountryCode(req) });
 });
 
 function getApiKey() {
