@@ -14,6 +14,8 @@
   --shadow-md: 0 10px 28px rgba(16, 24, 40, 0.08);
   --app-max-width: 520px;
   --app-frame-width: min(100vw, var(--app-max-width));
+  --visual-icon-scale: 0.88;
+  font-size: 14.5px;
   color: var(--ink);
   background: #eef2f7;
 }
@@ -50,6 +52,11 @@ button {
   overflow: hidden;
   background: #fff;
   box-shadow: 0 0 28px rgba(15, 23, 42, 0.08);
+}
+
+.app-shell svg:not(.avatar-svg):not(.rose-graphic) {
+  transform: scale(var(--visual-icon-scale));
+  transform-origin: center;
 }
 
 .app-shell.ios-font {
@@ -743,7 +750,7 @@ button {
 .rtl .back-text svg,
 .rtl .header-icon.left svg,
 .rtl .profile-back svg {
-  transform: scaleX(-1);
+  transform: scaleX(-1) scale(var(--visual-icon-scale));
 }
 
 .success-screen {
@@ -1181,7 +1188,7 @@ button {
 }
 
 .home-screen .top-header.compact h1 {
-  font-size: 22px;
+  font-size: 20px;
   line-height: 1;
 }
 
@@ -1215,7 +1222,7 @@ button {
   color: var(--blue);
   background: #fff;
   box-shadow: var(--shadow-sm);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 750;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1293,7 +1300,7 @@ button {
 .person-name-lines strong {
   display: block;
   color: #222;
-  font-size: 14px;
+  font-size: 13px;
   font-style: normal;
   font-weight: 650;
   overflow: hidden;
@@ -1304,7 +1311,7 @@ button {
 .person-name-lines em {
   margin-bottom: 4px;
   color: #687482;
-  font-size: 12px;
+  font-size: 11.2px;
   font-weight: 700;
 }
 
@@ -1825,7 +1832,7 @@ button {
 }
 
 .rtl .detail-screen .header-icon.left svg {
-  transform: none;
+  transform: scale(var(--visual-icon-scale));
 }
 
 .profile-screen,
@@ -2453,7 +2460,7 @@ button {
   --nav-icon-box: 42px;
   --nav-icon-size: 30px;
   --nav-icon-stroke: 2.4;
-  --nav-label-size: 14px;
+  --nav-label-size: 13px;
   position: fixed;
   bottom: 0;
   left: 50%;
@@ -2915,7 +2922,7 @@ button {
 }
 
 .rtl .verify-back-button svg {
-  transform: scaleX(-1);
+  transform: scaleX(-1) scale(var(--visual-icon-scale));
 }
 
 .age-modal {
