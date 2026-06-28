@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  CirclePlus,
   CircleUserRound,
   ContactRound,
   DoorOpen,
@@ -28,7 +29,6 @@ import {
   MapPin,
   MoreVertical,
   Pencil,
-  Plus,
   Search,
   Settings,
   Share2,
@@ -1537,7 +1537,7 @@ function RegisterScreen({ state, language, t, updateState, onRegister, onCancelR
 }
 
 function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setScreen, setModal }) {
-  const loginCountry = findCountryExact("Australia") || findCountry(state.currentCountry || initialState.currentCountry);
+  const loginCountry = findCountry(state.currentCountry || initialState.currentCountry);
   const [phoneCountry, setPhoneCountry] = useState(loginCountry);
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -1561,7 +1561,7 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setS
   };
 
   const setPhoneValue = (value) => {
-    const cleanValue = value.replace(/\D/g, "").slice(0, 9);
+    const cleanValue = value.replace(/\D/g, "").slice(0, 14);
     setPhone(cleanValue);
     setErrors((current) => ({
       ...current,
@@ -1581,7 +1581,7 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setS
     const nextErrors = {};
     if (!phone) {
       nextErrors.phone = phoneRequiredMessage;
-    } else if (!/^\d{7,9}$/.test(phone)) {
+    } else if (!/^\d{7,14}$/.test(phone)) {
       nextErrors.phone = "Enter a valid mobile number";
     }
     if (!password) nextErrors.password = passwordRequiredMessage;
@@ -1621,12 +1621,12 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setS
           type="tel"
           inputMode="numeric"
           placeholder="1234567891"
-          maxLength={9}
+          maxLength={14}
           value={phone}
           onChange={(event) => setPhoneValue(event.target.value)}
         />
       </div>
-      <div className="counter">{phone.length}/9</div>
+      <div className="counter">{phone.length}/14</div>
       {errors.phone && <p className="error-text">* {errors.phone}</p>}
       <PasswordInput
         label="Password"
@@ -1684,7 +1684,7 @@ function HomeScreen({ state, language, t, updateState, setModal, setScreen, acti
 
   const tabs = [
     { id: "Sponsor", label: t("sponsorTab") },
-    { id: "Follow", label: t("followersTab") },
+    { id: "Follow", label: t("follow") },
     { id: selectedCountry.name, label: countryLabel(selectedCountry, language) }
   ];
 
@@ -2163,7 +2163,28 @@ function GalleryScreen({ state, t, setScreen }) {
 }
 
 function DetailScreen({ state, language, t, updateState, setScreen, setModal, canUseAccount }) {
+  const [commentMenuOpen, setCommentMenuOpen] = useState(false);
   const person = state.people.find((item) => item.id === state.selectedPersonId);
+
+  useEffect(() => {
+    if (!commentMenuOpen) return undefined;
+
+    const closeMenu = (event) => {
+      if (!event.target.closest?.(".detail-entry-actions")) {
+        setCommentMenuOpen(false);
+      }
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setCommentMenuOpen(false);
+    };
+
+    document.addEventListener("pointerdown", closeMenu);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeMenu);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [commentMenuOpen]);
 
   if (!person) {
     return (
@@ -2180,6 +2201,34 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
   const creatorName = person.createdByName || (creator ? getUserName(creator) : person.createdBy === "guest" ? t("guestAccount") : "Shrine");
   const createdDate = personCreatedDate(person);
   const detailInfo = person.info?.trim();
+  const activeFlowers = activeFlowerGifts(person.flowers);
+  const lifeYears = personLifeYears(person, t);
+  const displayAge = personDisplayAge(person);
+  const shareUrl = typeof window !== "undefined" ? window.location?.href || "" : "";
+  const shareTitle = person.fullName || t("memorial");
+  const sharePerson = () => {
+    shareContent({
+      title: shareTitle,
+      text: [shareTitle, lifeYears].filter(Boolean).join("\n"),
+      url: shareUrl
+    });
+  };
+  const shareComment = () => {
+    shareContent({
+      title: shareTitle,
+      text: [shareTitle, creatorName, createdDate, detailInfo].filter(Boolean).join("\n"),
+      url: shareUrl
+    });
+    setCommentMenuOpen(false);
+  };
+
+  const openFlowerPicker = () => {
+    if (!canUseAccount) {
+      setModal({ type: "accountPrompt", intent: "flower" });
+      return;
+    }
+    setModal({ type: "flower", personId: person.id });
+  };
 
   const toggleFollow = () => {
     if (!canUseAccount) {
@@ -2375,8 +2424,8 @@ function ContactScreen({ language, t, setScreen, setToast }) {
 function BottomNav({ active, setScreen, setModal, canUseAccount, t }) {
   const items = [
     { id: "home", label: t("home"), icon: <ContactRound size={36} /> },
-    { id: "add", label: t("add"), icon: <Plus size={30} />, matched: true },
-    { id: "search", label: t("search"), icon: <Search size={42} />, matched: true },
+    { id: "add", label: t("add"), icon: <CirclePlus size={34} />, featured: true },
+    { id: "search", label: t("search"), icon: <Search size={42} /> },
     { id: "settings", label: t("settings"), icon: <Settings size={42} /> }
   ];
   const go = (id) => {
@@ -2392,7 +2441,7 @@ function BottomNav({ active, setScreen, setModal, canUseAccount, t }) {
       {items.map((item) => (
         <button
           key={item.id}
-          className={`${active === item.id ? "nav-active" : ""}${item.matched ? " nav-matched" : ""}`}
+          className={`${active === item.id ? "nav-active" : ""}${item.matched ? " nav-matched" : ""}${item.featured ? " nav-featured" : ""}`}
           aria-label={item.label}
           onClick={() => go(item.id)}
         >
@@ -2836,10 +2885,6 @@ function VerifyModal({ user, language = "EN", t, toggleLanguage, onProceed, onCa
         )}
         {codeStep && (
           <div className="verify-code-page">
-            <div className="verify-destination">
-              <strong>{selectedChannel?.id === "email" ? t("codeSentToEmail") : t("codeSentToMobile")}</strong>
-              <p>{selectedChannel?.value}</p>
-            </div>
             <label className={`otp-code-field${registrationCodeStep ? " verification-otp-field" : ""}`}>
               {!registrationCodeStep && <span>{t("activationCode")}</span>}
               <input
@@ -2865,6 +2910,10 @@ function VerifyModal({ user, language = "EN", t, toggleLanguage, onProceed, onCa
                 </span>
               )}
             </label>
+            <div className="verify-destination">
+              <strong>{selectedChannel?.id === "email" ? t("codeSentToEmail") : t("codeSentToMobile")}</strong>
+              <p>{selectedChannel?.value}</p>
+            </div>
           </div>
         )}
         {message && !registrationCodeStep && <p className="verify-message">{message}</p>}
