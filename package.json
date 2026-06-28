@@ -8,8 +8,8 @@
     "build": "vite build",
     "preview": "node server.js",
     "start": "node server.js",
-    "worker:dev": "wrangler dev",
-    "worker:deploy": "wrangler deploy",
+    "worker:dev": "wrangler dev -c wrangler.book-of-heaven-api.jsonc",
+    "worker:deploy": "wrangler deploy -c wrangler.book-of-heaven-api.jsonc",
     "mobile:sync": "npm run build && npx cap sync android",
     "android:bundle": "node scripts/check-release-env.mjs android && npm run mobile:sync && cd android && gradlew.bat bundleRelease",
     "android:bundle:unsigned": "npm run mobile:sync && cd android && gradlew.bat bundleRelease"

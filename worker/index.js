@@ -292,16 +292,16 @@ function defaultAvatarUrl(env) {
   return `${appBaseUrl(env)}/share/default-avatar.svg`;
 }
 
-function httpsImageUrl(value, baseUrl = "") {
+function httpsImageUrl(value, env) {
   const text = String(value || "").trim();
   if (!text || text.startsWith("data:")) return "";
 
   try {
     const url = text.startsWith("//")
       ? new URL(`https:${text}`)
-      : baseUrl
-        ? new URL(text, baseUrl)
-        : new URL(text);
+      : /^https?:\/\//i.test(text)
+        ? new URL(text)
+        : new URL(text, `${appBaseUrl(env)}/`);
     if (url.protocol !== "http:" && url.protocol !== "https:") return "";
     url.protocol = "https:";
     return url.toString();
@@ -319,6 +319,7 @@ function normalizeShrineApiData(data, fallbackId) {
 
   return {
     id: firstText(source.id, source._id, source.shrineId, source.shrine_id, fallbackId),
+    publicId: firstText(source.publicId, source.public_id, source.shortId, source.short_id, source.slug, source.numericId, source.numeric_id),
     fullName,
     photo: firstText(source.photo, source.photoUrl, source.photo_url, source.image, source.imageUrl, source.image_url),
     birthDate: firstText(source.birthDate, source.birth_date, source.birth),
@@ -476,35 +477,37 @@ async function shrineCommentApiResponse(request, env, personId, commentId) {
 }
 
 function shrinePreviewMeta(personId, shrine, env) {
-  const configuredBase = configuredShrineApiBaseUrl(env) || appBaseUrl(env);
-  const fallbackImage = httpsImageUrl(env.SHARE_IMAGE_URL, configuredBase) || defaultAvatarUrl(env);
-  const image = httpsImageUrl(shrine?.photo, configuredBase) || fallbackImage;
+  const sharePersonId = firstText(shrine?.publicId, personId);
+  const fallbackImage = httpsImageUrl(env.SHARE_IMAGE_URL, env) || defaultAvatarUrl(env);
+  const image = httpsImageUrl(shrine?.photo, env) || fallbackImage;
   const title = shrine?.fullName || "Shrine";
+  console.log("[share-preview] shrine og:image", image || "(none)");
 
   return {
     title,
     description: shrine
       ? shrinePreviewDescription(shrine.fullName, shrine.birthDate, shrine.deathDate)
       : DEFAULT_META_DESCRIPTION,
-    url: personId ? `${appBaseUrl(env)}${shrineInfoPath(personId)}` : appBaseUrl(env),
+    url: sharePersonId ? `${appBaseUrl(env)}${shrineInfoPath(sharePersonId)}` : appBaseUrl(env),
     image
   };
 }
 
 function shrineCommentPreviewMeta(personId, commentId, shrine, comment, env) {
-  const configuredBase = configuredShrineApiBaseUrl(env) || appBaseUrl(env);
-  const fallbackImage = httpsImageUrl(env.SHARE_IMAGE_URL, configuredBase) || defaultAvatarUrl(env);
+  const sharePersonId = firstText(shrine?.publicId, personId);
+  const fallbackImage = httpsImageUrl(env.SHARE_IMAGE_URL, env) || defaultAvatarUrl(env);
   const titleParts = [shrine?.fullName || "Shrine", comment?.userName || "Guest"].filter(Boolean);
   const image =
-    httpsImageUrl(comment?.userPhoto, configuredBase) ||
-    httpsImageUrl(comment?.attachment, configuredBase) ||
-    httpsImageUrl(shrine?.photo, configuredBase) ||
+    httpsImageUrl(comment?.userPhoto, env) ||
+    httpsImageUrl(comment?.attachment, env) ||
+    httpsImageUrl(shrine?.photo, env) ||
     fallbackImage;
+  console.log("[share-preview] shrine comment og:image", image || "(none)");
 
   return {
     title: titleParts.join(" - "),
     description: previewText(comment?.text || shrine?.info || DEFAULT_META_DESCRIPTION),
-    url: `${appBaseUrl(env)}${shrineCommentPath(personId, commentId)}`,
+    url: `${appBaseUrl(env)}${shrineCommentPath(sharePersonId, commentId)}`,
     image
   };
 }
@@ -520,6 +523,8 @@ function openGraphTags(meta) {
 
   if (meta.image) {
     tags.push(`<meta property="og:image" content="${escapeHtml(meta.image)}" />`);
+    tags.push(`<meta property="og:image:width" content="300" />`);
+    tags.push(`<meta property="og:image:height" content="300" />`);
   }
 
   return tags.map((tag) => `    ${tag}`).join("\n");
@@ -866,6 +871,17 @@ function methodNotAllowed(request, env, message) {
   return jsonResponse({ success: false, error: message }, 405, corsHeaders(request, env));
 }
 
+function assetsNotConfigured(request, env) {
+  return jsonResponse(
+    {
+      success: false,
+      error: "App assets are not configured for share pages."
+    },
+    500,
+    corsHeaders(request, env)
+  );
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -875,10 +891,12 @@ export default {
     }
 
     if (request.method === "GET" && shrineCommentMatch(url.pathname)) {
+      if (!env.ASSETS) return assetsNotConfigured(request, env);
       return shrineCommentPage(request, env, url);
     }
 
     if (request.method === "GET" && shrineInfoMatch(url.pathname)) {
+      if (!env.ASSETS) return assetsNotConfigured(request, env);
       return shrineInfoPage(request, env, url);
     }
 

@@ -42,17 +42,19 @@ import {
   UserRoundPlus,
   X
 } from "lucide-react";
+import countries from "./countries.js";
 import "./styles.css";
 
 const STORAGE_KEY = "shrine_mobile_state_v1";
 const PRODUCTION_API_BASE_URL = "https://book-of-heaven.onholding.workers.dev";
-const PRODUCTION_APP_URL = "https://app.shrine-app.com";
+const PRODUCTION_APP_URL = "https://book-of-heaven.onholding.workers.dev";
 const SAME_ORIGIN_API_HOSTS = new Set(["book-of-heaven.onholding.workers.dev"]);
 const DEFAULT_META_DESCRIPTION = "Create and share memorial shrines.";
 const SHRINE_API_PATH_PREFIX = "/api/shrines/";
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
 const FLOWER_LIFETIME_DAYS = 7;
 const FLOWER_LIFETIME_MS = FLOWER_LIFETIME_DAYS * 24 * 60 * 60 * 1000;
+const FLOWER_FADE_CHECK_INTERVAL_MS = 60 * 1000;
 const AGE_OPTIONS = Array.from({ length: 120 }, (_, index) => String(index + 1));
 
 function defaultApiBaseUrl() {
@@ -91,17 +93,9 @@ function safeDecodeURIComponent(value) {
   }
 }
 
-function isWorkersDevUrl(value) {
-  try {
-    return new URL(value).hostname.toLowerCase().endsWith(".workers.dev");
-  } catch {
-    return false;
-  }
-}
-
 function appBaseUrl() {
   const configuredBase = normalizeBaseUrl(import.meta.env.VITE_APP_URL || import.meta.env.VITE_SHARE_BASE_URL);
-  return configuredBase && !isWorkersDevUrl(configuredBase) ? configuredBase : PRODUCTION_APP_URL;
+  return configuredBase || PRODUCTION_APP_URL;
 }
 
 function shrineInfoPath(personId) {
@@ -110,6 +104,69 @@ function shrineInfoPath(personId) {
 
 function shrineCommentPath(personId, commentId) {
   return `/shrines/${encodeURIComponent(personId)}/comments/${encodeURIComponent(commentId)}`;
+}
+
+function cleanShareId(value) {
+  return String(value || "").trim().replace(/[^a-zA-Z0-9_-]/g, "");
+}
+
+function compactShrineId(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+
+  const timestampMatch = text.match(/^(\d{10,})-([a-zA-Z0-9]+)/);
+  if (timestampMatch) {
+    const timestamp = Number(timestampMatch[1]);
+    const prefix = Number.isFinite(timestamp) ? timestamp.toString(36) : timestampMatch[1].slice(-8);
+    return cleanShareId(`${prefix}-${timestampMatch[2].slice(0, 6)}`);
+  }
+
+  if (text.length <= 24) return "";
+  const compact = cleanShareId(text).slice(0, 14);
+  return compact && compact.length < text.length ? compact : "";
+}
+
+function createShrinePublicId() {
+  return cleanShareId(`s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`);
+}
+
+function publicShrineIdFromSource(source, fallbackId = "") {
+  const explicitId = firstText(
+    source?.publicId,
+    source?.public_id,
+    source?.shortId,
+    source?.short_id,
+    source?.slug,
+    source?.numericId,
+    source?.numeric_id
+  );
+  return cleanShareId(explicitId) || compactShrineId(firstText(source?.id, fallbackId)) || cleanShareId(firstText(source?.id, fallbackId));
+}
+
+function personShareId(personOrId) {
+  const person = personOrId && typeof personOrId === "object" ? personOrId : null;
+  return person ? publicShrineIdFromSource(person, person.id) : compactShrineId(personOrId) || cleanShareId(personOrId);
+}
+
+function personMatchesShareId(person, shareId) {
+  const target = cleanShareId(shareId);
+  if (!person || !target) return false;
+
+  return [
+    person.id,
+    person.publicId,
+    person.public_id,
+    person.shortId,
+    person.short_id,
+    person.slug,
+    person.numericId,
+    person.numeric_id,
+    compactShrineId(person.id)
+  ].some((value) => cleanShareId(value) === target);
+}
+
+function findPersonByShareId(people, shareId) {
+  return Array.isArray(people) ? people.find((person) => personMatchesShareId(person, shareId)) || null : null;
 }
 
 function shrineApiPath(personId) {
@@ -144,7 +201,7 @@ function previewText(value, maxLength = 100) {
 
 function shrinePreviewMeta(personOrId) {
   const person = personOrId && typeof personOrId === "object" ? personOrId : null;
-  const personId = person?.id || String(personOrId || "");
+  const personId = person ? personShareId(person) : String(personOrId || "");
   const url = personId ? `${appBaseUrl()}${shrineInfoPath(personId)}` : appBaseUrl();
   const image = isHttpUrl(person?.photo) ? person.photo : "";
 
@@ -202,8 +259,12 @@ function updateDocumentPreviewMeta(person) {
 
   if (meta.image) {
     setMetaContent("property", "og:image", meta.image);
+    setMetaContent("property", "og:image:width", "300");
+    setMetaContent("property", "og:image:height", "300");
   } else {
     removeMetaContent("property", "og:image");
+    removeMetaContent("property", "og:image:width");
+    removeMetaContent("property", "og:image:height");
   }
 }
 
@@ -232,7 +293,7 @@ function shareBaseUrl() {
 
 function buildShareUrl(personOrId, view = "shrine") {
   const person = personOrId && typeof personOrId === "object" ? personOrId : null;
-  const personId = person?.id || String(personOrId || "");
+  const personId = person ? personShareId(person) : String(personOrId || "");
   if (!personId) return "";
 
   const commentId = typeof view === "object" ? String(view.commentId || "") : "";
@@ -288,10 +349,14 @@ function loadInitialApp() {
     return { state: loadedState, screen: "home", sharedTarget: null };
   }
 
+  const sharedPerson = findPersonByShareId(loadedState.people, sharedTarget.personId);
+  const selectedPersonId = sharedPerson?.id || sharedTarget.personId;
+  const normalizedSharedTarget = sharedPerson ? { ...sharedTarget, personId: selectedPersonId } : sharedTarget;
+
   return {
-    state: { ...loadedState, selectedPersonId: sharedTarget.personId },
+    state: { ...loadedState, selectedPersonId },
     screen: "detail",
-    sharedTarget
+    sharedTarget: normalizedSharedTarget
   };
 }
 
@@ -350,56 +415,14 @@ function formatText(template, values) {
   return String(template).replace(/\{(\w+)\}/g, (_match, key) => String(values[key] ?? ""));
 }
 
-const countries = [
-  { name: "Egypt", ar: "مصر", code: "+20", iso: "eg" },
-  { name: "United States", ar: "الولايات المتحدة", code: "+1", iso: "us" },
-  { name: "Saudi Arabia", ar: "السعودية", code: "+966", iso: "sa" },
-  { name: "United Arab Emirates", ar: "الإمارات", code: "+971", iso: "ae" },
-  { name: "Kuwait", ar: "الكويت", code: "+965", iso: "kw" },
-  { name: "Qatar", ar: "قطر", code: "+974", iso: "qa" },
-  { name: "Jordan", ar: "الأردن", code: "+962", iso: "jo" },
-  { name: "Morocco", ar: "المغرب", code: "+212", iso: "ma" },
-  { name: "Algeria", ar: "الجزائر", code: "+213", iso: "dz" },
-  { name: "Tunisia", ar: "تونس", code: "+216", iso: "tn" },
-  { name: "Germany", ar: "ألمانيا", code: "+49", iso: "de" },
-  { name: "France", ar: "فرنسا", code: "+33", iso: "fr" },
-  { name: "United Kingdom", ar: "المملكة المتحدة", code: "+44", iso: "gb" },
-  { name: "Canada", ar: "كندا", code: "+1", iso: "ca" },
-  { name: "Australia", ar: "أستراليا", code: "+61", iso: "au" },
-  { name: "Turkey", ar: "تركيا", code: "+90", iso: "tr" },
-  { name: "Italy", ar: "إيطاليا", code: "+39", iso: "it" },
-  { name: "Spain", ar: "إسبانيا", code: "+34", iso: "es" },
-  { name: "Malaysia", ar: "ماليزيا", code: "+60", iso: "my" },
-  { name: "Indonesia", ar: "إندونيسيا", code: "+62", iso: "id" }
-];
-
 const LEGACY_DEFAULT_COUNTRY_NAME = "United States";
 const FALLBACK_COUNTRY_NAME = "Egypt";
 const COUNTRY_FILTER_IDS = new Set(["Sponsor", "Follow"]);
 
-const regionCountryNames = {
-  EG: "Egypt",
-  US: "United States",
-  SA: "Saudi Arabia",
-  AE: "United Arab Emirates",
-  KW: "Kuwait",
-  QA: "Qatar",
-  JO: "Jordan",
-  MA: "Morocco",
-  DZ: "Algeria",
-  TN: "Tunisia",
-  DE: "Germany",
-  FR: "France",
-  GB: "United Kingdom",
-  UK: "United Kingdom",
-  CA: "Canada",
-  AU: "Australia",
-  TR: "Turkey",
-  IT: "Italy",
-  ES: "Spain",
-  MY: "Malaysia",
-  ID: "Indonesia"
-};
+const regionCountryNames = countries.reduce((names, country) => {
+  names[country.iso.toUpperCase()] = country.name;
+  return names;
+}, { UK: "United Kingdom" });
 
 const timeZoneCountryNames = {
   "Africa/Cairo": "Egypt",
@@ -534,6 +557,7 @@ function normalizeShrineApiPerson(data, fallbackId) {
   return normalizePersonFlowers({
     ...source,
     id: firstText(source.id, source._id, source.shrineId, source.shrine_id, fallbackId),
+    publicId: publicShrineIdFromSource(source, fallbackId),
     fullName,
     photo: firstText(source.photo, source.photoUrl, source.photo_url, source.image, source.imageUrl, source.image_url),
     birthDate: firstText(source.birthDate, source.birth_date, source.birth),
@@ -633,6 +657,7 @@ const initialState = {
   currentCountry: initialCountryName,
   homeFilter: initialCountryName,
   countryPreferenceTouched: false,
+  flowerFadeNotices: [],
   guest: true
 };
 
@@ -1110,10 +1135,14 @@ function loadState() {
       ...defaultPeople,
       ...savedPeople.filter((person) => !defaultPeople.some((sample) => sample.id === person.id))
     ].map(normalizePersonFlowers);
+    const flowerFadeNotices = Array.isArray(merged.flowerFadeNotices)
+      ? merged.flowerFadeNotices.map((noticeId) => String(noticeId || "").trim()).filter(Boolean)
+      : [];
 
     return {
       ...merged,
       people,
+      flowerFadeNotices,
       guest: merged.currentUser ? false : true,
       language: normalizeLanguage(merged.language),
       currentCountry,
@@ -1181,8 +1210,37 @@ function normalizeFlowerGifts(flowers) {
         dayKey
       };
     })
-    .filter(Boolean)
-    .filter((flower) => activeFlowerGifts([flower]).length);
+    .filter(Boolean);
+}
+
+function flowerFadeNoticeId(personId, flower) {
+  const flowerId = String(flower?.id || `${flower?.userId || ""}-${flower?.dayKey || ""}-${flower?.givenAt || ""}`).trim();
+  return `${personId}:${flowerId}`;
+}
+
+function expiredUserFlowerNotices(people, userId, notifiedIds = [], now = Date.now()) {
+  if (!userId || !Array.isArray(people)) return [];
+
+  const notified = new Set((Array.isArray(notifiedIds) ? notifiedIds : []).map((noticeId) => String(noticeId || "")));
+  return people.flatMap((person) =>
+    (Array.isArray(person?.flowers) ? person.flowers : [])
+      .map((flower) => {
+        if (String(flower?.userId || "") !== String(userId)) return null;
+
+        const givenTime = Date.parse(flower?.givenAt);
+        if (!Number.isFinite(givenTime) || now - givenTime < FLOWER_LIFETIME_MS) return null;
+
+        const id = flowerFadeNoticeId(person.id, flower);
+        if (notified.has(id)) return null;
+
+        return {
+          id,
+          personId: person.id,
+          personName: person.fullName || ""
+        };
+      })
+      .filter(Boolean)
+  );
 }
 
 function normalizePersonMessages(messages) {
@@ -1234,6 +1292,7 @@ function normalizePersonMessages(messages) {
 function normalizePersonFlowers(person) {
   return {
     ...person,
+    publicId: publicShrineIdFromSource(person, person?.id),
     flowers: normalizeFlowerGifts(person?.flowers),
     messages: normalizePersonMessages(person?.messages)
   };
@@ -1351,6 +1410,39 @@ function resetPhoneCandidates(countryCode, phone) {
   const localDigits = normalizePhoneDigits(phone).replace(/^0+/, "");
   const countryDigits = normalizePhoneDigits(countryCode);
   return [...new Set([countryDigits && localDigits ? `${countryDigits}${localDigits}` : "", localDigits].filter(Boolean))];
+}
+
+function phoneLengthRange(country) {
+  const codeDigits = normalizePhoneDigits(country?.code);
+  const sample = countries.find((item) => normalizePhoneDigits(item.code) === codeDigits) || country;
+  const iso = String(sample?.iso || "").toLowerCase();
+  const exactLengths = {
+    ae: [9],
+    au: [9],
+    ca: [10],
+    eg: [10],
+    gb: [10],
+    kw: [8],
+    qa: [8],
+    sa: [9],
+    us: [10]
+  };
+  const lengths = exactLengths[iso];
+  if (lengths) return { min: Math.min(...lengths), max: Math.max(...lengths) };
+  return { min: 7, max: 14 };
+}
+
+function localPhoneDigitsForCountry(phone, country) {
+  const digits = normalizePhoneDigits(phone);
+  const countryDigits = normalizePhoneDigits(country?.code);
+  const withoutCountryCode = countryDigits && digits.startsWith(countryDigits) ? digits.slice(countryDigits.length) : digits;
+  return withoutCountryCode.replace(/^0+/, "");
+}
+
+function isValidPhoneForCountry(phone, country) {
+  const digits = localPhoneDigitsForCountry(phone, country);
+  const { min, max } = phoneLengthRange(country);
+  return digits.length >= min && digits.length <= max;
 }
 
 function userPhoneCandidates(user) {
@@ -1485,16 +1577,17 @@ function App() {
   }, [screen]);
 
   useEffect(() => {
-    const selectedPerson = screen === "detail" ? state.people.find((person) => person.id === state.selectedPersonId) : null;
+    const selectedPerson = screen === "detail" ? findPersonByShareId(state.people, state.selectedPersonId) : null;
     updateDocumentPreviewMeta(selectedPerson);
   }, [screen, state.people, state.selectedPersonId]);
 
   useEffect(() => {
     const personId = state.selectedPersonId;
+    const existingPerson = findPersonByShareId(state.people, personId);
     const shouldLoadSharedShrine =
       personId &&
       sharedTarget?.personId === personId &&
-      !state.people.some((person) => person.id === personId) &&
+      !existingPerson &&
       !apiShrineFetchRef.current.has(personId);
 
     if (!shouldLoadSharedShrine) return undefined;
@@ -1506,7 +1599,7 @@ function App() {
       if (!person) return;
 
       setState((current) => {
-        if (current.people.some((item) => item.id === person.id)) return current;
+        if (findPersonByShareId(current.people, person.id) || findPersonByShareId(current.people, person.publicId)) return current;
         return {
           ...current,
           selectedPersonId: person.id,
@@ -1521,8 +1614,8 @@ function App() {
   useEffect(() => {
     const personId = state.selectedPersonId;
     const commentId = sharedTarget?.type === "comment" ? sharedTarget.commentId || "" : "";
-    const person = state.people.find((item) => item.id === personId);
-    const fetchKey = `${personId}:${commentId}`;
+    const person = findPersonByShareId(state.people, personId);
+    const fetchKey = `${person?.id || personId}:${commentId}`;
     const shouldLoadSharedComment =
       personId &&
       commentId &&
@@ -1542,7 +1635,7 @@ function App() {
       setState((current) => ({
         ...current,
         people: current.people.map((item) => {
-          if (item.id !== personId) return item;
+          if (!personMatchesShareId(item, personId)) return item;
           const messages = normalizePersonMessages(item.messages);
           if (messages.some((existing) => existing.id === message.id)) return item;
           return normalizePersonFlowers({
@@ -1633,6 +1726,37 @@ function App() {
     setToast(message);
   };
 
+  useEffect(() => {
+    const userId = state.currentUser?.id;
+    if (!userId || typeof window === "undefined") return undefined;
+
+    const notifyFadedFlowers = () => {
+      const notices = expiredUserFlowerNotices(state.people, userId, state.flowerFadeNotices);
+      if (!notices.length) return;
+
+      const firstNotice = notices[0];
+      showToast(notificationToastText(t, "flowerFaded", firstNotice.personName) || t("notificationFlowerFadedBody"));
+
+      setState((current) => {
+        const currentUserId = current.currentUser?.id;
+        if (!currentUserId) return current;
+
+        const existingNotices = Array.isArray(current.flowerFadeNotices) ? current.flowerFadeNotices : [];
+        const nextNotices = expiredUserFlowerNotices(current.people, currentUserId, existingNotices);
+        if (!nextNotices.length) return current;
+
+        return {
+          ...current,
+          flowerFadeNotices: [...existingNotices, ...nextNotices.map((notice) => notice.id)].slice(-500)
+        };
+      });
+    };
+
+    notifyFadedFlowers();
+    const intervalId = window.setInterval(notifyFadedFlowers, FLOWER_FADE_CHECK_INTERVAL_MS);
+    return () => window.clearInterval(intervalId);
+  }, [language, state.currentUser?.id, state.flowerFadeNotices, state.people]);
+
   const updateState = (patch) => {
     setState((current) => {
       const normalizedPatch = { ...patch };
@@ -1678,6 +1802,7 @@ function App() {
         {
           ...person,
           id: uid(),
+          publicId: createShrinePublicId(),
           createdAt: new Date().toISOString(),
           createdBy: current.currentUser?.id || "guest",
           createdByName: current.currentUser ? getUserName(current.currentUser) : "",
@@ -1737,7 +1862,7 @@ function App() {
     setState((current) => ({
       ...current,
       people: current.people.map((person) => {
-        const flowers = activeFlowerGifts(person.flowers);
+        const flowers = normalizeFlowerGifts(person.flowers);
         if (person.id !== personId) return { ...person, flowers };
         return { ...person, flowers: [...flowers, flower] };
       })
@@ -1934,7 +2059,7 @@ function App() {
     onSharedTargetHandled: () => setSharedTarget(null)
   };
 
-  const selectedPerson = state.people.find((person) => person.id === state.selectedPersonId);
+  const selectedPerson = findPersonByShareId(state.people, state.selectedPersonId);
   const canEditSelectedShrine = canEditPersonShrine(selectedPerson, state.currentUser);
 
   return (
@@ -2680,20 +2805,26 @@ function NewPasswordModal({ user, t, onSave, onClose }) {
 }
 
 function LoginScreen({ state, language, t, toggleLanguage, onLogin, onForgotPassword, onBack, setScreen }) {
+  const [phoneCountry, setPhoneCountry] = useState(() => findCountry(state.currentCountry || initialState.currentCountry));
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [visible, setVisible] = useState(false);
+  const [countryPickerOpen, setCountryPickerOpen] = useState(false);
   const [errors, setErrors] = useState({
     identifier: "identifierRequired",
     password: "passwordRequired"
   });
 
   useEffect(() => {
+    setPhoneCountry(findCountry(state.currentCountry || initialState.currentCountry));
+  }, [state.currentCountry]);
+
+  useEffect(() => {
     setErrors((current) => ({
       identifier: identifier ? current.identifier : "identifierRequired",
       password: password ? current.password : "passwordRequired"
     }));
-  }, [identifier, language, password]);
+  }, [identifier, language, password, phoneCountry]);
 
   const setIdentifierValue = (value) => {
     setIdentifier(value);
@@ -2714,7 +2845,8 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onForgotPass
   const submit = () => {
     const cleanIdentifier = identifier.trim();
     const phoneDigits = normalizePhoneDigits(cleanIdentifier);
-    const phoneValid = /^[+\d\s().-]+$/.test(cleanIdentifier) && /^\d{7,15}$/.test(phoneDigits);
+    const localDigits = localPhoneDigitsForCountry(phoneDigits, phoneCountry);
+    const phoneValid = /^[+\d\s().-]+$/.test(cleanIdentifier) && isValidPhoneForCountry(phoneDigits, phoneCountry);
     const nextErrors = {};
     if (!cleanIdentifier) {
       nextErrors.identifier = "identifierRequired";
@@ -2726,12 +2858,11 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onForgotPass
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
 
-    onLogin(phoneDigits, password);
+    onLogin(`${phoneCountry.code}${localDigits}`, password);
   };
 
   const openReset = () => {
     const phoneDigits = normalizePhoneDigits(identifier);
-    const phoneCountry = findCountry(state.currentCountry || initialState.currentCountry);
     const phone = /^[+\d\s().-]+$/.test(identifier.trim()) ? phoneDigits.slice(0, 14) : "";
     onForgotPassword({ phoneCountry, phone });
   };
@@ -2749,6 +2880,15 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onForgotPass
       </section>
       <label className="field-label">{t("emailOrPhone")}</label>
       <div className={`phone-field identity-field ${errors.identifier ? "has-error" : ""}`}>
+        <button
+          type="button"
+          className="country-code-button"
+          onClick={() => setCountryPickerOpen(true)}
+        >
+          <ChevronDown size={18} />
+          <Flag country={phoneCountry} />
+          <span>{phoneCountry.code}</span>
+        </button>
         <input
           type="tel"
           inputMode="tel"
@@ -2777,6 +2917,21 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onForgotPass
       <button className="text-link wide" onClick={() => setScreen("register")}>
         {t("dontHaveAccount")} <span>{t("createNew")}</span>
       </button>
+      {countryPickerOpen && (
+        <CountryModal
+          title={t("selectCallingCode")}
+          language={language}
+          t={t}
+          withCodes
+          selectedCountry={phoneCountry.name}
+          onPick={(country) => {
+            setPhoneCountry(country);
+            setCountryPickerOpen(false);
+            setErrors((current) => ({ ...current, identifier: "" }));
+          }}
+          onClose={() => setCountryPickerOpen(false)}
+        />
+      )}
     </main>
   );
 }
@@ -3420,7 +3575,7 @@ function InfoLine({ icon, label, value }) {
 
 function GalleryScreen({ state, t, setScreen, goBack }) {
   const [viewMode, setViewMode] = useState("list");
-  const person = state.people.find((item) => item.id === state.selectedPersonId);
+  const person = findPersonByShareId(state.people, state.selectedPersonId);
 
   if (!person) {
     return (
@@ -3474,7 +3629,7 @@ function GalleryScreen({ state, t, setScreen, goBack }) {
 }
 
 function FlowerScreen({ state, language, t, setModal, goBack }) {
-  const person = state.people.find((item) => item.id === state.selectedPersonId);
+  const person = findPersonByShareId(state.people, state.selectedPersonId);
 
   if (!person) {
     return (
@@ -3532,7 +3687,7 @@ function FlowerScreen({ state, language, t, setModal, goBack }) {
 function MessageScreen({ state, language, t, goBack, setScreen, onSendMessage, activeUser }) {
   const [draft, setDraft] = useState("");
   const [attachment, setAttachment] = useState(null);
-  const person = state.people.find((item) => item.id === state.selectedPersonId);
+  const person = findPersonByShareId(state.people, state.selectedPersonId);
 
   if (!person) {
     return (
@@ -3653,12 +3808,12 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
   const [openMessageMenuId, setOpenMessageMenuId] = useState("");
   const entryRef = useRef(null);
   const messageRefs = useRef(new Map());
-  const person = state.people.find((item) => item.id === state.selectedPersonId);
+  const person = findPersonByShareId(state.people, state.selectedPersonId);
   const sharedCommentPersonId = sharedTarget?.type === "comment" ? sharedTarget.personId : "";
   const sharedCommentId = sharedTarget?.type === "comment" ? sharedTarget.commentId || "" : "";
 
   useEffect(() => {
-    if (!person || sharedCommentPersonId !== person.id) return undefined;
+    if (!person || !personMatchesShareId(person, sharedCommentPersonId)) return undefined;
 
     const scrollTimer = setTimeout(() => {
       const target = sharedCommentId && sharedCommentId !== "info" ? messageRefs.current.get(sharedCommentId) : entryRef.current;
@@ -4645,13 +4800,14 @@ function EmptyState({ icon, title, body }) {
 
 function Flag({ country, large = false }) {
   const code = country?.iso || "xx";
+  const flag = country?.flag || code.toUpperCase();
   return (
     <span
       className={`flag-visual flag-${code} ${large ? "large" : ""}`}
       aria-label={`${country?.name || "Country"} flag`}
       role="img"
     >
-      <span>{code.toUpperCase()}</span>
+      <span>{flag}</span>
     </span>
   );
 }

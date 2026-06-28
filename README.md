@@ -47,10 +47,11 @@ npx wrangler secret put OTP_EMAIL_SECRET
 npm run worker:deploy
 ```
 
-The default Wrangler deploy targets the Worker name `shrine-the-book-of-heaven`
-and its `workers.dev` trigger. Attach `app.shrine-app.com` from Cloudflare's
-Worker dashboard after the deploy, or add the custom-domain route back only when
-the `shrine-app.com` zone and DNS permissions are available to the deploy token.
+The npm Worker scripts deploy `wrangler.book-of-heaven-api.jsonc`, which targets
+the `book-of-heaven` Worker and serves both the API and the built React app from
+`https://book-of-heaven.onholding.workers.dev`. Attach `app.shrine-app.com` from
+Cloudflare's Worker dashboard only after that hostname points at this Worker,
+then update `APP_URL`/`VITE_APP_URL` to the custom domain.
 
 Use the Oncallos key and email OTP secret as secret values when Wrangler asks for them. For real email delivery, enable Cloudflare Email Sending on your sender domain and replace `OTP_EMAIL_FROM` in `wrangler.jsonc` with an address from that domain. Secrets are stored in Cloudflare and are not bundled into the browser app.
 
