@@ -1302,8 +1302,7 @@ button {
 }
 
 .settings-row {
-  display: grid;
-  grid-template-columns: 28px max-content minmax(0, 1fr);
+  display: flex;
   align-items: center;
   column-gap: 8px;
   width: 100%;
@@ -1317,16 +1316,24 @@ button {
 }
 
 .settings-row > svg {
-  justify-self: end;
+  margin-inline-start: auto;
   width: 22px;
   height: 22px;
   color: var(--blue);
   stroke-width: 2.7;
+  flex: 0 0 auto;
 }
 
 .settings-row > span:nth-child(2) {
-  justify-self: start;
   min-width: 0;
+  line-height: 1.2;
+  white-space: normal;
+}
+
+.settings-row > .setting-icon {
+  flex: 0 0 28px;
+  display: grid;
+  place-items: center;
 }
 
 .setting-icon {
