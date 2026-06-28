@@ -2762,7 +2762,7 @@ function GalleryScreen({ state, t, setScreen }) {
   );
 }
 
-function DetailScreen({ state, language, t, updateState, setScreen, setModal, canUseAccount }) {
+function DetailScreen({ state, language, t, setScreen, setModal }) {
   const [entryMenuOpen, setEntryMenuOpen] = useState(false);
   const person = state.people.find((item) => item.id === state.selectedPersonId);
 
@@ -2775,8 +2775,6 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
     );
   }
 
-  const followed = state.following.includes(person.id);
-  const blocked = state.blocked.includes(person.id);
   const creator = state.users.find((user) => user.id === person.createdBy);
   const creatorName = person.createdByName || (creator ? getUserName(creator) : person.createdBy === "guest" ? t("guestAccount") : "Shrine");
   const createdDate = personCreatedDate(person);
@@ -2784,24 +2782,6 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
   const lifeYears = personLifeYears(person, t);
   const displayAge = personDisplayAge(person);
   const activeFlowers = activeFlowerGifts(person.flowers);
-
-  const toggleFollow = () => {
-    if (!canUseAccount) {
-      setModal({ type: "accountPrompt" });
-      return;
-    }
-    updateState({
-      following: followed
-        ? state.following.filter((id) => id !== person.id)
-        : [person.id, ...state.following]
-    });
-  };
-
-  const toggleBlock = () => {
-    updateState({
-      blocked: blocked ? state.blocked.filter((id) => id !== person.id) : [person.id, ...state.blocked]
-    });
-  };
 
   const shareShrine = () => {
     shareContent({
@@ -2874,19 +2854,11 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
                 <div className="detail-entry-menu">
                   <button
                     onClick={() => {
-                      toggleFollow();
+                      shareShrine();
                       setEntryMenuOpen(false);
                     }}
                   >
-                    <UserRoundPlus size={19} /> {followed ? t("following") : t("follow")}
-                  </button>
-                  <button
-                    onClick={() => {
-                      toggleBlock();
-                      setEntryMenuOpen(false);
-                    }}
-                  >
-                    <Ban size={19} /> {blocked ? t("unblock") : t("block")}
+                    <Share2 size={29} /> Share
                   </button>
                 </div>
               )}

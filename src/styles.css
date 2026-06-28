@@ -2358,34 +2358,35 @@ button {
 
 .detail-entry-menu {
   position: absolute;
-  top: 36px;
-  right: 0;
+  top: 38px;
+  right: -18px;
   z-index: 6;
-  min-width: 124px;
-  padding: 6px 0;
-  border: 1px solid rgba(226, 231, 238, 0.9);
+  min-width: 152px;
+  padding: 0;
+  border: 1px solid rgba(235, 228, 241, 0.86);
   border-radius: 6px;
-  background: #fff;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
+  background: #fbf5ff;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.18);
 }
 
 .detail-entry-menu button {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   width: 100%;
-  min-height: 54px;
-  padding: 0 18px;
+  min-height: 78px;
+  padding: 0 24px;
   border: 0;
-  color: #23252b;
+  color: #25252b;
   background: transparent;
   text-align: left;
-  font-size: 1rem;
-  font-weight: 650;
+  font-size: 1.16rem;
+  font-weight: 500;
 }
 
 .detail-entry-menu svg {
   color: var(--blue);
+  stroke-width: 3;
 }
 
 .detail-info {
