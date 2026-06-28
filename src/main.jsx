@@ -30,8 +30,8 @@ import {
 import "./styles.css";
 
 const STORAGE_KEY = "shrine_mobile_state_v1";
-const PRODUCTION_API_BASE_URL = "https://book-of-heaven.onholding.workers.dev";
-const PRODUCTION_API_HOST = "book-of-heaven.onholding.workers.dev";
+const PRODUCTION_API_BASE_URL = "https://book-of-heaven.bodammohamed204.workers.dev";
+const PRODUCTION_API_HOST = "book-of-heaven.bodammohamed204.workers.dev";
 
 function defaultApiBaseUrl() {
   if (typeof window === "undefined") return "";

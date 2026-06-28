@@ -29,8 +29,7 @@ function isTrustedPreviewOrigin(origin) {
 
     if (protocol !== "https:") return false;
     if (host === "book-of-heaven.onholding.workers.dev") return true;
-    if (host === "book-of-heaven.bodammohamed204.workers.dev") return true;
-    if (host === "bodammohamed204.workers.dev") return true;
+    if (host.endsWith(".bodammohamed204.workers.dev")) return true;
     return host.endsWith(".pages.dev") && host.includes("shrine");
   } catch {
     return false;
