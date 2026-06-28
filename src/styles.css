@@ -1197,6 +1197,12 @@ button {
   z-index: 2;
 }
 
+.header-action-cluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .home-screen,
 .search-screen {
   min-height: 100vh;
@@ -1234,7 +1240,7 @@ button {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
-  padding: 12px 8px 10px;
+  padding: 12px 14px 10px;
   background: var(--soft);
 }
 
@@ -1263,7 +1269,8 @@ button {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
-  padding: 0 8px 20px;
+  align-items: start;
+  padding: 0 14px 20px;
 }
 
 .home-boot-loader {
@@ -1293,8 +1300,9 @@ button {
   flex-direction: column;
   align-items: center;
   width: 100%;
-  min-height: 172px;
-  padding: 18px 6px 8px;
+  min-width: 0;
+  min-height: 158px;
+  padding: 22px 6px 12px;
   border: 1px solid var(--blue);
   border-radius: 0;
   background: #fffaff;
@@ -1303,9 +1311,10 @@ button {
 }
 
 .person-image {
-  width: 74%;
-  max-width: 96px;
-  aspect-ratio: 1 / 1.25;
+  flex: 0 0 auto;
+  width: 68%;
+  max-width: 86px;
+  aspect-ratio: 1 / 1.42;
   overflow: hidden;
   border-radius: 0;
   background: #f5f5f5;
@@ -1321,7 +1330,8 @@ button {
 .person-name-lines {
   display: block;
   width: 100%;
-  margin-top: 15px;
+  margin-top: auto;
+  padding-top: 18px;
   text-align: center;
 }
 
@@ -1377,7 +1387,7 @@ button {
 }
 
 .add-screen .add-form {
-  padding: 0 16px 28px;
+  padding: 0 16px calc(104px + env(safe-area-inset-bottom));
   background: #fff;
 }
 
@@ -1877,6 +1887,11 @@ button {
   height: 34px;
 }
 
+.detail-edit-button {
+  width: 34px;
+  height: 34px;
+}
+
 .flower-header-button {
   width: 36px;
   height: 36px;
@@ -2137,6 +2152,8 @@ button {
 }
 
 .detail-dates {
+  direction: ltr;
+  unicode-bidi: isolate;
   color: #2c9bea;
   font-size: 18px;
   line-height: 1.18;
@@ -2144,6 +2161,8 @@ button {
 }
 
 .detail-age {
+  direction: ltr;
+  unicode-bidi: isolate;
   margin-top: 14px;
   color: #b3b3b3;
   font-size: 14px;

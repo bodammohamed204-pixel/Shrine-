@@ -25,6 +25,7 @@ import {
   LogOut,
   Mail,
   MapPin,
+  MessageCircle,
   MoreVertical,
   Pencil,
   Plus,
@@ -603,8 +604,8 @@ const copy = {
     errPhone: "Enter a valid mobile number",
     errEmail: "Enter a valid email",
     errEmailOrPhone: "Enter a valid email or mobile number",
-    phoneAlreadyExists: "This mobile number is already registered.",
-    emailAlreadyExists: "This email address is already registered.",
+    phoneAlreadyExists: "This mobile number is already used. Try logging in or use another number.",
+    emailAlreadyExists: "This email address is already used. Try logging in or use another email.",
     errGender: "Gender is required",
     errPassword: "Password is required",
     errPasswordLength: "Use at least 8 characters",
@@ -657,7 +658,9 @@ const copy = {
     information: "Information",
     words: "words",
     create: "Create",
+    update: "Update",
     memorialCreated: "Memorial created",
+    memorialUpdated: "Memorial updated",
     errFullName: "Full name is required",
     errDeathDate: "Date of death is required",
     errCountry: "Country is required",
@@ -781,8 +784,8 @@ const copy = {
     errPhone: "أدخل رقم هاتف صحيحًا",
     errEmail: "أدخل بريدًا إلكترونيًا صحيحًا",
     errEmailOrPhone: "أدخل بريدًا إلكترونيًا أو رقم هاتف صحيحًا",
-    phoneAlreadyExists: "رقم الهاتف مستخدم بالفعل",
-    emailAlreadyExists: "البريد الإلكتروني مستخدم بالفعل",
+    phoneAlreadyExists: "رقم الهاتف مستخدم بالفعل. حاول تسجيل الدخول أو استخدم رقمًا آخر.",
+    emailAlreadyExists: "البريد الإلكتروني مستخدم بالفعل. حاول تسجيل الدخول أو استخدم بريدًا آخر.",
     errGender: "النوع مطلوب",
     errPassword: "كلمة المرور مطلوبة",
     errPasswordLength: "استخدم 8 أحرف على الأقل",
@@ -835,7 +838,9 @@ const copy = {
     information: "معلومات",
     words: "كلمة",
     create: "إنشاء",
+    update: "تحديث",
     memorialCreated: "تم إنشاء المزار",
+    memorialUpdated: "تم تحديث المزار",
     errFullName: "الاسم الكامل مطلوب",
     errDeathDate: "تاريخ الوفاة مطلوب",
     errCountry: "الدولة مطلوبة",
@@ -1254,6 +1259,10 @@ function translator(language) {
   return (key) => copy[lang][key] || copy.EN[key] || key;
 }
 
+function inlineCopy(language, english, arabic) {
+  return normalizeLanguage(language) === "AR" ? arabic : english;
+}
+
 function countryLabel(countryOrName, language) {
   const country = typeof countryOrName === "string" ? findCountry(countryOrName) : countryOrName;
   return normalizeLanguage(language) === "AR" ? country?.ar || country?.name || "" : country?.name || "";
@@ -1471,6 +1480,29 @@ function App() {
     }));
     showToast(t("memorialCreated"));
     setScreen("home", { reset: true });
+  };
+
+  const updatePerson = (person) => {
+    const personId = state.selectedPersonId;
+    if (!personId) return;
+
+    setState((current) => ({
+      ...current,
+      people: current.people.map((item) =>
+        item.id === personId
+          ? normalizePersonFlowers({
+              ...item,
+              ...person,
+              fullName: person.fullName.trim(),
+              surnameCheck: person.surnameCheck.trim(),
+              country: normalizeCountryName(person.country, item.country || current.currentCountry),
+              updatedAt: new Date().toISOString()
+            })
+          : item
+      )
+    }));
+    showToast(t("memorialUpdated"));
+    setScreen("detail", { replace: true });
   };
 
   const giveFlowerToPerson = (personId) => {
@@ -1706,7 +1738,16 @@ function App() {
         />
       )}
       {screen === "home" && <HomeScreen {...commonProps} bootLoading={homeIntroLoading && !opening} />}
-      {screen === "add" && <AddScreen {...commonProps} onCreate={addPerson} />}
+      {screen === "add" && <AddScreen key="add" {...commonProps} onSubmit={addPerson} />}
+      {screen === "editShrine" && (
+        <AddScreen
+          key={`edit-${state.selectedPersonId || "missing"}`}
+          {...commonProps}
+          mode="update"
+          initialPerson={state.people.find((person) => person.id === state.selectedPersonId)}
+          onSubmit={updatePerson}
+        />
+      )}
       {screen === "search" && <SearchScreen {...commonProps} />}
       {screen === "settings" && <SettingsScreen {...commonProps} logout={logout} />}
       {screen === "profile" && <ProfileScreen {...commonProps} />}
@@ -2600,18 +2641,19 @@ function PersonCard({ person, onOpen }) {
   );
 }
 
-function AddScreen({ state, language, t, setModal, onCreate, activeUser, goBack }) {
-  const [form, setForm] = useState({
-    photo: "",
-    fullName: "",
-    surnameCheck: "",
-    deathDate: "",
-    birthDate: "",
-    age: "",
-    gender: "",
-    country: activeUser?.country || state.currentCountry || initialState.currentCountry,
-    info: ""
-  });
+function AddScreen({ state, language, t, setModal, onSubmit, activeUser, goBack, initialPerson, mode = "create" }) {
+  const isUpdate = mode === "update";
+  const [form, setForm] = useState(() => ({
+    photo: initialPerson?.photo || "",
+    fullName: initialPerson?.fullName || "",
+    surnameCheck: initialPerson?.surnameCheck || "",
+    deathDate: initialPerson?.deathDate || "",
+    birthDate: initialPerson?.birthDate || "",
+    age: initialPerson?.age || "",
+    gender: initialPerson?.gender || "",
+    country: initialPerson?.country || activeUser?.country || state.currentCountry || initialState.currentCountry,
+    info: initialPerson?.info || ""
+  }));
   const [errors, setErrors] = useState({});
 
   const setField = (field, value) => setForm((current) => ({ ...current, [field]: value }));
@@ -2624,7 +2666,7 @@ function AddScreen({ state, language, t, setModal, onCreate, activeUser, goBack 
     reader.readAsDataURL(file);
   };
 
-  const create = () => {
+  const submit = () => {
     const nextErrors = {};
     if (!form.fullName.trim()) nextErrors.fullName = t("errFullName");
     if (!form.surnameCheck.trim()) nextErrors.surnameCheck = t("errSurname");
@@ -2636,14 +2678,23 @@ function AddScreen({ state, language, t, setModal, onCreate, activeUser, goBack 
     }
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) return;
-    onCreate(form);
+    onSubmit(form);
   };
 
   const infoWords = form.info.trim().split(/\s+/).filter(Boolean).length;
 
+  if (isUpdate && !initialPerson) {
+    return (
+      <main className="main-screen add-screen scroll-screen">
+        <Header title={t("update")} compact back={goBack} language={language} t={t} />
+        <EmptyState title={t("entryNotFound")} />
+      </main>
+    );
+  }
+
   return (
     <main className="main-screen add-screen scroll-screen">
-      <Header title={t("add")} compact back={goBack} language={language} t={t} />
+      <Header title={isUpdate ? t("update") : t("add")} compact back={goBack} language={language} t={t} />
       <section className="add-form">
         <label className="photo-picker">
           {form.photo ? <img src={form.photo} alt={t("selected")} /> : <AvatarSilhouette />}
@@ -2735,8 +2786,8 @@ function AddScreen({ state, language, t, setModal, onCreate, activeUser, goBack 
         />
         <div className="counter left">{infoWords}/250 {t("words")}</div>
         {errors.info && <p className="error-text">* {errors.info}</p>}
-        <button className="primary-button" onClick={create}>
-          {t("create")}
+        <button className="primary-button" onClick={submit}>
+          {isUpdate ? t("update") : t("create")}
         </button>
       </section>
     </main>
@@ -3189,6 +3240,11 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
   const lifeYears = personLifeYears(person, t);
   const displayAge = personDisplayAge(person);
   const activeFlowers = activeFlowerGifts(person.flowers);
+  const creatorId = person.createdBy || "";
+  const canEditShrine =
+    creatorId &&
+    creatorId !== "sample" &&
+    (creatorId === "guest" || creatorId === state.currentUser?.id);
 
   const shareShrine = () => {
     shareContent({
@@ -3214,9 +3270,16 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
         language={language}
         t={t}
         action={
-          <button className="header-icon detail-share-button" onClick={shareShrine} aria-label="Share">
-            <Share2 size={30} />
-          </button>
+          <div className="header-action-cluster">
+            {canEditShrine && (
+              <button className="header-icon detail-edit-button" onClick={() => setScreen("editShrine")} aria-label={t("update")}>
+                <Pencil size={29} />
+              </button>
+            )}
+            <button className="header-icon detail-share-button" onClick={shareShrine} aria-label="Share">
+              <Share2 size={30} />
+            </button>
+          </div>
         }
       />
       <section className="detail-card">
