@@ -3949,6 +3949,7 @@ function MessageScreen({ state, language, t, goBack, setScreen, onSendMessage, a
 function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedTarget, onSharedTargetHandled }) {
   const [entryMenuOpen, setEntryMenuOpen] = useState(false);
   const [openMessageMenuId, setOpenMessageMenuId] = useState("");
+  const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
   const entryRef = useRef(null);
   const messageRefs = useRef(new Map());
   const person = findPersonByShareId(state.people, state.selectedPersonId);
@@ -3967,6 +3968,21 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
 
     return () => clearTimeout(scrollTimer);
   }, [person, sharedCommentId, sharedCommentPersonId, onSharedTargetHandled]);
+
+  useEffect(() => {
+    if (!photoViewerOpen) return undefined;
+
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setPhotoViewerOpen(false);
+    };
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [photoViewerOpen]);
+
+  useEffect(() => {
+    setPhotoViewerOpen(false);
+  }, [person?.id]);
 
   if (!person) {
     return (
@@ -4038,9 +4054,9 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
       />
       <section className="detail-card">
         <div className="detail-hero">
-          <div className="detail-photo">
+          <button type="button" className="detail-photo" onClick={() => setPhotoViewerOpen(true)} aria-label="Open photo">
             {person.photo ? <img src={person.photo} alt={person.fullName} /> : <AvatarSilhouette />}
-          </div>
+          </button>
           <div className="detail-summary">
             <h2>{person.fullName}</h2>
             <p className="detail-dates">{lifeYears}</p>
@@ -4154,6 +4170,18 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
           </section>
         )}
       </section>
+      {photoViewerOpen && (
+        <div className="photo-viewer-backdrop" role="dialog" aria-modal="true" aria-label={person.fullName} onClick={() => setPhotoViewerOpen(false)}>
+          <div className="photo-viewer" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="photo-viewer-close" onClick={() => setPhotoViewerOpen(false)} aria-label={t("back")}>
+              <X size={36} />
+            </button>
+            <div className="photo-viewer-media">
+              {person.photo ? <img src={person.photo} alt={person.fullName} /> : <AvatarSilhouette />}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
