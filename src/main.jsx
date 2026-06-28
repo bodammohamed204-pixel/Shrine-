@@ -606,6 +606,7 @@ function normalizeShrineApiPerson(data, fallbackId) {
     ...source,
     id: firstText(source.id, source._id, source.shrineId, source.shrine_id, fallbackId),
     publicId: publicShrineIdFromSource(source, fallbackId),
+    importedFromShare: true,
     fullName,
     photo: firstText(
       source.photo,
@@ -1469,16 +1470,23 @@ function canEditPersonShrine(person, currentUser) {
   if (!person || isDefaultPerson(person)) return false;
 
   const creatorId = String(person.createdBy || "").trim();
+  const currentUserId = String(currentUser?.id || "").trim();
+  if (person.createdLocally) return true;
+  if (person.importedFromShare && creatorId && creatorId !== "guest" && creatorId !== currentUserId) return false;
   if (!creatorId) return true;
 
-  return creatorId === "guest" || creatorId === String(currentUser?.id || "");
+  return creatorId === "guest" || creatorId === currentUserId;
 }
 
 function canViewFlowerSenders(person, currentUser) {
   if (!person || defaultPeople.some((sample) => sample.id === person.id) || person.createdBy === "sample") return false;
 
   const creatorId = String(person.createdBy || "").trim();
-  return Boolean(creatorId && (creatorId === "guest" || creatorId === String(currentUser?.id || "")));
+  if (person.importedFromShare && (!creatorId || creatorId !== String(currentUser?.id || ""))) return false;
+  if (!person.importedFromShare && (person.createdLocally || person.createdAt)) return true;
+  if (!creatorId) return true;
+
+  return creatorId === "guest" || creatorId === String(currentUser?.id || "");
 }
 
 function getUserName(user) {
@@ -1921,6 +1929,7 @@ function App() {
           id: uid(),
           publicId: createShrinePublicId(),
           createdAt: new Date().toISOString(),
+          createdLocally: true,
           createdBy: current.currentUser?.id || "guest",
           createdByName: current.currentUser ? getUserName(current.currentUser) : "",
           flowers: [],
@@ -1940,7 +1949,7 @@ function App() {
     setState((current) => ({
       ...current,
       people: current.people.map((item) =>
-        item.id === personId
+        item.id === personId || personMatchesShareId(item, personId)
           ? normalizePersonFlowers({
               ...item,
               ...person,
@@ -3758,22 +3767,25 @@ function FlowerScreen({ state, language, t, setModal, goBack }) {
   }
 
   const flowers = activeFlowerGifts(person.flowers).sort((left, right) => Date.parse(right.givenAt) - Date.parse(left.givenAt));
+  const canOpenFlowerSenders = canViewFlowerSenders(person, state.currentUser);
 
   return (
     <main className="main-screen flowers-screen scroll-screen">
       <Header
-        title={t("giveFlower")}
+        title={canOpenFlowerSenders ? t("flowerSenders") : t("giveFlower")}
         back={goBack}
         language={language}
         t={t}
         action={
-          <button
-            className="header-icon flower-header-button"
-            onClick={() => setModal({ type: "flower", personId: person.id })}
-            aria-label={t("giveFlower")}
-          >
-            <Plus size={34} />
-          </button>
+          !canOpenFlowerSenders && (
+            <button
+              className="header-icon flower-header-button"
+              onClick={() => setModal({ type: "flower", personId: person.id })}
+              aria-label={t("giveFlower")}
+            >
+              <Plus size={34} />
+            </button>
+          )
         }
       />
       <section className="flower-person-row">
