@@ -113,7 +113,7 @@ const initialState = {
   people: defaultPeople,
   following: [],
   blocked: [],
-  language: "EN",
+  language: "AR",
   currentCountry: "United States",
   homeFilter: "United States",
   guest: true
@@ -159,11 +159,14 @@ const copy = {
     letsStart: "Let's Start",
     sponsor: "Sponsor",
     follow: "Follow",
+    sponsorTab: "Sponsor",
+    followersTab: "Followers",
     noMemorials: "No memorials yet",
     noMemorialsBody: "Use the add button to create the first real entry from your own data.",
     browseCountry: "Browse country",
     add: "Add",
     selected: "Selected",
+    fatherName: "Father's Name",
     fullName: "Full Name (including Surname)",
     verifySurname: "Verify Surname",
     dateOfDeath: "Date of Death",
@@ -217,15 +220,19 @@ const copy = {
     male: "Male",
     female: "Female",
     searchCountry: "Search country",
+    receiveActivationCode: "How to receive the activation code",
     whatsappCode: "WhatsApp activation code",
     mobileWhatsapp: "Mobile (WhatsApp)",
+    emailCode: "E-Mail",
     activationCode: "Activation Code",
     sixDigitCode: "6-digit code",
-    codeSent: "WhatsApp code sent.",
-    enterCode: "Enter the WhatsApp code first.",
-    couldNotSend: "Could not send WhatsApp code.",
-    couldNotVerify: "Could not verify WhatsApp code.",
+    codeSent: "Activation code sent.",
+    emailCodeSent: "Email code sent.",
+    enterCode: "Enter the activation code first.",
+    couldNotSend: "Could not send activation code.",
+    couldNotVerify: "Could not verify activation code.",
     codeWrong: "The code is incorrect or expired.",
+    devCode: "Development code",
     expiresAt: "Expires at",
     pleaseWait: "Please wait...",
     verifyProceed: "Verify & Proceed",
@@ -240,9 +247,9 @@ const copy = {
     signIn: "Sign in"
   },
   AR: {
-    shrine: "المزارات",
+    shrine: "مزارات",
     registerTitle: "ابدأ حسابك",
-    registerIntro: "أنشئ حسابًا خاصًا واحفظ كل ذكرى باسمك.",
+    registerIntro: "اعمل حسابك واحفظ كل مزار باسمك.",
     firstName: "الاسم الأول",
     surname: "اسم العائلة",
     mobileNumber: "رقم الهاتف",
@@ -252,7 +259,7 @@ const copy = {
     password: "كلمة المرور",
     confirmPassword: "تأكيد كلمة المرور",
     continue: "متابعة",
-    alreadyHaveAccount: "لديك حساب بالفعل؟",
+    alreadyHaveAccount: "عندك حساب بالفعل؟",
     login: "تسجيل الدخول",
     continueBrowsing: "تصفح كزائر",
     selectCallingCode: "اختر كود الدولة",
@@ -261,28 +268,31 @@ const copy = {
     errFirstName: "الاسم الأول مطلوب",
     errSurname: "اسم العائلة مطلوب",
     errPhone: "أدخل رقم هاتف صحيح",
-    errEmail: "أدخل بريدًا إلكترونيًا صحيحًا",
+    errEmail: "أدخل بريد إلكتروني صحيح",
     errGender: "النوع مطلوب",
     errPassword: "كلمة المرور مطلوبة",
     errPasswordLength: "استخدم 8 أحرف على الأقل",
     errPasswordMatch: "كلمتا المرور غير متطابقتين",
-    welcomeBack: "مرحبًا بعودتك",
-    loginIntro: "سجل الدخول بالحساب الذي أنشأته على هذا الجهاز.",
+    welcomeBack: "أهلًا بعودتك",
+    loginIntro: "سجّل الدخول بالحساب اللي عملته على الجهاز ده.",
     back: "رجوع",
     newHere: "مستخدم جديد؟",
     createAccount: "إنشاء حساب",
     badLogin: "راجع البريد الإلكتروني أو رقم الهاتف وكلمة المرور",
     success: "تم بنجاح",
-    congrats: "تهانينا!",
-    successBody: "حسابك جاهز. ابدأ بإضافة الذكريات وإدارتها من ملفك.",
-    letsStart: "لنبدأ",
-    sponsor: "الداعمون",
-    follow: "المتابعة",
-    noMemorials: "لا توجد ذكريات بعد",
-    noMemorialsBody: "استخدم زر الإضافة لإنشاء أول إدخال من بياناتك.",
+    congrats: "مبروك!",
+    successBody: "حسابك جاهز. ابدأ بإضافة المزارات وإدارتها من ملفك.",
+    letsStart: "ابدأ",
+    sponsor: "الداعمين",
+    follow: "المتابعين",
+    sponsorTab: "الرعاية",
+    followersTab: "المتابعون",
+    noMemorials: "لا توجد مزارات بعد",
+    noMemorialsBody: "اضغط على زر إضافة عشان تضيف أول مزار ببياناتك.",
     browseCountry: "تصفح حسب الدولة",
     add: "إضافة",
     selected: "تم الاختيار",
+    fatherName: "اسم الأب",
     fullName: "الاسم الكامل (مع اسم العائلة)",
     verifySurname: "تأكيد اسم العائلة",
     dateOfDeath: "تاريخ الوفاة",
@@ -291,7 +301,7 @@ const copy = {
     information: "معلومات",
     words: "كلمة",
     create: "إنشاء",
-    memorialCreated: "تم إنشاء الذكرى",
+    memorialCreated: "تم إنشاء المزار",
     errFullName: "الاسم الكامل مطلوب",
     errDeathDate: "تاريخ الوفاة مطلوب",
     errCountry: "الدولة مطلوبة",
@@ -299,7 +309,7 @@ const copy = {
     search: "بحث",
     startTyping: "ابدأ الكتابة للبحث",
     noResults: "لا توجد نتائج",
-    noResultsBody: "جرب اسمًا أو دولة أو كلمة من الوصف.",
+    noResultsBody: "جرّب اسم أو دولة أو كلمة من الوصف.",
     settings: "الإعدادات",
     profile: "الملف الشخصي",
     language: "اللغة",
@@ -317,10 +327,10 @@ const copy = {
     notSelected: "غير محدد",
     save: "حفظ",
     profileUpdated: "تم تحديث الملف",
-    memorial: "الذكرى",
-    entryNotFound: "الإدخال غير موجود",
+    memorial: "المزار",
+    entryNotFound: "المزار غير موجود",
     unknownBirth: "تاريخ الميلاد غير معروف",
-    following: "تتم المتابعة",
+    following: "تتم متابعته",
     block: "حظر",
     unblock: "إلغاء الحظر",
     noBlockedUsers: "لا يوجد مستخدمون محظورون",
@@ -336,15 +346,19 @@ const copy = {
     male: "ذكر",
     female: "أنثى",
     searchCountry: "ابحث عن دولة",
+    receiveActivationCode: "طريقة استلام كود التفعيل",
     whatsappCode: "كود تفعيل واتساب",
     mobileWhatsapp: "الهاتف (واتساب)",
+    emailCode: "البريد الإلكتروني",
     activationCode: "كود التفعيل",
     sixDigitCode: "كود من 6 أرقام",
-    codeSent: "تم إرسال كود واتساب.",
-    enterCode: "أدخل كود واتساب أولًا.",
-    couldNotSend: "تعذر إرسال كود واتساب.",
-    couldNotVerify: "تعذر التحقق من كود واتساب.",
+    codeSent: "تم إرسال كود التفعيل.",
+    emailCodeSent: "تم إرسال كود البريد الإلكتروني.",
+    enterCode: "أدخل كود التفعيل أولًا.",
+    couldNotSend: "تعذر إرسال كود التفعيل.",
+    couldNotVerify: "تعذر التحقق من كود التفعيل.",
     codeWrong: "الكود غير صحيح أو انتهت صلاحيته.",
+    devCode: "كود التطوير",
     expiresAt: "ينتهي في",
     pleaseWait: "برجاء الانتظار...",
     verifyProceed: "تحقق وتابع",
@@ -352,10 +366,10 @@ const copy = {
     resendCode: "إعادة إرسال الكود",
     emailOrPhone: "البريد الإلكتروني أو رقم الهاتف",
     emailOrPhonePlaceholder: "email@example.com أو رقم الهاتف",
-    accountPromptTitle: "أنشئ حسابًا لحفظ المتابعات",
-    accountPromptBody: "قائمة المتابعة مرتبطة بحسابك حتى تبقى منفصلة عن تصفح الزائر.",
-    accountPromptAddTitle: "أنشئ حسابًا لإضافة مزار",
-    accountPromptAddBody: "أضف مزارًا، واحفظ التفاصيل، وتحكم فيه بأمان من حسابك.",
+    accountPromptTitle: "اعمل حساب عشان تحفظ المتابعات",
+    accountPromptBody: "قائمة المتابعين مرتبطة بحسابك، وبتفضل منفصلة عن تصفح الزائر.",
+    accountPromptAddTitle: "اعمل حساب عشان تضيف مزار",
+    accountPromptAddBody: "أضف مزار واحفظ التفاصيل وتحكم فيه بأمان من حسابك.",
     signIn: "تسجيل الدخول"
   }
 };
@@ -392,12 +406,12 @@ const termsSections = {
     {
       title: "1. ملكية الحساب",
       body:
-        "يحفظ حسابك الذكريات وبيانات الملف الشخصي والمتابعات والإعدادات التي تضيفها داخل التطبيق. حافظ على بيانات الدخول الخاصة بك وحدث أي معلومات غير صحيحة."
+        "يحفظ حسابك المزارات وبيانات الملف الشخصي والمتابعات والإعدادات التي تضيفها داخل التطبيق. حافظ على بيانات الدخول الخاصة بك وحدث أي معلومات غير صحيحة."
     },
     {
-      title: "2. إدخالات الذكرى",
+      title: "2. المزارات",
       body:
-        "أضف فقط الأسماء والصور والتواريخ والقصص التي تملك حق مشاركتها. يمكنك تعديل أو حذف إدخالاتك من هذا الجهاز في أي وقت."
+        "أضف فقط الأسماء والصور والتواريخ والقصص التي تملك حق مشاركتها. يمكنك تعديل أو حذف المزارات التي تضيفها من هذا الجهاز في أي وقت."
     },
     {
       title: "3. الاستخدام باحترام",
@@ -407,7 +421,7 @@ const termsSections = {
     {
       title: "4. البيانات المحلية",
       body:
-        "يحفظ هذا الإصدار البيانات في مساحة تخزين المتصفح أو التطبيق على جهازك. مسح بيانات التطبيق أو استخدام جهاز آخر قد يزيل الحسابات والذكريات المحفوظة."
+        "يحفظ هذا الإصدار البيانات في مساحة تخزين المتصفح أو التطبيق على جهازك. مسح بيانات التطبيق أو استخدام جهاز آخر قد يزيل الحسابات والمزارات المحفوظة."
     },
     {
       title: "5. الدعم",
@@ -431,6 +445,7 @@ function loadState() {
       ...merged,
       people,
       guest: merged.currentUser ? false : true,
+      language: normalizeLanguage(merged.language),
       currentCountry: merged.currentCountry || initialState.currentCountry,
       homeFilter: merged.homeFilter || initialState.homeFilter
     };
@@ -466,6 +481,10 @@ function findCountry(name) {
 
 function normalizeLanguage(language) {
   return language === "AR" ? "AR" : "EN";
+}
+
+function getNextLanguage(language) {
+  return normalizeLanguage(language) === "AR" ? "EN" : "AR";
 }
 
 function translator(language) {
@@ -515,7 +534,28 @@ function App() {
   }, [toast]);
 
   const updateState = (patch) => {
-    setState((current) => ({ ...current, ...patch }));
+    setState((current) => {
+      const normalizedPatch = { ...patch };
+      if (Object.prototype.hasOwnProperty.call(normalizedPatch, "language")) {
+        normalizedPatch.language = normalizeLanguage(normalizedPatch.language);
+      }
+
+      const next = { ...current, ...normalizedPatch };
+      if (!Object.prototype.hasOwnProperty.call(normalizedPatch, "language") || !next.currentUser) {
+        return next;
+      }
+
+      const currentUser = { ...next.currentUser, language: normalizedPatch.language };
+      return {
+        ...next,
+        currentUser,
+        users: next.users.map((user) => (user.id === currentUser.id ? currentUser : user))
+      };
+    });
+  };
+
+  const toggleLanguage = () => {
+    updateState({ language: getNextLanguage(language) });
   };
 
   const addPerson = (person) => {
@@ -552,8 +592,18 @@ function App() {
       setToast(t("badLogin"));
       return false;
     }
-    updateState({ currentUser: user, guest: false, language: user.language || state.language });
-    setScreen("home");
+    const loginUserWithOtp = {
+      ...user,
+      otpPhone: user.otpPhone || `${user.phoneCode || ""}${String(user.phone || "").replace(/^0+/, "")}`
+    };
+    setModal({
+      type: "verify",
+      user: loginUserWithOtp,
+      onProceed: () => {
+        updateState({ currentUser: loginUserWithOtp, guest: false, language: user.language || state.language });
+        setScreen("home");
+      }
+    });
     return true;
   };
 
@@ -574,7 +624,8 @@ function App() {
     setModal,
     setToast,
     activeUser,
-    canUseAccount
+    canUseAccount,
+    toggleLanguage
   };
 
   return (
@@ -601,12 +652,22 @@ function App() {
           state={state}
           language={language}
           t={t}
+          toggleLanguage={toggleLanguage}
           onLogin={loginUser}
           onBack={() => setScreen("home")}
           setScreen={setScreen}
+          setModal={setModal}
         />
       )}
-      {screen === "success" && <SuccessScreen state={state} t={t} setScreen={setScreen} />}
+      {screen === "success" && (
+        <SuccessScreen
+          state={state}
+          language={language}
+          t={t}
+          toggleLanguage={toggleLanguage}
+          setScreen={setScreen}
+        />
+      )}
       {screen === "home" && <HomeScreen {...commonProps} bootLoading={homeIntroLoading && !opening} />}
       {screen === "add" && <AddScreen {...commonProps} onCreate={addPerson} />}
       {screen === "search" && <SearchScreen {...commonProps} />}
@@ -725,26 +786,32 @@ function Header({ title, back, action, compact = false, flagCountry, onFlag, lan
 }
 
 function LanguageButton({ value, onClick }) {
+  const language = normalizeLanguage(value);
+
   return (
-    <button className="language-mini" onClick={onClick}>
-      <span>{value}</span>
+    <button type="button" className="language-mini" onClick={onClick} aria-label="Change language">
+      <span>{language}</span>
       <ChevronDown size={18} />
     </button>
   );
 }
 
 function RegisterScreen({ state, language, t, updateState, onRegister, onLogin, onGuest, setModal, setToast }) {
-  const [form, setForm] = useState({
-    language: state.language || "EN",
-    firstName: "",
-    surname: "",
-    phoneCountry: countries[1],
-    phone: "",
-    email: "",
-    gender: "",
-    country: "United States",
-    password: "",
-    confirmPassword: ""
+  const [form, setForm] = useState(() => {
+    const accountCountry = findCountry(state.currentCountry || "United States");
+
+    return {
+      language: state.language || "EN",
+      firstName: "",
+      surname: "",
+      phoneCountry: accountCountry,
+      phone: "",
+      email: "",
+      gender: "",
+      country: accountCountry.name,
+      password: "",
+      confirmPassword: ""
+    };
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -754,8 +821,16 @@ function RegisterScreen({ state, language, t, updateState, onRegister, onLogin, 
     setForm((current) => ({ ...current, [field]: value }));
   };
 
+  const setAccountCountry = (country) => {
+    setForm((current) => ({
+      ...current,
+      phoneCountry: country,
+      country: country.name
+    }));
+  };
+
   const setLanguage = () => {
-    const nextLanguage = form.language === "EN" ? "AR" : "EN";
+    const nextLanguage = getNextLanguage(form.language);
     setField("language", nextLanguage);
     updateState({ language: nextLanguage });
   };
@@ -833,7 +908,7 @@ function RegisterScreen({ state, language, t, updateState, onRegister, onLogin, 
               type: "country",
               title: t("selectCallingCode"),
               withCodes: true,
-              onPick: (country) => setField("phoneCountry", country)
+              onPick: setAccountCountry
             })
           }
         >
@@ -882,7 +957,7 @@ function RegisterScreen({ state, language, t, updateState, onRegister, onLogin, 
           setModal({
             type: "country",
             title: t("country"),
-            onPick: (country) => setField("country", country.name)
+            onPick: setAccountCountry
           })
         }
       />
@@ -919,35 +994,75 @@ function RegisterScreen({ state, language, t, updateState, onRegister, onLogin, 
   );
 }
 
-function LoginScreen({ state, t, onLogin, onBack, setScreen }) {
-  const [identifier, setIdentifier] = useState("");
+function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setScreen, setModal }) {
+  const [phoneCountry, setPhoneCountry] = useState(findCountry(state.currentCountry || "United States"));
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [visible, setVisible] = useState(false);
+  const [errors, setErrors] = useState({});
+
+  const submit = () => {
+    const nextErrors = {};
+    if (!/^\d{7,14}$/.test(phone)) nextErrors.phone = t("errPhone");
+    if (!password) nextErrors.password = t("errPassword");
+
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) return;
+
+    onLogin(`${phoneCountry.code}${phone}`, password);
+  };
 
   return (
     <main className="auth-screen scroll-screen">
-      <button className="back-text" onClick={onBack}>
-        <ArrowLeft size={24} /> {t("back")}
-      </button>
+      <div className="auth-topbar">
+        <button className="back-text" onClick={onBack}>
+          <ArrowLeft size={24} /> {t("back")}
+        </button>
+        <LanguageButton value={language} onClick={toggleLanguage} />
+      </div>
       <section className="auth-intro login">
         <h1>{t("welcomeBack")}</h1>
         <p>{t("loginIntro")}</p>
       </section>
-      <Input
-        label={t("emailOrPhone")}
-        placeholder={t("emailOrPhonePlaceholder")}
-        value={identifier}
-        onChange={setIdentifier}
-      />
+      <label className="field-label">{t("mobileNumber")}</label>
+      <div className={`phone-field ${errors.phone ? "has-error" : ""}`}>
+        <button
+          type="button"
+          className="country-code-button"
+          onClick={() =>
+            setModal({
+              type: "country",
+              title: t("selectCallingCode"),
+              withCodes: true,
+              onPick: setPhoneCountry
+            })
+          }
+        >
+          <ChevronDown size={18} />
+          <Flag country={phoneCountry} />
+          <span>{phoneCountry.code}</span>
+        </button>
+        <input
+          type="tel"
+          inputMode="numeric"
+          placeholder="1234567891"
+          maxLength={14}
+          value={phone}
+          onChange={(event) => setPhone(event.target.value.replace(/\D/g, ""))}
+        />
+      </div>
+      <div className="counter">{phone.length}/14</div>
+      {errors.phone && <p className="error-text">* {errors.phone}</p>}
       <PasswordInput
         label={t("password")}
         value={password}
+        error={errors.password}
         visible={visible}
         onToggle={() => setVisible((value) => !value)}
         onChange={setPassword}
         t={t}
       />
-      <button className="primary-button" onClick={() => onLogin(identifier, password)}>
+      <button className="primary-button" onClick={submit}>
         {t("login")}
       </button>
       <button className="text-link wide" onClick={() => setScreen("register")}>
@@ -957,10 +1072,10 @@ function LoginScreen({ state, t, onLogin, onBack, setScreen }) {
   );
 }
 
-function SuccessScreen({ state, t, setScreen }) {
+function SuccessScreen({ state, language, t, toggleLanguage, setScreen }) {
   return (
     <main className="success-screen">
-      <LanguageButton value={state.language || "EN"} onClick={() => {}} />
+      <LanguageButton value={language || state.language} onClick={toggleLanguage} />
       <h1>{t("success")}</h1>
       <div className="success-mark">
         <div>
@@ -990,8 +1105,8 @@ function HomeScreen({ state, language, t, updateState, setModal, setScreen, acti
   }, [state.people, state.blocked, state.following, state.homeFilter]);
 
   const tabs = [
-    { id: "Sponsor", label: t("sponsor") },
-    { id: "Follow", label: t("follow") },
+    { id: "Sponsor", label: t("sponsorTab") },
+    { id: "Follow", label: t("followersTab") },
     { id: selectedCountry.name, label: countryLabel(selectedCountry, language) }
   ];
 
@@ -1066,7 +1181,10 @@ function PersonCard({ person, onOpen }) {
       <div className="person-image">
         {person.photo ? <img src={person.photo} alt={person.fullName} /> : <AvatarSilhouette />}
       </div>
-      <span>{person.fullName}</span>
+      <span className="person-name-lines">
+        {person.fatherName && <em>{person.fatherName}</em>}
+        <strong>{person.fullName}</strong>
+      </span>
     </button>
   );
 }
@@ -1074,6 +1192,7 @@ function PersonCard({ person, onOpen }) {
 function AddScreen({ state, language, t, setModal, onCreate, activeUser }) {
   const [form, setForm] = useState({
     photo: "",
+    fatherName: "",
     fullName: "",
     surnameCheck: "",
     deathDate: "",
@@ -1251,8 +1370,10 @@ function SearchScreen({ state, language, t, updateState, setScreen }) {
   );
 }
 
-function SettingsScreen({ state, t, updateState, setScreen, logout }) {
+function SettingsScreen({ state, language, t, updateState, setScreen, logout }) {
   const [languageOpen, setLanguageOpen] = useState(false);
+  const currentLanguage = normalizeLanguage(language || state.language);
+  const currentLanguageFlag = countries.find((country) => country.iso === (currentLanguage === "AR" ? "eg" : "gb"));
 
   return (
     <main className="main-screen settings-screen scroll-screen">
@@ -1262,18 +1383,22 @@ function SettingsScreen({ state, t, updateState, setScreen, logout }) {
         <div className={`settings-card language-card ${languageOpen ? "open" : ""}`}>
           <button className="settings-row" onClick={() => setLanguageOpen((value) => !value)}>
             <span className="setting-icon">
-              <Flag country={countries.find((country) => country.iso === "gb")} />
+              <Flag country={currentLanguageFlag} />
             </span>
             <span>{t("language")}</span>
             {languageOpen ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
           </button>
           {languageOpen && (
             <div className="language-options">
-              <button onClick={() => updateState({ language: "AR" })}>
-                <Flag country={countries.find((country) => country.iso === "kw")} /> {t("arabic")}
+              <button className={currentLanguage === "AR" ? "active" : ""} onClick={() => updateState({ language: "AR" })}>
+                <Flag country={countries.find((country) => country.iso === "eg")} />
+                <span>{t("arabic")}</span>
+                {currentLanguage === "AR" && <Check size={18} />}
               </button>
-              <button onClick={() => updateState({ language: "EN" })}>
-                <Flag country={countries.find((country) => country.iso === "gb")} /> {t("english")}
+              <button className={currentLanguage === "EN" ? "active" : ""} onClick={() => updateState({ language: "EN" })}>
+                <Flag country={countries.find((country) => country.iso === "gb")} />
+                <span>{t("english")}</span>
+                {currentLanguage === "EN" && <Check size={18} />}
               </button>
             </div>
           )}
@@ -1699,30 +1824,85 @@ function Sheet({ children, onClose }) {
 }
 
 function VerifyModal({ user, t, onProceed, onCancel }) {
+  const channels = useMemo(() => {
+    const phoneValue = [user.phoneCode, user.phone].filter(Boolean).join(" ").trim() || user.otpPhone;
+    return [
+      user.otpPhone
+        ? {
+            id: "mobile",
+            label: t("mobileWhatsapp"),
+            value: phoneValue,
+            sendPath: "/api/otp/send",
+            verifyPath: "/api/otp/verify"
+          }
+        : null,
+      user.email
+        ? {
+            id: "email",
+            label: t("emailCode"),
+            value: user.email,
+            sendPath: "/api/otp/email/send",
+            verifyPath: "/api/otp/email/verify"
+          }
+        : null
+    ].filter(Boolean);
+  }, [t, user.email, user.otpPhone, user.phone, user.phoneCode]);
+  const [channelId, setChannelId] = useState(channels[0]?.id || "mobile");
   const [code, setCode] = useState("");
   const [sent, setSent] = useState(false);
+  const [challenge, setChallenge] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const selectedChannel = channels.find((channel) => channel.id === channelId) || channels[0];
+
+  const resetChannel = (nextChannelId) => {
+    if (loading || nextChannelId === channelId) return;
+    setChannelId(nextChannelId);
+    setCode("");
+    setSent(false);
+    setChallenge("");
+    setExpiresAt("");
+    setMessage("");
+    setError("");
+  };
+
+  const requestBody = () => {
+    if (selectedChannel?.id === "email") {
+      return {
+        send: { email: user.email, codeLength: 6 },
+        verify: { email: user.email, code, challenge }
+      };
+    }
+
+    return {
+      send: { phone: user.otpPhone, codeLength: 6 },
+      verify: { phone: user.otpPhone, code }
+    };
+  };
 
   const sendCode = async () => {
+    if (!selectedChannel) return;
     setLoading(true);
     setError("");
     setMessage("");
     try {
-      const response = await fetch(apiUrl("/api/otp/send"), {
+      const body = requestBody();
+      const response = await fetch(apiUrl(selectedChannel.sendPath), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: user.otpPhone, codeLength: 6 })
+        body: JSON.stringify(body.send)
       });
       const data = await readApiJson(response, t("couldNotSend"));
       if (!response.ok || data.success === false) {
         throw new Error(data.error || data.message || t("couldNotSend"));
       }
       setSent(true);
+      setChallenge(data.challenge || "");
       setExpiresAt(data.expiresAt || "");
-      setMessage(data.message || t("codeSent"));
+      const sentMessage = data.message || (selectedChannel.id === "email" ? t("emailCodeSent") : t("codeSent"));
+      setMessage(data.debugCode ? `${sentMessage} ${t("devCode")}: ${data.debugCode}` : sentMessage);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("couldNotSend"));
     } finally {
@@ -1735,13 +1915,15 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
       setError(t("enterCode"));
       return;
     }
+    if (!selectedChannel) return;
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(apiUrl("/api/otp/verify"), {
+      const body = requestBody();
+      const response = await fetch(apiUrl(selectedChannel.verifyPath), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: user.otpPhone, code })
+        body: JSON.stringify(body.verify)
       });
       const data = await readApiJson(response, t("couldNotVerify"));
       if (!response.ok) {
@@ -1761,15 +1943,24 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
   return (
     <div className="modal-backdrop" onClick={onCancel}>
       <div className="verify-modal" onClick={(event) => event.stopPropagation()}>
-        <h2>{t("whatsappCode")}</h2>
-        <div className="verify-option selected">
-          <span className="radio" />
-          <div>
-            <strong>{t("mobileWhatsapp")}</strong>
-            <p>
-              {user.phoneCode} {user.phone}
-            </p>
-          </div>
+        <h2>{t("receiveActivationCode")}</h2>
+        <div className="verify-options">
+          {channels.map((channel) => (
+            <button
+              type="button"
+              key={channel.id}
+              className={`verify-option ${channel.id === selectedChannel?.id ? "selected" : ""}`}
+              aria-pressed={channel.id === selectedChannel?.id}
+              disabled={loading}
+              onClick={() => resetChannel(channel.id)}
+            >
+              <span className="radio" />
+              <div>
+                <strong>{channel.label}</strong>
+                <p>{channel.value}</p>
+              </div>
+            </button>
+          ))}
         </div>
         {sent && (
           <label className="otp-code-field">
@@ -1790,8 +1981,8 @@ function VerifyModal({ user, t, onProceed, onCancel }) {
           </p>
         )}
         {error && <p className="verify-error">{error}</p>}
-        <button className="primary-button" disabled={loading} onClick={sent ? verifyCode : sendCode}>
-          {loading ? t("pleaseWait") : sent ? t("verifyProceed") : t("sendWhatsappCode")}
+        <button className="primary-button" disabled={loading || !selectedChannel} onClick={sent ? verifyCode : sendCode}>
+          {loading ? t("pleaseWait") : t("verifyProceed")}
         </button>
         {sent && (
           <button className="ghost-link resend-link" disabled={loading} onClick={sendCode}>

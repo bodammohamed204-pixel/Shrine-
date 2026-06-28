@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap");
+
 :root {
   --blue: #2494e8;
   --blue-dark: #1675bd;
@@ -45,7 +47,7 @@ button {
 }
 
 .app-shell.rtl {
-  font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+  font-family: "Cairo", "Segoe UI", Tahoma, Arial, sans-serif;
 }
 
 .splash-intro {
@@ -58,7 +60,7 @@ button {
   transform: translateX(-50%);
   overflow: hidden;
   pointer-events: none;
-  background: linear-gradient(180deg, #dff8ff 0%, #55cdea 42%, #26b7df 100%);
+  background: linear-gradient(180deg, #eefcff 0%, #86ddf0 44%, #55c8e4 100%);
   animation: splash-fade 2.6s ease forwards;
 }
 
@@ -68,10 +70,10 @@ button {
   background:
     repeating-conic-gradient(
       from -6deg at 50% 49%,
-      rgba(255, 255, 255, 0.82) 0 5deg,
-      rgba(87, 204, 235, 0.42) 5deg 11deg,
-      rgba(255, 255, 255, 0.72) 11deg 17deg,
-      rgba(43, 177, 226, 0.55) 17deg 24deg
+      rgba(255, 255, 255, 0.88) 0 5deg,
+      rgba(123, 214, 236, 0.28) 5deg 11deg,
+      rgba(255, 255, 255, 0.8) 11deg 17deg,
+      rgba(61, 180, 222, 0.34) 17deg 24deg
     );
   animation: splash-rays-zoom 2.6s ease-out forwards;
 }
@@ -79,7 +81,9 @@ button {
 .splash-glow {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(231, 252, 255, 0.34), rgba(255, 255, 255, 0) 42%, rgba(18, 181, 228, 0.18));
+  background:
+    radial-gradient(circle at 50% 50%, #fff 0 13%, rgba(255, 255, 255, 0.92) 21%, rgba(255, 255, 255, 0.38) 34%, rgba(255, 255, 255, 0) 52%),
+    linear-gradient(180deg, rgba(242, 253, 255, 0.58), rgba(255, 255, 255, 0) 44%, rgba(64, 189, 225, 0.1));
 }
 
 @keyframes splash-rays-zoom {
@@ -93,13 +97,13 @@ button {
   }
   100% {
     transform: scale(1.04);
-    opacity: 0.18;
+    opacity: 0.72;
   }
 }
 
 @keyframes splash-fade {
   0%,
-  78% {
+  94% {
     opacity: 1;
   }
   100% {
@@ -133,6 +137,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  width: fit-content;
   min-width: 78px;
   height: 44px;
   padding: 0 13px;
@@ -143,6 +148,14 @@ button {
   box-shadow: var(--shadow-sm);
   font-size: 1rem;
   font-weight: 700;
+  white-space: nowrap;
+}
+
+.auth-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .auth-intro {
@@ -474,6 +487,12 @@ button {
   background: transparent;
   color: var(--blue);
   font-weight: 800;
+}
+
+.rtl .back-text svg,
+.rtl .header-icon.left svg,
+.rtl .profile-back svg {
+  transform: scaleX(-1);
 }
 
 .success-screen {
@@ -1153,6 +1172,25 @@ button {
   font-size: 0.98rem;
 }
 
+.language-options button.active {
+  color: var(--blue);
+  font-weight: 800;
+}
+
+.language-options button span {
+  flex: 1;
+  min-width: 0;
+}
+
+.language-options button > svg {
+  margin-inline-start: auto;
+}
+
+.rtl .settings-row,
+.rtl .language-options button {
+  text-align: right;
+}
+
 .settings-done {
   width: calc(100% - 32px);
   margin: 36px 16px 0;
@@ -1183,6 +1221,17 @@ button {
   color: #111;
 }
 
+.rtl .profile-back {
+  right: 18px;
+  left: auto;
+}
+
+.rtl .profile-edit {
+  right: auto;
+  left: 18px;
+  justify-items: start;
+}
+
 .profile-screen h1 {
   margin: 0 0 22px;
   color: var(--blue);
@@ -1208,6 +1257,10 @@ button {
   background: var(--blue);
   color: #fff;
   text-align: left;
+}
+
+.rtl .info-panel {
+  text-align: right;
 }
 
 .info-panel h3 {
@@ -1290,6 +1343,10 @@ button {
 .detail-info {
   margin: 22px 0;
   text-align: left;
+}
+
+.rtl .detail-info {
+  text-align: right;
 }
 
 .detail-actions {
@@ -1534,6 +1591,14 @@ button {
   font-size: 1.25rem;
 }
 
+.rtl .sheet-row,
+.rtl .country-list button,
+.rtl .verify-option,
+.rtl .person-card,
+.rtl .terms-content {
+  text-align: right;
+}
+
 .sheet-row:first-of-type {
   background: #e4e4e4;
 }
@@ -1569,7 +1634,12 @@ button {
   font-size: 1.42rem;
 }
 
+.verify-options {
+  display: grid;
+}
+
 .verify-option {
+  appearance: none;
   display: grid;
   grid-template-columns: 52px 1fr;
   align-items: center;
@@ -1581,11 +1651,18 @@ button {
   border: 1px solid #ececf0;
   border-radius: 8px;
   background: #fff;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
   text-align: left;
 }
 
 .verify-option.selected {
   border: 2px solid var(--blue);
+}
+
+.verify-option:disabled {
+  cursor: wait;
 }
 
 .verify-option .radio {
