@@ -108,8 +108,16 @@ function shrineInfoPath(personId) {
   return `/shrines/${encodeURIComponent(personId)}/info`;
 }
 
+function shrineCommentPath(personId, commentId) {
+  return `/shrines/${encodeURIComponent(personId)}/comments/${encodeURIComponent(commentId)}`;
+}
+
 function shrineApiPath(personId) {
   return `${SHRINE_API_PATH_PREFIX}${encodeURIComponent(personId)}`;
+}
+
+function shrineCommentApiPath(personId, commentId) {
+  return `${shrineApiPath(personId)}/comments/${encodeURIComponent(commentId)}`;
 }
 
 function isHttpUrl(value) {
@@ -127,6 +135,11 @@ function shrinePreviewDescription(person) {
   const deathDate = String(person?.deathDate || "").trim();
   const dateText = [birthDate, deathDate].filter(Boolean).join(" - ");
   return `In loving memory of ${name}.${dateText ? ` ${dateText}` : ""}`;
+}
+
+function previewText(value, maxLength = 100) {
+  const text = String(value || "").trim().replace(/\s+/g, " ");
+  return text.length > maxLength ? `${text.slice(0, maxLength).trim()}...` : text;
 }
 
 function shrinePreviewMeta(personOrId) {
@@ -222,9 +235,12 @@ function buildShareUrl(personOrId, view = "shrine") {
   const personId = person?.id || String(personOrId || "");
   if (!personId) return "";
 
-  const url = new URL(`${shareBaseUrl()}${shrineInfoPath(personId)}`);
+  const commentId = typeof view === "object" ? String(view.commentId || "") : "";
+  const viewName = typeof view === "object" ? view.view : view;
+  const path = viewName === "comment" && commentId ? shrineCommentPath(personId, commentId) : shrineInfoPath(personId);
+  const url = new URL(`${shareBaseUrl()}${path}`);
 
-  if (view === "comment") {
+  if (viewName === "comment" && !commentId) {
     url.hash = "comment";
   }
 
@@ -235,22 +251,29 @@ function getSharedTargetFromLocation() {
   if (typeof window === "undefined") return null;
 
   const params = new URLSearchParams(window.location.search);
+  const pathCommentMatch = window.location.pathname.match(/^\/shrines\/([^/]+)\/comments\/([^/]+)\/?$/i);
   const pathShrineMatch = window.location.pathname.match(/^\/shrines\/([^/]+)\/info\/?$/i);
+  const pathCommentShrineId = pathCommentMatch ? safeDecodeURIComponent(pathCommentMatch[1]) : "";
+  const pathCommentId = pathCommentMatch ? safeDecodeURIComponent(pathCommentMatch[2]) : "";
   const pathShrineId = pathShrineMatch ? safeDecodeURIComponent(pathShrineMatch[1]) : "";
-  const shrineId = params.get("shrine") || params.get("person") || pathShrineId;
+  const shrineId = params.get("shrine") || params.get("person") || pathCommentShrineId || pathShrineId;
   const directCommentId = params.get("comment") || params.get("message") || "";
   const view = String(params.get("view") || "").toLowerCase();
   const hash = window.location.hash.replace(/^#/, "").toLowerCase();
 
+  if (pathCommentShrineId) {
+    return { type: "comment", personId: pathCommentShrineId, commentId: pathCommentId };
+  }
+
   if (directCommentId) {
-    const personId = ["1", "true", "comment", "message", "info"].includes(directCommentId)
-      ? shrineId
-      : directCommentId;
-    return personId ? { type: "comment", personId } : null;
+    const commentFlag = ["1", "true", "comment", "message", "info"].includes(directCommentId);
+    const personId = shrineId || (commentFlag ? "" : directCommentId);
+    const commentId = commentFlag ? "info" : shrineId ? directCommentId : "";
+    return personId ? { type: "comment", personId, commentId } : null;
   }
 
   if (shrineId && (view === "comment" || view === "message" || hash === "comment" || hash === "message")) {
-    return { type: "comment", personId: shrineId };
+    return { type: "comment", personId: shrineId, commentId: "info" };
   }
 
   if (shrineId) return { type: "shrine", personId: shrineId };
@@ -516,8 +539,22 @@ function normalizeShrineApiPerson(data, fallbackId) {
     birthDate: firstText(source.birthDate, source.birth_date, source.birth),
     deathDate: firstText(source.deathDate, source.death_date, source.death),
     fatherName: firstText(source.fatherName, source.father_name),
-    info: firstText(source.info, source.description, source.bio)
+    info: firstText(source.info, source.description, source.bio),
+    createdByName: firstText(source.createdByName, source.created_by_name, source.creatorName, source.creator_name),
+    messages: Array.isArray(source.messages) ? source.messages : Array.isArray(source.comments) ? source.comments : []
   });
+}
+
+function normalizeShrineApiMessage(data, fallbackId) {
+  const source = data?.comment || data?.message || data?.data || data;
+  if (!source || typeof source !== "object" || Array.isArray(source)) return null;
+
+  return normalizePersonMessages([
+    {
+      ...source,
+      id: firstText(source.id, source._id, source.commentId, source.comment_id, source.messageId, source.message_id, fallbackId)
+    }
+  ])[0] || null;
 }
 
 async function fetchShrineById(personId, signal) {
@@ -532,6 +569,23 @@ async function fetchShrineById(personId, signal) {
     if (!response.ok) return null;
 
     return normalizeShrineApiPerson(await readApiJson(response, "Could not load shrine."), personId);
+  } catch {
+    return null;
+  }
+}
+
+async function fetchShrineCommentById(personId, commentId, signal) {
+  if (!personId || !commentId || typeof fetch !== "function") return null;
+
+  try {
+    const response = await fetch(apiUrl(shrineCommentApiPath(personId, commentId)), {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal
+    });
+    if (!response.ok) return null;
+
+    return normalizeShrineApiMessage(await readApiJson(response, "Could not load comment."), commentId);
   } catch {
     return null;
   }
@@ -767,7 +821,15 @@ const copy = {
     flowerLasts: "The flower lasts for seven days",
     flowerCount: "{count} flowers",
     noFlowersYet: "No flowers yet",
-    flowerSenders: "Flower senders"
+    flowerSenders: "Flower senders",
+    notificationFlowerPlacedTitle: "A flower has been placed for {name}",
+    notificationFlowerPlacedBody: "See who sent the flower",
+    notificationMemorySharedTitle: "A new memory was shared about {name}",
+    notificationMemorySharedBody: "Take a look",
+    notificationFlowerFadedTitle: "Your flower for {name} has gently faded",
+    notificationFlowerFadedBody: "Send another to keep the memory alive",
+    notificationDeathAnniversaryTitle: "Today marks the anniversary of {name}",
+    notificationDeathAnniversaryBody: "Take a moment to remember"
   },
   AR: {
     shrine: "شراين",
@@ -953,7 +1015,15 @@ const copy = {
     flowerLasts: "الوردة تستمر سبعة أيام",
     flowerCount: "{count} وردة",
     noFlowersYet: "لا توجد ورود حتى الآن",
-    flowerSenders: "مرسلو الورود"
+    flowerSenders: "مرسلو الورود",
+    notificationFlowerPlacedTitle: "تم إهداء وردة لـ {name}",
+    notificationFlowerPlacedBody: "شاهد من اهدى الورده له",
+    notificationMemorySharedTitle: "تمت إضافة ذكرى جديدة عن {name}",
+    notificationMemorySharedBody: "اطّلع عليها",
+    notificationFlowerFadedTitle: "ذبلت وردتك لـ {name}",
+    notificationFlowerFadedBody: "أهدِ وردة جديدة لإبقاء الذكرى حيّة",
+    notificationDeathAnniversaryTitle: "اليوم ذكرى وفاة {name}",
+    notificationDeathAnniversaryBody: "خذ لحظة لاستحضار ذكراه"
   }
 };
 
@@ -1120,20 +1190,41 @@ function normalizePersonMessages(messages) {
 
   return messages
     .map((message) => {
-      const text = String(message?.text || "").trim();
-      const attachment = String(message?.attachment || "").trim();
+      const user = message?.user && typeof message.user === "object" ? message.user : {};
+      const author = message?.author && typeof message.author === "object" ? message.author : {};
+      const commenter = message?.commenter && typeof message.commenter === "object" ? message.commenter : {};
+      const text = firstText(message?.text, message?.body, message?.content, message?.message, message?.description);
+      const attachment = firstText(message?.attachment, message?.attachmentUrl, message?.attachment_url, message?.image, message?.imageUrl, message?.image_url);
       if (!text && !attachment) return null;
 
-      const createdAt = message?.createdAt ? new Date(message.createdAt) : new Date();
+      const rawCreatedAt = firstText(message?.createdAt, message?.created_at, message?.date);
+      const createdAt = rawCreatedAt ? new Date(rawCreatedAt) : new Date();
       const isoCreatedAt = Number.isFinite(createdAt.getTime()) ? createdAt.toISOString() : new Date().toISOString();
 
       return {
-        id: message.id || uid(),
+        id: firstText(message?.id, message?._id, message?.commentId, message?.comment_id, message?.messageId, message?.message_id) || uid(),
         text,
         attachment,
-        attachmentName: String(message?.attachmentName || "").trim(),
-        userId: String(message?.userId || "guest"),
-        userName: String(message?.userName || "").trim(),
+        attachmentName: firstText(message?.attachmentName, message?.attachment_name),
+        userId: firstText(message?.userId, message?.user_id, user.id, author.id, commenter.id, "guest"),
+        userName: firstText(message?.userName, message?.user_name, message?.commenterName, message?.commenter_name, user.name, author.name, commenter.name),
+        userPhoto: firstText(
+          message?.userPhoto,
+          message?.userPhotoUrl,
+          message?.user_photo_url,
+          message?.avatar,
+          message?.avatarUrl,
+          message?.profilePhoto,
+          message?.profile_photo,
+          user.photo,
+          user.photoUrl,
+          user.avatar,
+          user.profilePhoto,
+          author.photo,
+          author.avatar,
+          commenter.photo,
+          commenter.avatar
+        ),
         createdAt: isoCreatedAt
       };
     })
@@ -1324,6 +1415,23 @@ function inlineCopy(language, english, arabic) {
   return normalizeLanguage(language) === "AR" ? arabic : english;
 }
 
+const notificationTemplateKeys = {
+  flowerPlaced: ["notificationFlowerPlacedTitle", "notificationFlowerPlacedBody"],
+  memoryShared: ["notificationMemorySharedTitle", "notificationMemorySharedBody"],
+  flowerFaded: ["notificationFlowerFadedTitle", "notificationFlowerFadedBody"],
+  deathAnniversary: ["notificationDeathAnniversaryTitle", "notificationDeathAnniversaryBody"]
+};
+
+function notificationToastText(t, type, name) {
+  const [titleKey, bodyKey] = notificationTemplateKeys[type] || [];
+  if (!titleKey || !bodyKey) return "";
+
+  const values = { name: name || "" };
+  const title = formatText(t(titleKey), values).trim();
+  const body = formatText(t(bodyKey), values).trim();
+  return [title, body].filter(Boolean).join("\n");
+}
+
 function countryLabel(countryOrName, language) {
   const country = typeof countryOrName === "string" ? findCountry(countryOrName) : countryOrName;
   return normalizeLanguage(language) === "AR" ? country?.ar || country?.name || "" : country?.name || "";
@@ -1357,6 +1465,7 @@ function App() {
   const screenRef = useRef(screen);
   const screenHistoryRef = useRef([]);
   const apiShrineFetchRef = useRef(new Set());
+  const apiCommentFetchRef = useRef(new Set());
 
   useEffect(() => {
     const splashTimer = setTimeout(() => setOpening(false), 2600);
@@ -1404,6 +1513,44 @@ function App() {
           people: [person, ...current.people]
         };
       });
+    });
+
+    return () => controller.abort();
+  }, [sharedTarget, state.people, state.selectedPersonId]);
+
+  useEffect(() => {
+    const personId = state.selectedPersonId;
+    const commentId = sharedTarget?.type === "comment" ? sharedTarget.commentId || "" : "";
+    const person = state.people.find((item) => item.id === personId);
+    const fetchKey = `${personId}:${commentId}`;
+    const shouldLoadSharedComment =
+      personId &&
+      commentId &&
+      commentId !== "info" &&
+      person &&
+      !normalizePersonMessages(person.messages).some((message) => message.id === commentId) &&
+      !apiCommentFetchRef.current.has(fetchKey);
+
+    if (!shouldLoadSharedComment) return undefined;
+
+    apiCommentFetchRef.current.add(fetchKey);
+    const controller = new AbortController();
+
+    fetchShrineCommentById(personId, commentId, controller.signal).then((message) => {
+      if (!message) return;
+
+      setState((current) => ({
+        ...current,
+        people: current.people.map((item) => {
+          if (item.id !== personId) return item;
+          const messages = normalizePersonMessages(item.messages);
+          if (messages.some((existing) => existing.id === message.id)) return item;
+          return normalizePersonFlowers({
+            ...item,
+            messages: [...messages, message]
+          });
+        })
+      }));
     });
 
     return () => controller.abort();
@@ -1595,7 +1742,8 @@ function App() {
         return { ...person, flowers: [...flowers, flower] };
       })
     }));
-    showToast(t("flowerAdded"));
+    const personName = state.people.find((person) => person.id === personId)?.fullName || t("memorial");
+    showToast(notificationToastText(t, "flowerPlaced", personName) || t("flowerAdded"));
     return true;
   };
 
@@ -1612,6 +1760,7 @@ function App() {
       attachmentName: String(message?.attachmentName || "").trim(),
       userId: user?.id || "guest",
       userName: user ? getUserName(user) : t("guestAccount"),
+      userPhoto: user?.photo || user?.avatar || "",
       createdAt: new Date().toISOString()
     };
 
@@ -1626,7 +1775,8 @@ function App() {
           : person
       )
     }));
-    showToast(t("postAdded"));
+    const personName = state.people.find((person) => person.id === personId)?.fullName || t("memorial");
+    showToast(notificationToastText(t, "memoryShared", personName) || t("postAdded"));
     return true;
   };
 
@@ -1977,6 +2127,11 @@ function App() {
           onLogin={() => {
             setModal(null);
             setScreen("login");
+          }}
+          onContinueBrowsing={() => {
+            setModal(null);
+            updateState({ guest: true });
+            setScreen("home", { reset: true });
           }}
         />
       )}
@@ -3500,19 +3655,23 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
   const [entryMenuOpen, setEntryMenuOpen] = useState(false);
   const [openMessageMenuId, setOpenMessageMenuId] = useState("");
   const entryRef = useRef(null);
+  const messageRefs = useRef(new Map());
   const person = state.people.find((item) => item.id === state.selectedPersonId);
   const sharedCommentPersonId = sharedTarget?.type === "comment" ? sharedTarget.personId : "";
+  const sharedCommentId = sharedTarget?.type === "comment" ? sharedTarget.commentId || "" : "";
 
   useEffect(() => {
     if (!person || sharedCommentPersonId !== person.id) return undefined;
 
     const scrollTimer = setTimeout(() => {
-      entryRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      const target = sharedCommentId && sharedCommentId !== "info" ? messageRefs.current.get(sharedCommentId) : entryRef.current;
+      if (sharedCommentId && sharedCommentId !== "info" && !target) return;
+      target?.scrollIntoView({ behavior: "smooth", block: "center" });
       onSharedTargetHandled?.();
     }, 350);
 
     return () => clearTimeout(scrollTimer);
-  }, [person, sharedCommentPersonId, onSharedTargetHandled]);
+  }, [person, sharedCommentId, sharedCommentPersonId, onSharedTargetHandled]);
 
   if (!person) {
     return (
@@ -3546,11 +3705,21 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
 
   const shareMessage = (message) => {
     const messageText = String(message?.text || "").trim();
+    const commentId = message?.id || "info";
+    const commenterName = message?.userName || creatorName || t("guestAccount");
     shareContent({
-      title: `${person.fullName} - ${t("message")}`,
-      text: messageText || detailInfo || person.fullName,
-      url: buildShareUrl(person, "comment")
+      title: `${person.fullName} - ${commenterName}`,
+      text: previewText(messageText || detailInfo || person.fullName),
+      url: buildShareUrl(person, { view: "comment", commentId })
     });
+  };
+
+  const setMessageRef = (messageId) => (node) => {
+    if (node) {
+      messageRefs.current.set(messageId, node);
+      return;
+    }
+    messageRefs.current.delete(messageId);
   };
 
   return (
@@ -3646,10 +3815,10 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
         {shrineMessages.length > 0 && (
           <section className="detail-message-list" aria-label={t("message")}>
             {shrineMessages.map((message) => (
-              <article className="detail-message-card" key={message.id}>
+              <article id={`comment-${message.id}`} ref={setMessageRef(message.id)} className="detail-message-card" key={message.id}>
                 <div className="detail-message-header">
                   <div className="detail-message-avatar">
-                    <AvatarSilhouette />
+                    {message.userPhoto ? <img src={message.userPhoto} alt={message.userName || t("guestAccount")} /> : <AvatarSilhouette />}
                   </div>
                   <div>
                     <strong>{message.userName || t("guestAccount")}</strong>
@@ -4393,7 +4562,7 @@ function VerifyModal({
   );
 }
 
-function AccountPrompt({ t, intent = "follow", onCreate, onLogin, onClose }) {
+function AccountPrompt({ t, intent = "follow", onCreate, onLogin, onClose, onContinueBrowsing }) {
   const isAdd = intent === "add";
   const isFlower = intent === "flower";
   return (
@@ -4411,7 +4580,7 @@ function AccountPrompt({ t, intent = "follow", onCreate, onLogin, onClose }) {
         <button className="outline-button" onClick={onLogin}>
           <DoorOpen size={20} /> {t("signIn")}
         </button>
-        <button className="ghost-link" onClick={onClose}>
+        <button className="ghost-link" onClick={onContinueBrowsing || onClose}>
           {t("continueBrowsing")}
         </button>
       </div>

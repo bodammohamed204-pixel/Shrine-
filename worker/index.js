@@ -241,16 +241,32 @@ function shrineInfoPath(personId) {
   return `/shrines/${encodeURIComponent(personId)}/info`;
 }
 
+function shrineCommentPath(personId, commentId) {
+  return `/shrines/${encodeURIComponent(personId)}/comments/${encodeURIComponent(commentId)}`;
+}
+
 function shrineApiPath(personId) {
   return `${SHRINE_API_PATH_PREFIX}${encodeURIComponent(personId)}`;
+}
+
+function shrineCommentApiPath(personId, commentId) {
+  return `${shrineApiPath(personId)}/comments/${encodeURIComponent(commentId)}`;
 }
 
 function shrineInfoMatch(pathname) {
   return String(pathname || "").match(/^\/shrines\/([^/]+)\/info\/?$/i);
 }
 
+function shrineCommentMatch(pathname) {
+  return String(pathname || "").match(/^\/shrines\/([^/]+)\/comments\/([^/]+)\/?$/i);
+}
+
 function shrineApiMatch(pathname) {
   return String(pathname || "").match(/^\/api\/shrines\/([^/]+)\/?$/i);
+}
+
+function shrineCommentApiMatch(pathname) {
+  return String(pathname || "").match(/^\/api\/shrines\/([^/]+)\/comments\/([^/]+)\/?$/i);
 }
 
 function firstText(...values) {
@@ -267,6 +283,33 @@ function shrinePreviewDescription(name, birthDate, deathDate) {
   return `In loving memory of ${previewName}.${dateText ? ` ${dateText}` : ""}`;
 }
 
+function previewText(value, maxLength = 100) {
+  const text = String(value || "").trim().replace(/\s+/g, " ");
+  return text.length > maxLength ? `${text.slice(0, maxLength).trim()}...` : text;
+}
+
+function defaultAvatarUrl(env) {
+  return `${appBaseUrl(env)}/share/default-avatar.svg`;
+}
+
+function httpsImageUrl(value, baseUrl = "") {
+  const text = String(value || "").trim();
+  if (!text || text.startsWith("data:")) return "";
+
+  try {
+    const url = text.startsWith("//")
+      ? new URL(`https:${text}`)
+      : baseUrl
+        ? new URL(text, baseUrl)
+        : new URL(text);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return "";
+    url.protocol = "https:";
+    return url.toString();
+  } catch {
+    return "";
+  }
+}
+
 function normalizeShrineApiData(data, fallbackId) {
   const source = data?.shrine || data?.person || data?.data || data;
   if (!source || typeof source !== "object" || Array.isArray(source)) return null;
@@ -280,7 +323,56 @@ function normalizeShrineApiData(data, fallbackId) {
     photo: firstText(source.photo, source.photoUrl, source.photo_url, source.image, source.imageUrl, source.image_url),
     birthDate: firstText(source.birthDate, source.birth_date, source.birth),
     deathDate: firstText(source.deathDate, source.death_date, source.death),
-    info: firstText(source.info, source.description, source.bio)
+    info: firstText(source.info, source.description, source.bio),
+    createdByName: firstText(source.createdByName, source.created_by_name, source.creatorName, source.creator_name),
+    messages: Array.isArray(source.messages) ? source.messages : Array.isArray(source.comments) ? source.comments : []
+  };
+}
+
+function normalizeCommentApiData(data, fallbackId) {
+  const source = data?.comment || data?.message || data?.data || data;
+  if (!source || typeof source !== "object" || Array.isArray(source)) return null;
+
+  const text = firstText(source.text, source.body, source.content, source.message, source.description);
+  const attachment = firstText(source.attachment, source.attachmentUrl, source.attachment_url, source.image, source.imageUrl, source.image_url);
+  if (!text && !attachment) return null;
+
+  const user = source.user && typeof source.user === "object" ? source.user : {};
+  const author = source.author && typeof source.author === "object" ? source.author : {};
+  const commenter = source.commenter && typeof source.commenter === "object" ? source.commenter : {};
+
+  return {
+    id: firstText(source.id, source._id, source.commentId, source.comment_id, source.messageId, source.message_id, fallbackId),
+    text,
+    attachment,
+    userName: firstText(
+      source.userName,
+      source.user_name,
+      source.commenterName,
+      source.commenter_name,
+      source.authorName,
+      source.author_name,
+      user.name,
+      author.name,
+      commenter.name
+    ),
+    userPhoto: firstText(
+      source.userPhoto,
+      source.userPhotoUrl,
+      source.user_photo_url,
+      source.avatar,
+      source.avatarUrl,
+      source.profilePhoto,
+      source.profile_photo,
+      user.photo,
+      user.photoUrl,
+      user.avatar,
+      user.profilePhoto,
+      author.photo,
+      author.avatar,
+      commenter.photo,
+      commenter.avatar
+    )
   };
 }
 
@@ -326,6 +418,45 @@ async function fetchShrineFromApi(personId, request, env, { allowSameOrigin = tr
   }
 }
 
+function findCommentInShrine(shrine, commentId) {
+  if (commentId === "info" && (shrine?.info || shrine?.photo)) {
+    return {
+      id: "info",
+      text: shrine.info || shrine.fullName || "",
+      attachment: shrine.photo || "",
+      userName: shrine.createdByName || "Shrine",
+      userPhoto: ""
+    };
+  }
+
+  const messages = Array.isArray(shrine?.messages) ? shrine.messages : [];
+  const found = messages.find((message) => String(message?.id || message?.commentId || message?.messageId || "") === String(commentId));
+  return found ? normalizeCommentApiData(found, commentId) : null;
+}
+
+async function fetchCommentFromApi(personId, commentId, request, env, { allowSameOrigin = true } = {}) {
+  const configuredBase = configuredShrineApiBaseUrl(env);
+  const requestOrigin = new URL(request.url).origin;
+  const baseUrl = configuredBase || (allowSameOrigin ? requestOrigin : "");
+  if (!baseUrl || (!allowSameOrigin && sameOrigin(baseUrl, request.url))) return null;
+
+  try {
+    const response = await fetch(`${baseUrl}${shrineCommentApiPath(personId, commentId)}`, {
+      method: "GET",
+      headers: { Accept: "application/json" }
+    });
+    if (response.ok) {
+      const comment = normalizeCommentApiData(await readJsonResponse(response), commentId);
+      if (comment) return comment;
+    }
+  } catch {
+    // Fall through to the shrine-level payload fallback below.
+  }
+
+  const shrine = await fetchShrineFromApi(personId, request, env, { allowSameOrigin });
+  return findCommentInShrine(shrine, commentId);
+}
+
 async function shrineApiResponse(request, env, personId) {
   const shrine = await fetchShrineFromApi(personId, request, env, { allowSameOrigin: false });
   if (!shrine) {
@@ -335,9 +466,19 @@ async function shrineApiResponse(request, env, personId) {
   return jsonResponse({ success: true, shrine }, 200, corsHeaders(request, env));
 }
 
+async function shrineCommentApiResponse(request, env, personId, commentId) {
+  const comment = await fetchCommentFromApi(personId, commentId, request, env, { allowSameOrigin: false });
+  if (!comment) {
+    return jsonResponse({ success: false, error: "Comment not found." }, 404, corsHeaders(request, env));
+  }
+
+  return jsonResponse({ success: true, comment }, 200, corsHeaders(request, env));
+}
+
 function shrinePreviewMeta(personId, shrine, env) {
-  const fallbackImage = String(env.SHARE_IMAGE_URL || "").trim();
-  const image = isHttpUrl(shrine?.photo) ? shrine.photo : isHttpUrl(fallbackImage) ? fallbackImage : "";
+  const configuredBase = configuredShrineApiBaseUrl(env) || appBaseUrl(env);
+  const fallbackImage = httpsImageUrl(env.SHARE_IMAGE_URL, configuredBase) || defaultAvatarUrl(env);
+  const image = httpsImageUrl(shrine?.photo, configuredBase) || fallbackImage;
   const title = shrine?.fullName || "Shrine";
 
   return {
@@ -346,6 +487,24 @@ function shrinePreviewMeta(personId, shrine, env) {
       ? shrinePreviewDescription(shrine.fullName, shrine.birthDate, shrine.deathDate)
       : DEFAULT_META_DESCRIPTION,
     url: personId ? `${appBaseUrl(env)}${shrineInfoPath(personId)}` : appBaseUrl(env),
+    image
+  };
+}
+
+function shrineCommentPreviewMeta(personId, commentId, shrine, comment, env) {
+  const configuredBase = configuredShrineApiBaseUrl(env) || appBaseUrl(env);
+  const fallbackImage = httpsImageUrl(env.SHARE_IMAGE_URL, configuredBase) || defaultAvatarUrl(env);
+  const titleParts = [shrine?.fullName || "Shrine", comment?.userName || "Guest"].filter(Boolean);
+  const image =
+    httpsImageUrl(comment?.userPhoto, configuredBase) ||
+    httpsImageUrl(comment?.attachment, configuredBase) ||
+    httpsImageUrl(shrine?.photo, configuredBase) ||
+    fallbackImage;
+
+  return {
+    title: titleParts.join(" - "),
+    description: previewText(comment?.text || shrine?.info || DEFAULT_META_DESCRIPTION),
+    url: `${appBaseUrl(env)}${shrineCommentPath(personId, commentId)}`,
     image
   };
 }
@@ -428,6 +587,59 @@ async function shrineInfoPage(request, env, url) {
     statusText: assetResponse.statusText,
     headers
   });
+}
+
+async function shrineCommentPage(request, env, url) {
+  const assetUrl = new URL(request.url);
+  assetUrl.pathname = "/";
+  assetUrl.search = "";
+
+  const assetResponse = await env.ASSETS.fetch(
+    new Request(assetUrl.toString(), {
+      method: "GET",
+      headers: request.headers
+    })
+  );
+  const contentType = assetResponse.headers.get("Content-Type") || "";
+  if (!contentType.includes("text/html")) return assetResponse;
+
+  const html = await assetResponse.text();
+  const headers = new Headers(assetResponse.headers);
+  headers.set("Content-Type", "text/html; charset=utf-8");
+  headers.delete("Content-Length");
+
+  const match = shrineCommentMatch(url.pathname);
+  const personId = match ? safeDecodeURIComponent(match[1]) : "";
+  const commentId = match ? safeDecodeURIComponent(match[2]) : "";
+  const [shrine, comment] = personId && commentId
+    ? await Promise.all([
+        fetchShrineFromApi(personId, request, env),
+        fetchCommentFromApi(personId, commentId, request, env)
+      ])
+    : [null, null];
+
+  return new Response(injectSharePreviewMeta(html, shrineCommentPreviewMeta(personId, commentId, shrine, comment, env)), {
+    status: assetResponse.status,
+    statusText: assetResponse.statusText,
+    headers
+  });
+}
+
+function defaultAvatarImage() {
+  return new Response(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+      <rect width="1200" height="630" fill="#dff5ff"/>
+      <circle cx="600" cy="245" r="112" fill="#ffffff"/>
+      <path d="M352 536c38-120 130-186 248-186s210 66 248 186" fill="#ffffff"/>
+      <text x="600" y="590" text-anchor="middle" font-family="Arial, sans-serif" font-size="54" font-weight="700" fill="#1f8edc">Shrine</text>
+    </svg>`,
+    {
+      headers: {
+        "Content-Type": "image/svg+xml; charset=utf-8",
+        "Cache-Control": "public, max-age=86400"
+      }
+    }
+  );
 }
 
 async function parseJson(request) {
@@ -658,6 +870,14 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    if (request.method === "GET" && url.pathname === "/share/default-avatar.svg") {
+      return defaultAvatarImage();
+    }
+
+    if (request.method === "GET" && shrineCommentMatch(url.pathname)) {
+      return shrineCommentPage(request, env, url);
+    }
+
     if (request.method === "GET" && shrineInfoMatch(url.pathname)) {
       return shrineInfoPage(request, env, url);
     }
@@ -674,6 +894,10 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders(request, env) });
     }
 
+    if (request.method === "OPTIONS" && shrineCommentApiMatch(url.pathname)) {
+      return new Response(null, { status: 204, headers: corsHeaders(request, env) });
+    }
+
     if (url.pathname === "/api/geo/country") {
       if (request.method !== "GET") {
         return methodNotAllowed(request, env, "Use GET /api/geo/country.");
@@ -687,6 +911,19 @@ export default {
         return methodNotAllowed(request, env, "Use GET /api/shrines/:id.");
       }
       return shrineApiResponse(request, env, safeDecodeURIComponent(shrineApi[1]));
+    }
+
+    const shrineCommentApi = shrineCommentApiMatch(url.pathname);
+    if (shrineCommentApi) {
+      if (request.method !== "GET") {
+        return methodNotAllowed(request, env, "Use GET /api/shrines/:id/comments/:commentId.");
+      }
+      return shrineCommentApiResponse(
+        request,
+        env,
+        safeDecodeURIComponent(shrineCommentApi[1]),
+        safeDecodeURIComponent(shrineCommentApi[2])
+      );
     }
 
     if (url.pathname === "/api/otp/email/send") {
