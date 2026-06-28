@@ -36,7 +36,6 @@ import {
   ShieldCheck,
   Sparkles,
   SquarePen,
-  SquareUserRound,
   Trash2,
   UserRound,
   UserRoundPlus,
@@ -4295,13 +4294,13 @@ function BottomNav({ active, variant = "main", canEditShrine = false, setScreen,
   const isDetail = variant === "detail";
   const items = isDetail
     ? [
-        { id: "home", label: t("home"), icon: <SquareUserRound size={36} /> },
+        { id: "home", label: t("home"), icon: <ShrineHomeNavIcon /> },
         { id: "message", label: t("message"), icon: <MessageSquare size={38} /> },
         { id: "editShrine", label: t("update"), icon: <SquarePen size={38} />, disabled: !canEditShrine },
         { id: "settings", label: t("settings"), icon: <Settings size={42} /> }
       ]
     : [
-        { id: "home", label: t("home"), icon: <SquareUserRound size={36} /> },
+        { id: "home", label: t("home"), icon: <ShrineHomeNavIcon /> },
         { id: "add", label: t("add"), icon: <Plus size={30} />, featured: true },
         { id: "search", label: t("search"), icon: <Search size={42} /> },
         { id: "settings", label: t("settings"), icon: <Settings size={42} /> }
@@ -4338,6 +4337,37 @@ function BottomNav({ active, variant = "main", canEditShrine = false, setScreen,
       ))}
       <div className="home-indicator" />
     </nav>
+  );
+}
+
+function ShrineHomeNavIcon() {
+  return (
+    <svg
+      className="shrine-home-nav-icon"
+      viewBox="0 0 64 64"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M12 8.5H52C54.5 8.5 56.5 10.5 56.5 13V53C56.5 55.5 54.5 57.5 52 57.5H12C9.5 57.5 7.5 55.5 7.5 53V13C7.5 10.5 9.5 8.5 12 8.5Z"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="5"
+      />
+      <path
+        d="M15 54.8C16.2 47.8 22.4 42.7 30.2 40.2L30.8 35.6C26.8 32.8 24.8 28.1 24.8 23C24.8 15.5 29.3 11.2 35.8 11.2C42 11.2 46.3 15.7 46.3 23C46.3 28.1 44.1 32.8 40.2 35.6L40.8 40.2C46 42 50.3 45.1 52.8 49.5L47.5 54.8H15Z"
+        fill="currentColor"
+      />
+      <path
+        d="M44.5 57.5L56.5 45.5"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="5"
+      />
+    </svg>
   );
 }
 
