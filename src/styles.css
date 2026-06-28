@@ -1841,8 +1841,8 @@ button {
 
 .detail-screen .top-header {
   direction: ltr;
-  min-height: 107px;
-  border-radius: 30px 30px 0 0;
+  min-height: 60px;
+  border-radius: 19px 19px 0 0;
   background: #d9f5ff;
 }
 
@@ -1855,8 +1855,8 @@ button {
 }
 
 .detail-screen .header-action {
-  top: 27px;
-  right: 18px;
+  top: 13px;
+  right: 13px;
   left: auto;
 }
 
@@ -1866,8 +1866,8 @@ button {
 }
 
 .detail-share-button {
-  width: 48px;
-  height: 48px;
+  width: 34px;
+  height: 34px;
 }
 
 .flower-header-button {
@@ -1890,15 +1890,15 @@ button {
 }
 
 .detail-screen .header-icon.left {
-  top: 27px;
-  left: 14px;
-  width: 48px;
-  height: 48px;
+  top: 13px;
+  left: 12px;
+  width: 34px;
+  height: 34px;
 }
 
 .detail-screen .header-icon.left svg {
-  width: 30px;
-  height: 30px;
+  width: 24px;
+  height: 24px;
   stroke-width: 3;
 }
 
@@ -2050,18 +2050,18 @@ button {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  min-height: calc(100vh - 107px);
-  padding: 16px 17px 168px;
+  min-height: calc(100vh - 60px);
+  padding: 8px 17px 132px;
 }
 
 .detail-card::before {
   content: "";
   position: absolute;
-  top: 13px;
-  right: 9px;
+  top: 23px;
+  right: 5px;
   z-index: 1;
-  width: 4px;
-  height: 122px;
+  width: 3px;
+  height: 84px;
   border-radius: 999px;
   background: rgba(118, 118, 118, 0.76);
   pointer-events: none;
@@ -2095,7 +2095,8 @@ button {
 .detail-summary {
   min-width: 0;
   width: 100%;
-  padding-top: 10px;
+  margin-top: -7px;
+  padding-top: 0;
   text-align: center;
 }
 
@@ -2106,9 +2107,10 @@ button {
 .detail-summary h2 {
   margin: 0 0 24px;
   color: #050505;
-  font-size: clamp(1.48rem, 5.8vw, 1.95rem);
+  font-family: var(--font-arabic), var(--font-latin);
+  font-size: 18.5px;
   line-height: 1.16;
-  font-weight: 850;
+  font-weight: 800;
   overflow-wrap: anywhere;
 }
 
@@ -2129,7 +2131,7 @@ button {
 
 .detail-dates {
   color: #2c9bea;
-  font-size: clamp(1.16rem, 4.8vw, 1.68rem);
+  font-size: 18px;
   line-height: 1.18;
   font-weight: 500;
 }
@@ -2137,7 +2139,7 @@ button {
 .detail-age {
   margin-top: 14px;
   color: #b3b3b3;
-  font-size: clamp(0.98rem, 3.65vw, 1.25rem);
+  font-size: 14px;
   line-height: 1.2;
   font-weight: 400;
 }
@@ -2214,11 +2216,11 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: 4px;
   width: calc(100% - var(--detail-photo-width) - var(--detail-hero-gap));
   min-width: 184px;
-  margin: -68px 0 14px calc(var(--detail-photo-width) + var(--detail-hero-gap));
-  padding-bottom: 10px;
+  margin: -35px 0 9px calc(var(--detail-photo-width) + var(--detail-hero-gap));
+  padding-bottom: 16px;
 }
 
 .detail-tools::after {
@@ -2235,10 +2237,10 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   border: 1px solid #eef2f6;
-  border-radius: 14px;
+  border-radius: 12px;
   color: var(--blue);
   background: #fff;
   box-shadow: 0 2px 9px rgba(15, 23, 42, 0.06);
@@ -2249,16 +2251,16 @@ button {
 }
 
 .detail-flower-button {
-  gap: 8px;
-  width: 85px;
-  padding: 0 10px;
+  gap: 6px;
+  width: 76px;
+  padding: 0 8px;
   color: #1f8edc;
-  font-size: 1.2rem;
+  font-size: 16px;
   font-weight: 750;
 }
 
 .detail-flower-button .rose-graphic.small {
-  width: 28px;
+  width: 24px;
   flex: 0 0 auto;
 }
 
@@ -2342,11 +2344,11 @@ button {
   position: relative;
   direction: ltr;
   width: 100%;
-  min-height: 82px;
+  min-height: 80px;
   margin-top: 0;
-  padding: 9px;
+  padding: 8px 4px 9px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #f3f3f3;
   text-align: left;
 }
@@ -2371,19 +2373,19 @@ button {
 }
 
 .detail-entry.compact {
-  padding-bottom: 12px;
+  padding-bottom: 9px;
 }
 
 .detail-entry-header {
   display: grid;
   grid-template-columns: 36px minmax(0, 1fr) 30px;
   align-items: center;
-  gap: 9px;
+  gap: 7px;
 }
 
 .detail-entry-avatar {
   width: 36px;
-  height: 48px;
+  height: 36px;
   overflow: hidden;
   border-radius: 7px;
   background: #eef2f7;
@@ -2399,14 +2401,14 @@ button {
 
 .detail-entry-header strong {
   color: #111;
-  font-size: 1.04rem;
+  font-size: 14.5px;
   font-weight: 800;
 }
 
 .detail-entry-header span {
   margin-top: 2px;
   color: #777f8c;
-  font-size: 0.88rem;
+  font-size: 12.5px;
 }
 
 .detail-entry-actions {
@@ -2607,8 +2609,8 @@ button {
 }
 
 .bottom-nav {
-  --nav-icon-box: 52px;
-  --nav-icon-size: 34px;
+  --nav-icon-box: 36px;
+  --nav-icon-size: 27px;
   --nav-icon-stroke: 2.25;
   --nav-label-size: 13px;
   position: fixed;
@@ -2616,14 +2618,14 @@ button {
   left: 50%;
   z-index: 35;
   width: var(--app-frame-width);
-  min-height: calc(92px + env(safe-area-inset-bottom));
+  min-height: calc(72px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   align-items: start;
-  padding: 30px 21px calc(8px + env(safe-area-inset-bottom));
+  padding: 26px 0 env(safe-area-inset-bottom);
   background:
-    linear-gradient(180deg, #0d91ca 0 36%, #061e28 36% 100%);
+    linear-gradient(180deg, #0d91ca 0 43%, #061e28 43% 100%);
   box-shadow: none;
 }
 
@@ -2631,7 +2633,7 @@ button {
   display: grid;
   place-items: center;
   gap: 2px;
-  min-height: 52px;
+  min-height: 42px;
   border: 0;
   color: rgba(96, 100, 100, 0.9);
   background: transparent;
@@ -2653,7 +2655,7 @@ button {
   place-items: center;
   width: var(--nav-icon-box);
   height: var(--nav-icon-box);
-  border: 2px solid transparent;
+  border: 1px solid transparent;
   border-radius: 7px;
   color: currentColor;
 }
