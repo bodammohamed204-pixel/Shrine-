@@ -1812,24 +1812,24 @@ function ResetPasswordModal({ state, language, t, initialPhoneCountry, initialPh
         <button type="button" className="ghost-link reset-cancel-link" onClick={onClose}>
           {t("cancel")}
         </button>
-        {countryPickerOpen && (
-          <div onClick={(event) => event.stopPropagation()}>
-            <CountryModal
-              title={t("selectCallingCode")}
-              language={language}
-              t={t}
-              withCodes
-              selectedCountry={phoneCountry.name}
-              onPick={(country) => {
-                setPhoneCountry(country);
-                setCountryPickerOpen(false);
-                setError("");
-              }}
-              onClose={() => setCountryPickerOpen(false)}
-            />
-          </div>
-        )}
       </form>
+      {countryPickerOpen && (
+        <div onClick={(event) => event.stopPropagation()}>
+          <CountryModal
+            title={t("selectCallingCode")}
+            language={language}
+            t={t}
+            withCodes
+            selectedCountry={phoneCountry.name}
+            onPick={(country) => {
+              setPhoneCountry(country);
+              setCountryPickerOpen(false);
+              setError("");
+            }}
+            onClose={() => setCountryPickerOpen(false)}
+          />
+        </div>
+      )}
     </div>
   );
 }
