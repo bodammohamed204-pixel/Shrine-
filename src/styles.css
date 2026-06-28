@@ -1709,6 +1709,13 @@ button {
 
 .gallery-screen .header-icon.left {
   left: 17px;
+  width: 44px;
+  height: 44px;
+}
+
+.rtl .gallery-screen .header-icon.left {
+  right: 17px;
+  left: auto;
 }
 
 .gallery-screen .header-icon.left svg {
