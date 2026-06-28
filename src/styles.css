@@ -10,6 +10,8 @@
   --error: #d97834;
   --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
   --shadow-md: 0 10px 28px rgba(16, 24, 40, 0.08);
+  --app-max-width: 480px;
+  --app-frame-width: min(100vw, var(--app-max-width));
   color: var(--ink);
   background: #eef2f7;
 }
@@ -23,6 +25,7 @@ body,
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
   background: #eef2f7;
 }
 
@@ -38,8 +41,9 @@ button {
 
 .app-shell {
   position: relative;
-  width: min(100vw, 430px);
+  width: var(--app-frame-width);
   min-height: 100vh;
+  min-height: 100dvh;
   margin: 0 auto;
   overflow: hidden;
   background: #fff;
@@ -60,7 +64,7 @@ button {
   bottom: 0;
   left: 50%;
   z-index: 120;
-  width: min(100vw, 430px);
+  width: var(--app-frame-width);
   transform: translateX(-50%);
   overflow: hidden;
   isolation: isolate;
@@ -127,6 +131,7 @@ button {
 .auth-screen,
 .success-screen {
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .main-screen {
@@ -251,7 +256,7 @@ button {
 }
 
 .login-screen > .field-label {
-  margin-bottom: 18px;
+  margin-bottom: 12px;
 }
 
 .field-label em {
@@ -1974,25 +1979,71 @@ button {
   font-size: 1.13rem;
 }
 
-.detail-actions {
+.detail-quick-actions {
   direction: ltr;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: 44px 84px 44px;
+  justify-content: start;
+  gap: 6px;
   width: 100%;
-  margin: 22px 0 18px;
+  margin: 78px 0 0;
 }
 
-.detail-actions .primary-button.small,
-.detail-actions .outline-button.small {
-  min-height: 52px;
+.detail-action-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 44px;
+  height: 48px;
+  min-width: 0;
+  border: 1px solid #e2e7ee;
   border-radius: 8px;
-  font-size: 1.05rem;
+  color: var(--blue);
+  background: #fff;
+  box-shadow: var(--shadow-sm);
 }
 
-.detail-actions svg {
-  width: 20px;
-  height: 20px;
+.detail-action-tile svg {
+  width: 23px;
+  height: 23px;
+  stroke-width: 2.45;
+}
+
+.detail-action-tile .rose-graphic.small {
+  width: 25px;
+  filter: drop-shadow(0 2px 3px rgba(110, 18, 28, 0.15));
+}
+
+.detail-action-tile.rose-tile {
+  width: 84px;
+}
+
+.rose-tile {
+  color: #247fbd;
+}
+
+.rose-tile svg {
+  color: #cc2442;
+}
+
+.rose-tile span {
+  color: var(--blue);
+  font-size: 0.9rem;
+  font-weight: 850;
+}
+
+.rose-tile.selected {
+  border-color: rgba(36, 148, 232, 0.45);
+  background: #eef8ff;
+}
+
+.ai-tile {
+  color: #3457c9;
+}
+
+.detail-block-action {
+  display: none;
 }
 
 .flower-offerings {
@@ -2381,7 +2432,7 @@ button {
   bottom: 0;
   left: 50%;
   z-index: 35;
-  width: min(100vw, 430px);
+  width: var(--app-frame-width);
   min-height: 72px;
   transform: translateX(-50%);
   display: grid;
@@ -2508,8 +2559,9 @@ button {
   position: relative;
   display: grid;
   place-items: center;
-  width: min(100vw, 430px);
+  width: var(--app-frame-width);
   min-height: 100vh;
+  min-height: 100dvh;
   overflow: hidden;
   background: rgba(13, 15, 18, 0.92);
 }
@@ -2705,7 +2757,7 @@ button {
 }
 
 .sheet {
-  width: min(100vw, 430px);
+  width: var(--app-frame-width);
   max-height: 46vh;
   border-radius: 8px 8px 0 0;
   background: #fff;
@@ -2960,7 +3012,7 @@ button {
   bottom: 0;
   left: 50%;
   display: block;
-  width: min(100vw, 430px);
+  width: var(--app-frame-width);
   padding: 0;
   overflow-y: auto;
   background: #fff;
@@ -2970,6 +3022,7 @@ button {
 .verification-page {
   width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   max-height: none;
   padding: 88px 18px 34px;
   overflow: visible;
@@ -3160,7 +3213,7 @@ button {
 
 .account-prompt {
   align-self: end;
-  width: min(100%, 430px);
+  width: min(100%, var(--app-max-width));
   padding: 24px 24px 30px;
   border-radius: 30px 30px 0 0;
   background: #fff;
