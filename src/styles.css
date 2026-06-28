@@ -1509,27 +1509,58 @@ button {
 
 .profile-screen {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
   background: #fff;
-  padding-top: 70px;
+  padding-top: calc(50px + env(safe-area-inset-top));
   text-align: center;
+  overflow: hidden;
 }
 
 .profile-back {
   position: absolute;
-  top: 58px;
+  top: calc(48px + env(safe-area-inset-top));
   left: 18px;
+  z-index: 3;
+  width: 46px;
+  height: 46px;
+  color: var(--blue);
 }
 
 .profile-edit {
   position: absolute;
-  top: 56px;
-  right: 18px;
+  top: calc(47px + env(safe-area-inset-top));
+  right: 22px;
+  z-index: 3;
   display: grid;
-  grid-template-columns: 1fr;
-  justify-items: end;
+  place-items: center;
+  width: 54px;
+  height: 54px;
   border: 0;
   background: transparent;
   color: #111;
+}
+
+.profile-edit svg {
+  grid-area: 1 / 1;
+}
+
+.profile-edit svg:first-child {
+  width: 34px;
+  height: 34px;
+  align-self: start;
+  justify-self: center;
+  stroke-width: 2.35;
+}
+
+.profile-edit svg:last-child {
+  width: 20px;
+  height: 20px;
+  align-self: end;
+  justify-self: end;
+  stroke-width: 3;
 }
 
 .rtl .profile-back {
@@ -1539,32 +1570,46 @@ button {
 
 .rtl .profile-edit {
   right: auto;
-  left: 18px;
+  left: 22px;
   justify-items: start;
 }
 
 .profile-screen h1 {
-  margin: 0 0 22px;
+  margin: 0 72px 24px;
   color: var(--blue);
-  font-size: 1.72rem;
+  font-size: 1.76rem;
+  line-height: 1.08;
+  font-weight: 800;
 }
 
 .profile-avatar {
-  width: 132px;
-  height: 132px;
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
   margin: 0 auto 26px;
 }
 
 .profile-screen h2 {
-  margin: 0 0 44px;
+  margin: 0 20px 40px;
   color: var(--blue);
-  font-size: 1.28rem;
+  font-size: 1.32rem;
+  line-height: 1.15;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.profile-avatar-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .info-panel {
-  min-height: 54vh;
-  padding: 34px 22px 58px;
-  border-radius: 8px 8px 0 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 34px 22px calc(58px + env(safe-area-inset-bottom));
+  border-radius: 54px 54px 0 0;
   background: var(--blue);
   color: #fff;
   text-align: left;
@@ -1577,29 +1622,35 @@ button {
 .info-panel h3 {
   margin: 0 0 34px;
   font-size: 1.28rem;
+  line-height: 1.15;
   font-weight: 700;
 }
 
 .info-line {
   display: grid;
-  grid-template-columns: 36px 1fr;
+  grid-template-columns: 38px minmax(0, 1fr);
   gap: 14px;
-  margin-bottom: 28px;
+  margin-bottom: 31px;
+  color: #fff;
 }
 
 .info-line svg {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
+  stroke-width: 1.8;
 }
 
 .info-line p {
-  margin: 0 0 12px;
-  font-size: 1rem;
+  margin: 0 0 21px;
+  font-size: 1.12rem;
+  line-height: 1.15;
+  font-weight: 400;
 }
 
 .info-line strong {
   display: block;
-  font-size: 1.08rem;
+  font-size: 1.25rem;
+  line-height: 1.18;
   font-weight: 400;
   overflow-wrap: anywhere;
 }

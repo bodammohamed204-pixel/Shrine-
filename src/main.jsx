@@ -25,9 +25,9 @@ import {
   LockKeyhole,
   LogOut,
   Mail,
-  MapPin,
   MessageSquare,
   MoreVertical,
+  Navigation,
   Paperclip,
   Pencil,
   Plus,
@@ -3449,15 +3449,35 @@ function ProfileScreen({ activeUser, language, t, setScreen, goBack }) {
       </button>
       <h1>{t("myAccount")}</h1>
       <div className="profile-avatar">
-        <AvatarSilhouette />
+        <ProfileAvatarPlaceholder />
       </div>
       <h2>{getUserName(user)}</h2>
       <section className="info-panel">
         <h3>{t("myInformation")}</h3>
         <InfoLine icon={<Mail />} label={t("emailAddress")} value={user?.email || t("guestAccount")} />
-        <InfoLine icon={<MapPin />} label={t("country")} value={user?.country ? countryLabel(user.country, language) : t("notSelected")} />
+        <InfoLine icon={<Navigation />} label={t("country")} value={user?.country ? countryLabel(user.country, language) : t("notSelected")} />
       </section>
     </main>
+  );
+}
+
+function ProfileAvatarPlaceholder() {
+  return (
+    <svg className="profile-avatar-svg" viewBox="0 0 120 120" role="img" aria-label="Default avatar">
+      <defs>
+        <clipPath id="profile-avatar-clip">
+          <circle cx="60" cy="60" r="52" />
+        </clipPath>
+      </defs>
+      <circle cx="60" cy="60" r="52" fill="#dedede" />
+      <g clipPath="url(#profile-avatar-clip)">
+        <path d="M67 14 113 60v61H63L42 99l12-39 2-34Z" fill="#c4c4c4" opacity="0.78" />
+        <path
+          d="M13 122c3-23 22-35 43-42v-9c-9-7-15-20-16-32-3-2-4-10 0-13 1-17 9-27 21-27s20 10 21 27c4 3 3 11 0 13-1 12-7 25-16 32v9c21 7 40 19 43 42Z"
+          fill="#fff"
+        />
+      </g>
+    </svg>
   );
 }
 
