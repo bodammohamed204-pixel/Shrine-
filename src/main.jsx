@@ -986,7 +986,7 @@ const copy = {
     sponsor: "الداعمون",
     follow: "متابعة",
     sponsorTab: "الرعاية",
-    followersTab: "متابعة",
+    followersTab: "متابعون",
     noMemorials: "لا توجد مزارات حتى الآن",
     noMemorialsBody: "اضغط على زر الإضافة لإضافة مزارك الأول.",
     browseCountry: "تصفح حسب الدولة",
