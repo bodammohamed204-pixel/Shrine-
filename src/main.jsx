@@ -4037,7 +4037,6 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
   const displayAge = personDisplayAge(person);
   const activeFlowers = activeFlowerGifts(person.flowers);
   const shrineMessages = normalizePersonMessages(person.messages);
-  const canEditShrine = canEditPersonShrine(person, state.currentUser);
   const canOpenFlowerSenders = canViewFlowerSenders(person, state.currentUser);
 
   const shareShrine = () => {
@@ -4075,11 +4074,6 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
         t={t}
         action={
           <div className="header-action-cluster">
-            {canEditShrine && (
-              <button className="header-icon detail-edit-button" onClick={() => setScreen("editShrine")} aria-label={t("update")}>
-                <Pencil size={29} />
-              </button>
-            )}
             <button className="header-icon detail-share-button" onClick={shareShrine} aria-label="Share">
               <Share2 size={30} />
             </button>

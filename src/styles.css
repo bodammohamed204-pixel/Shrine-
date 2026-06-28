@@ -1691,11 +1691,6 @@ button {
   height: 34px;
 }
 
-.detail-edit-button {
-  width: 34px;
-  height: 34px;
-}
-
 .flower-header-button {
   width: 36px;
   height: 36px;
@@ -1896,7 +1891,7 @@ button {
 
 .flowers-screen .top-header {
   direction: ltr;
-  min-height: 68px;
+  min-height: 62px;
   border-radius: 0;
   background: #d9f5ff;
 }
@@ -1910,7 +1905,7 @@ button {
 }
 
 .flowers-screen .top-header h1 {
-  font-size: 1.72rem;
+  font-size: 1.45rem;
   line-height: 1;
 }
 
@@ -1927,18 +1922,18 @@ button {
 .flower-person-row {
   direction: ltr;
   display: grid;
-  grid-template-columns: 76px minmax(0, 1fr);
+  grid-template-columns: 64px minmax(0, 1fr);
   align-items: center;
-  gap: 18px;
-  min-height: 104px;
-  padding: 10px 20px;
+  gap: 22px;
+  min-height: 92px;
+  padding: 8px 16px;
   border-bottom: 2px solid #d6d0d8;
   background: #fff8ff;
 }
 
 .flower-person-photo {
-  width: 66px;
-  height: 76px;
+  width: 58px;
+  height: 68px;
   overflow: hidden;
   border-radius: 12px;
   background: #f4f4f4;
@@ -1954,7 +1949,7 @@ button {
 .flower-person-row strong {
   min-width: 0;
   color: #050505;
-  font-size: 1.34rem;
+  font-size: 1.08rem;
   font-weight: 900;
   line-height: 1.18;
   text-align: left;
@@ -1966,24 +1961,24 @@ button {
   display: grid;
   align-content: start;
   gap: 10px;
-  min-height: calc(100vh - 172px);
-  min-height: calc(100dvh - 172px);
-  padding: 22px 20px 90px;
+  min-height: calc(100vh - 154px);
+  min-height: calc(100dvh - 154px);
+  padding: 20px 16px 90px;
   background: #fff8ff;
 }
 
 .flower-sender-card {
   direction: ltr;
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr) 44px;
+  grid-template-columns: 48px minmax(0, 1fr) 34px;
   align-items: center;
-  gap: 10px;
-  min-height: 64px;
+  gap: 16px;
+  min-height: 58px;
 }
 
 .flower-sender-avatar {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   overflow: hidden;
   border-radius: 50%;
   background: #f1f2f4;
@@ -2005,7 +2000,7 @@ button {
 .flower-sender-text strong {
   min-width: 0;
   color: #050505;
-  font-size: 1.02rem;
+  font-size: 0.9rem;
   font-weight: 800;
   line-height: 1.1;
   unicode-bidi: plaintext;
@@ -2014,13 +2009,13 @@ button {
 
 .flower-sender-text span {
   color: #777;
-  font-size: 0.88rem;
+  font-size: 0.78rem;
   line-height: 1.1;
 }
 
 .flower-sender-card .rose-graphic.small {
   justify-self: end;
-  width: 32px;
+  width: 28px;
 }
 
 .flower-empty {
