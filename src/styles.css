@@ -2139,14 +2139,14 @@ button {
 
 .detail-entry-header {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 30px;
+  grid-template-columns: 54px minmax(0, 1fr);
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .detail-entry-avatar {
-  width: 44px;
-  height: 44px;
+  width: 54px;
+  height: 54px;
   overflow: hidden;
   border-radius: 8px;
   background: #eef2f7;
@@ -2162,14 +2162,14 @@ button {
 
 .detail-entry-header strong {
   color: #111;
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 800;
 }
 
 .detail-entry-header span {
   margin-top: 2px;
   color: #777f8c;
-  font-size: 0.86rem;
+  font-size: 0.92rem;
 }
 
 .detail-entry-actions {
