@@ -3056,21 +3056,22 @@ button {
 }
 
 .bottom-nav {
-  --nav-icon-box: 42px;
-  --nav-icon-size: 30px;
-  --nav-icon-stroke: 2.4;
+  --nav-icon-box: 36px;
+  --nav-icon-size: 26px;
+  --nav-icon-stroke: 2.2;
   --nav-label-size: 13px;
   position: fixed;
   bottom: 0;
   left: 50%;
   z-index: 35;
   width: var(--app-frame-width);
-  min-height: 72px;
+  min-height: 64px;
   transform: translateX(-50%);
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   align-items: start;
-  padding-top: 8px;
+  padding-top: 6px;
+  padding-bottom: env(safe-area-inset-bottom);
   background: var(--blue);
   box-shadow: 0 -8px 28px rgba(15, 23, 42, 0.08);
 }
@@ -3079,7 +3080,7 @@ button {
   display: grid;
   place-items: center;
   gap: 2px;
-  min-height: 56px;
+  min-height: 50px;
   border: 0;
   color: #fff;
   background: transparent;
@@ -3164,18 +3165,18 @@ button {
 }
 
 .bottom-nav.detail-bottom-nav {
-  --nav-icon-box: 46px;
-  --nav-icon-size: 34px;
-  --nav-icon-stroke: 2.8;
+  --nav-icon-box: 40px;
+  --nav-icon-size: 30px;
+  --nav-icon-stroke: 2.6;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: center;
-  min-height: 68px;
+  min-height: 60px;
   padding: 7px 16px calc(7px + env(safe-area-inset-bottom));
   background: #078fd0;
 }
 
 .bottom-nav.detail-bottom-nav button {
-  min-height: 52px;
+  min-height: 48px;
   color: #fff;
 }
 
