@@ -1537,7 +1537,7 @@ function RegisterScreen({ state, language, t, updateState, onRegister, onCancelR
 }
 
 function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setScreen, setModal }) {
-  const loginCountry = findCountry(state.currentCountry || initialState.currentCountry);
+  const loginCountry = findCountryExact("Australia") || findCountry(state.currentCountry || initialState.currentCountry);
   const [phoneCountry, setPhoneCountry] = useState(loginCountry);
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -1561,7 +1561,7 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setS
   };
 
   const setPhoneValue = (value) => {
-    const cleanValue = value.replace(/\D/g, "").slice(0, 14);
+    const cleanValue = value.replace(/\D/g, "").slice(0, 9);
     setPhone(cleanValue);
     setErrors((current) => ({
       ...current,
@@ -1581,7 +1581,7 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setS
     const nextErrors = {};
     if (!phone) {
       nextErrors.phone = phoneRequiredMessage;
-    } else if (!/^\d{7,14}$/.test(phone)) {
+    } else if (!/^\d{7,9}$/.test(phone)) {
       nextErrors.phone = "Enter a valid mobile number";
     }
     if (!password) nextErrors.password = passwordRequiredMessage;
@@ -1621,12 +1621,12 @@ function LoginScreen({ state, language, t, toggleLanguage, onLogin, onBack, setS
           type="tel"
           inputMode="numeric"
           placeholder="1234567891"
-          maxLength={14}
+          maxLength={9}
           value={phone}
           onChange={(event) => setPhoneValue(event.target.value)}
         />
       </div>
-      <div className="counter">{phone.length}/14</div>
+      <div className="counter">{phone.length}/9</div>
       {errors.phone && <p className="error-text">* {errors.phone}</p>}
       <PasswordInput
         label="Password"
@@ -2282,7 +2282,7 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
                 aria-pressed={Boolean(activeFlowers.length)}
                 onClick={openFlowerPicker}
               >
-                <Flower2 size={23} />
+                <RoseGraphic small />
                 <span>{activeFlowers.length}</span>
               </button>
               <button className="detail-action-tile ai-tile" type="button" aria-label="AI" onClick={() => setModal({ type: "aiSoon" })}>
@@ -2304,8 +2304,7 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
             {activeFlowers.length > 6 && <span className="flower-count-badge">+{activeFlowers.length - 6}</span>}
           </div>
         )}
-        {detailInfo && (
-          <article className="detail-entry">
+        <article className={`detail-entry ${detailInfo ? "" : "compact"}`}>
             <div className="detail-entry-header">
               <div className="detail-entry-avatar">
                 <AvatarSilhouette />
@@ -2335,9 +2334,8 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
                 )}
               </div>
             </div>
-            <p className="detail-info">{detailInfo}</p>
+            {detailInfo && <p className="detail-info">{detailInfo}</p>}
           </article>
-        )}
       </section>
     </main>
   );
