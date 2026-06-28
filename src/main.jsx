@@ -2357,7 +2357,28 @@ function GalleryScreen({ state, t, setScreen }) {
 }
 
 function DetailScreen({ state, language, t, updateState, setScreen, setModal, canUseAccount }) {
+  const [commentMenuOpen, setCommentMenuOpen] = useState(false);
   const person = state.people.find((item) => item.id === state.selectedPersonId);
+
+  useEffect(() => {
+    if (!commentMenuOpen) return undefined;
+
+    const closeMenu = (event) => {
+      if (!event.target.closest?.(".detail-entry-actions")) {
+        setCommentMenuOpen(false);
+      }
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setCommentMenuOpen(false);
+    };
+
+    document.addEventListener("pointerdown", closeMenu);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeMenu);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [commentMenuOpen]);
 
   if (!person) {
     return (
@@ -2368,23 +2389,40 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
     );
   }
 
-  const followed = state.following.includes(person.id);
   const blocked = state.blocked.includes(person.id);
   const creator = state.users.find((user) => user.id === person.createdBy);
   const creatorName = person.createdByName || (creator ? getUserName(creator) : person.createdBy === "guest" ? t("guestAccount") : "Shrine");
   const createdDate = personCreatedDate(person);
   const detailInfo = person.info?.trim();
+  const activeFlowers = activeFlowerGifts(person.flowers);
+  const lifeYears = personLifeYears(person, t);
+  const displayAge = personDisplayAge(person);
+  const shareUrl = typeof window !== "undefined" ? window.location?.href || "" : "";
+  const shareTitle = person.fullName || t("memorial");
 
-  const toggleFollow = () => {
+  const sharePerson = () => {
+    shareContent({
+      title: shareTitle,
+      text: [shareTitle, lifeYears].filter(Boolean).join("\n"),
+      url: shareUrl
+    });
+  };
+
+  const shareComment = () => {
+    shareContent({
+      title: shareTitle,
+      text: [shareTitle, creatorName, createdDate, detailInfo].filter(Boolean).join("\n"),
+      url: shareUrl
+    });
+    setCommentMenuOpen(false);
+  };
+
+  const openFlowerPicker = () => {
     if (!canUseAccount) {
-      setModal({ type: "accountPrompt" });
+      setModal({ type: "accountPrompt", intent: "flower" });
       return;
     }
-    updateState({
-      following: followed
-        ? state.following.filter((id) => id !== person.id)
-        : [person.id, ...state.following]
-    });
+    setModal({ type: "flower", personId: person.id });
   };
 
   const toggleBlock = () => {
@@ -2395,7 +2433,17 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
 
   return (
     <main className="main-screen detail-screen scroll-screen">
-      <Header title={t("memorial")} back={() => setScreen("home")} language={language} t={t} />
+      <Header
+        title=""
+        back={() => setScreen("home")}
+        language={language}
+        t={t}
+        action={
+          <button className="header-icon detail-share" onClick={sharePerson} aria-label="Share">
+            <Share2 size={28} />
+          </button>
+        }
+      />
       <section className="detail-card">
         <div className="detail-hero">
           <div className="detail-photo">
@@ -2404,36 +2452,70 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
           <div className="detail-summary">
             {person.fatherName && <p className="detail-father-name">{person.fatherName}</p>}
             <h2>{person.fullName}</h2>
-            <p className="detail-dates">
-              {person.birthDate || t("unknownBirth")} - {person.deathDate}
-            </p>
-            <p className="detail-country">
-              <Flag country={findCountry(person.country)} /> {countryLabel(person.country, language)}
-            </p>
+            <p className="detail-dates">{lifeYears}</p>
+            {displayAge && <p className="detail-age">{displayAge} Year</p>}
+            <div className="detail-quick-actions">
+              <button className="detail-action-tile" type="button" aria-label={t("gallery")} onClick={() => setScreen("gallery")}>
+                <ImageIcon size={23} />
+              </button>
+              <button
+                className={`detail-action-tile rose-tile ${activeFlowers.length ? "selected" : ""}`}
+                type="button"
+                aria-label={t("giveFlower")}
+                aria-pressed={Boolean(activeFlowers.length)}
+                onClick={openFlowerPicker}
+              >
+                <RoseGraphic small />
+                <span>{activeFlowers.length}</span>
+              </button>
+              <button className="detail-action-tile ai-tile" type="button" aria-label="AI" onClick={() => setModal({ type: "aiSoon" })}>
+                <AiMark />
+              </button>
+            </div>
           </div>
         </div>
-        <div className="detail-actions">
-          <button className={followed ? "primary-button small active" : "primary-button small"} onClick={toggleFollow}>
-            <UserRoundPlus size={20} /> {followed ? t("following") : t("follow")}
-          </button>
-          <button className="outline-button small" onClick={toggleBlock}>
-            <Ban size={20} /> {blocked ? t("unblock") : t("block")}
-          </button>
-        </div>
-        {detailInfo && (
-          <article className="detail-entry">
-            <div className="detail-entry-header">
-              <div className="detail-entry-avatar">
-                <AvatarSilhouette />
-              </div>
-              <div>
-                <strong>{creatorName}</strong>
-                {createdDate && <span>{createdDate}</span>}
-              </div>
-            </div>
-            <p className="detail-info">{detailInfo}</p>
-          </article>
+        {activeFlowers.length > 0 && (
+          <div className="flower-offerings" aria-label={formatText(t("flowerCount"), { count: activeFlowers.length })}>
+            {activeFlowers.slice(-6).map((flower) => (
+              <span className="flower-offering" key={flower.id} title={flower.userName || t("flower")}>
+                <RoseGraphic small />
+              </span>
+            ))}
+            {activeFlowers.length > 6 && <span className="flower-count-badge">+{activeFlowers.length - 6}</span>}
+          </div>
         )}
+        <article className={`detail-entry ${detailInfo ? "" : "compact"}`}>
+          <div className="detail-entry-header">
+            <div className="detail-entry-avatar">
+              <AvatarSilhouette />
+            </div>
+            <div>
+              <strong>{creatorName}</strong>
+              {createdDate && <span>{createdDate}</span>}
+            </div>
+            <div className="detail-entry-actions">
+              <button
+                className="detail-entry-menu-button"
+                type="button"
+                aria-label="Share"
+                aria-haspopup="menu"
+                aria-expanded={commentMenuOpen}
+                onClick={() => setCommentMenuOpen((open) => !open)}
+              >
+                <MoreVertical size={24} />
+              </button>
+              {commentMenuOpen && (
+                <div className="detail-entry-menu" role="menu">
+                  <button type="button" role="menuitem" onClick={shareComment}>
+                    <Share2 size={22} />
+                    <span>Share</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+          {detailInfo && <p className="detail-info">{detailInfo}</p>}
+        </article>
       </section>
     </main>
   );
