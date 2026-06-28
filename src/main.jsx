@@ -32,7 +32,6 @@ import {
   Pencil,
   Plus,
   Search,
-  SendHorizontal,
   Settings,
   Share2,
   ShieldCheck,
@@ -1194,9 +1193,17 @@ function personCreatedDate(person) {
   return "";
 }
 
+function isDefaultPerson(person) {
+  return defaultPeople.some((sample) => sample.id === person?.id) || person?.createdBy === "sample";
+}
+
 function canEditPersonShrine(person, currentUser) {
-  const creatorId = person?.createdBy || "";
-  return Boolean(creatorId && creatorId !== "sample" && (creatorId === "guest" || creatorId === currentUser?.id));
+  if (!person || isDefaultPerson(person)) return false;
+
+  const creatorId = String(person.createdBy || "").trim();
+  if (!creatorId) return true;
+
+  return creatorId === "guest" || creatorId === String(currentUser?.id || "");
 }
 
 function canViewFlowerSenders(person, currentUser) {
@@ -1618,7 +1625,7 @@ function App() {
           : person
       )
     }));
-    showToast(t("messageSaved"));
+    showToast(t("postAdded"));
     return true;
   };
 
@@ -3369,7 +3376,7 @@ function FlowerScreen({ state, language, t, setModal, goBack }) {
   );
 }
 
-function MessageScreen({ state, language, t, goBack, onSendMessage, activeUser }) {
+function MessageScreen({ state, language, t, goBack, setScreen, onSendMessage, activeUser }) {
   const [draft, setDraft] = useState("");
   const [attachment, setAttachment] = useState(null);
   const person = state.people.find((item) => item.id === state.selectedPersonId);
@@ -3385,6 +3392,8 @@ function MessageScreen({ state, language, t, goBack, onSendMessage, activeUser }
 
   const messages = normalizePersonMessages(person.messages);
   const canSend = Boolean(draft.trim() || attachment?.src);
+  const draftPreview = draft.trim();
+  const hasDraftPreview = Boolean(draftPreview || attachment?.src);
 
   const pickAttachment = (event) => {
     const file = event.target.files?.[0];
@@ -3412,6 +3421,7 @@ function MessageScreen({ state, language, t, goBack, onSendMessage, activeUser }
 
     setDraft("");
     setAttachment(null);
+    setScreen("detail", { replace: true });
   };
 
   return (
@@ -3424,7 +3434,7 @@ function MessageScreen({ state, language, t, goBack, onSendMessage, activeUser }
         <strong>{person.fullName}</strong>
       </section>
       <section className="message-thread" aria-live="polite">
-        {!messages.length && <p className="message-empty">{t("noMessages")}</p>}
+        {!messages.length && !hasDraftPreview && <p className="message-empty">{t("noMessages")}</p>}
         {messages.map((message) => {
           const mine = message.userId !== "guest" && message.userId === activeUser?.id;
           const time = new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -3440,6 +3450,12 @@ function MessageScreen({ state, language, t, goBack, onSendMessage, activeUser }
             </article>
           );
         })}
+        {hasDraftPreview && (
+          <article className="message-draft-preview">
+            {attachment?.src && <img className="message-draft-image" src={attachment.src} alt={attachment.name || t("attachPhoto")} />}
+            {draftPreview && <p dir="auto">{draftPreview}</p>}
+          </article>
+        )}
       </section>
       <form
         className="message-composer"
@@ -3471,7 +3487,7 @@ function MessageScreen({ state, language, t, goBack, onSendMessage, activeUser }
             onChange={(event) => setDraft(event.target.value)}
           />
           <button className="message-send-button" type="submit" disabled={!canSend} aria-label={t("send")}>
-            <SendHorizontal size={31} />
+            <ArrowUp size={27} />
           </button>
         </div>
       </form>
@@ -3631,7 +3647,13 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
                     <strong>{message.userName || t("guestAccount")}</strong>
                     <span>{formatStoredDate(message.createdAt)}</span>
                   </div>
+                  <button className="detail-message-menu-button" type="button" aria-label="More">
+                    <MoreVertical size={27} />
+                  </button>
                 </div>
+                {message.attachment && (
+                  <img className="detail-message-image" src={message.attachment} alt={message.attachmentName || t("message")} />
+                )}
                 {message.text && <p className="detail-message-text">{message.text}</p>}
               </article>
             ))}
