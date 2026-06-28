@@ -511,7 +511,7 @@ const copy = {
     flowerCount: "{count} flowers"
   },
   AR: {
-    shrine: "المزارات",
+    shrine: "شراين",
     registerTitle: "ابدأ حسابك",
     registerIntro: "أنشئ حسابك واحفظ كل مزار باسمك.",
     firstName: "الاسم الأول",
@@ -549,7 +549,7 @@ const copy = {
     letsStart: "ابدأ",
     sponsor: "الداعمون",
     follow: "متابعة",
-    sponsorTab: "الرعاة",
+    sponsorTab: "الرعاية",
     followersTab: "المتابعون",
     noMemorials: "لا توجد مزارات حتى الآن",
     noMemorialsBody: "اضغط على زر الإضافة لإضافة مزارك الأول.",
