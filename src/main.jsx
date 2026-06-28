@@ -291,21 +291,12 @@ function shareBaseUrl() {
   return appBaseUrl();
 }
 
-function buildShareUrl(personOrId, view = "shrine") {
+function buildShareUrl(personOrId) {
   const person = personOrId && typeof personOrId === "object" ? personOrId : null;
   const personId = person ? personShareId(person) : String(personOrId || "");
   if (!personId) return "";
 
-  const commentId = typeof view === "object" ? String(view.commentId || "") : "";
-  const viewName = typeof view === "object" ? view.view : view;
-  const path = viewName === "comment" && commentId ? shrineCommentPath(personId, commentId) : shrineInfoPath(personId);
-  const url = new URL(`${shareBaseUrl()}${path}`);
-
-  if (viewName === "comment" && !commentId) {
-    url.hash = "comment";
-  }
-
-  return url.toString();
+  return new URL(`${shareBaseUrl()}${shrineInfoPath(personId)}`).toString();
 }
 
 function getSharedTargetFromLocation() {

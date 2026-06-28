@@ -507,7 +507,7 @@ function shrineCommentPreviewMeta(personId, commentId, shrine, comment, env) {
   return {
     title: titleParts.join(" - "),
     description: previewText(comment?.text || shrine?.info || DEFAULT_META_DESCRIPTION),
-    url: `${appBaseUrl(env)}${shrineCommentPath(sharePersonId, commentId)}`,
+    url: sharePersonId ? `${appBaseUrl(env)}${shrineInfoPath(sharePersonId)}` : appBaseUrl(env),
     image
   };
 }
