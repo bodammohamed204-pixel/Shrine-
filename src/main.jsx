@@ -2486,28 +2486,48 @@ function DetailScreen({ state, language, t, updateState, setScreen, setModal, ca
             </div>
           </div>
         </div>
-        <div className="detail-actions">
-          <button className={followed ? "primary-button small active" : "primary-button small"} onClick={toggleFollow}>
-            <UserRoundPlus size={20} /> {followed ? t("following") : t("follow")}
-          </button>
-          <button className="outline-button small" onClick={toggleBlock}>
-            <Ban size={20} /> {blocked ? t("unblock") : t("block")}
-          </button>
-        </div>
-        {detailInfo && (
-          <article className="detail-entry">
-            <div className="detail-entry-header">
-              <div className="detail-entry-avatar">
-                <AvatarSilhouette />
-              </div>
-              <div>
-                <strong>{creatorName}</strong>
-                {createdDate && <span>{createdDate}</span>}
-              </div>
-            </div>
-            <p className="detail-info">{detailInfo}</p>
-          </article>
+        {activeFlowers.length > 0 && (
+          <div className="flower-offerings" aria-label={formatText(t("flowerCount"), { count: activeFlowers.length })}>
+            {activeFlowers.slice(-6).map((flower) => (
+              <span className="flower-offering" key={flower.id} title={flower.userName || t("flower")}>
+                <RoseGraphic small />
+              </span>
+            ))}
+            {activeFlowers.length > 6 && <span className="flower-count-badge">+{activeFlowers.length - 6}</span>}
+          </div>
         )}
+        <article className={`detail-entry ${detailInfo ? "" : "compact"}`}>
+          <div className="detail-entry-header">
+            <div className="detail-entry-avatar">
+              <AvatarSilhouette />
+            </div>
+            <div>
+              <strong>{creatorName}</strong>
+              {createdDate && <span>{createdDate}</span>}
+            </div>
+            <div className="detail-entry-actions">
+              <button
+                className="detail-entry-menu-button"
+                type="button"
+                aria-label="Share"
+                aria-haspopup="menu"
+                aria-expanded={commentMenuOpen}
+                onClick={() => setCommentMenuOpen((open) => !open)}
+              >
+                <MoreVertical size={24} />
+              </button>
+              {commentMenuOpen && (
+                <div className="detail-entry-menu" role="menu">
+                  <button type="button" role="menuitem" onClick={shareComment}>
+                    <Share2 size={22} />
+                    <span>Share</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+          {detailInfo && <p className="detail-info">{detailInfo}</p>}
+        </article>
       </section>
     </main>
   );
