@@ -10,3 +10,4 @@ qa-shots/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.wrangler-dev.*.log
