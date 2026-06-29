@@ -1734,7 +1734,7 @@ button {
 
 .admin-inline-form {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(128px, 180px);
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   align-items: end;
   gap: 10px;
   padding: 14px;
