@@ -11,7 +11,6 @@ import {
   ChevronRight,
   ChevronUp,
   CircleUserRound,
-  DoorOpen,
   Eye,
   EyeOff,
   FileText,
@@ -21,6 +20,7 @@ import {
   ImageUp,
   LayoutGrid,
   LayoutList,
+  LogIn,
   LockKeyhole,
   LogOut,
   Mail,
@@ -41,6 +41,13 @@ import {
   UserRoundPlus,
   X
 } from "lucide-react";
+import lilyRed from "../assets/flowers/lily-red.png";
+import lilyWhite from "../assets/flowers/lily-white.png";
+import lilyYellow from "../assets/flowers/lily-yellow.png";
+import roseRed from "../assets/flowers/rose-red.png";
+import roseYellow from "../assets/flowers/rose-yellow.png";
+import tulipCreamRed from "../assets/flowers/tulip-cream-red.png";
+import tulipPink from "../assets/flowers/tulip-pink.png";
 import defaultAvatar from "../assets/images/default-avatar.png";
 import countries from "./countries.js";
 import "./styles.css";
@@ -61,6 +68,29 @@ const FLOWER_LIFETIME_DAYS = 7;
 const FLOWER_LIFETIME_MS = FLOWER_LIFETIME_DAYS * 24 * 60 * 60 * 1000;
 const FLOWER_FADE_CHECK_INTERVAL_MS = 60 * 1000;
 const AGE_OPTIONS = Array.from({ length: 120 }, (_, index) => String(index + 1));
+const FLOWER_CHOICES = [
+  { id: "tulip-cream-red", label: "Cream red tulip", src: tulipCreamRed },
+  { id: "tulip-pink", label: "Pink tulip", src: tulipPink },
+  { id: "lily-yellow", label: "Yellow lily", src: lilyYellow },
+  { id: "lily-white", label: "White lily", src: lilyWhite },
+  { id: "lily-red", label: "Red lily", src: lilyRed },
+  { id: "rose-yellow", label: "Yellow rose", src: roseYellow },
+  { id: "rose-red", label: "Red rose", src: roseRed }
+];
+const INITIAL_FLOWER_TYPE = FLOWER_CHOICES[0].id;
+const DEFAULT_FLOWER_TYPE = "rose-red";
+const PROFILE_PHOTO_MAX_SIZE = 720;
+const PROFILE_PHOTO_QUALITY = 0.84;
+
+function normalizeFlowerType(value) {
+  const text = String(value || "").trim();
+  return FLOWER_CHOICES.some((flower) => flower.id === text) ? text : DEFAULT_FLOWER_TYPE;
+}
+
+function flowerAssetByType(value) {
+  const flowerType = normalizeFlowerType(value);
+  return FLOWER_CHOICES.find((flower) => flower.id === flowerType) || FLOWER_CHOICES[0];
+}
 
 function defaultApiBaseUrl() {
   if (typeof window === "undefined") return "";
@@ -940,7 +970,7 @@ const copy = {
     continue: "متابعة",
     alreadyHaveAccount: "عندك حساب بالفعل؟",
     login: "تسجيل الدخول",
-    continueBrowsing: "تصفح كزائر",
+    continueBrowsing: "متابعة التصفح",
     selectCallingCode: "اختر كود الدولة",
     required: "مطلوب",
     startRequired: "أكمل الحقول المطلوبة",
@@ -1094,8 +1124,8 @@ const copy = {
     emailOrPhonePlaceholder: "رقم الهاتف",
     accountPromptTitle: "أنشئ حسابًا لحفظ المتابعات",
     accountPromptBody: "قائمة المتابعة مرتبطة بحسابك، وتظل منفصلة عن تصفح الزائر.",
-    accountPromptAddTitle: "أنشئ حسابًا لإضافة مزار",
-    accountPromptAddBody: "أضف مزارًا واحفظ التفاصيل وتحكم فيه بأمان من حسابك.",
+    accountPromptAddTitle: "أنشئ حسابًا لإضافة راحل",
+    accountPromptAddBody: "أضف راحلًا، احفظ التفاصيل، وادر الصفحة بأمان من حسابك.",
     accountPromptFlowerTitle: "أنشئ حسابًا لإهداء وردة",
     accountPromptFlowerBody: "لكل مستخدم وردة واحدة يوميًا، لذلك يجب حفظها على حسابك.",
     signIn: "تسجيل الدخول",
@@ -1224,7 +1254,77 @@ function loadState() {
 }
 
 function saveState(nextState) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function readImageFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+      } else {
+        reject(new Error("Image could not be read."));
+      }
+    };
+    reader.onerror = () => reject(reader.error || new Error("Image could not be read."));
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImageElement(src) {
+  return new Promise((resolve, reject) => {
+    const image = new window.Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Image could not be loaded."));
+    image.src = src;
+  });
+}
+
+async function compressImageFile(file, maxSize = PROFILE_PHOTO_MAX_SIZE, quality = PROFILE_PHOTO_QUALITY) {
+  if (!file) return "";
+
+  if (typeof window === "undefined" || typeof document === "undefined" || !file.type?.startsWith("image/")) {
+    return readImageFileAsDataUrl(file);
+  }
+
+  const objectUrl = window.URL.createObjectURL(file);
+
+  try {
+    const image = await loadImageElement(objectUrl);
+    const sourceWidth = image.naturalWidth || image.width;
+    const sourceHeight = image.naturalHeight || image.height;
+    const largestSide = Math.max(sourceWidth, sourceHeight);
+
+    if (!sourceWidth || !sourceHeight || !largestSide) {
+      return readImageFileAsDataUrl(file);
+    }
+
+    const scale = Math.min(1, maxSize / largestSide);
+    const width = Math.max(1, Math.round(sourceWidth * scale));
+    const height = Math.max(1, Math.round(sourceHeight * scale));
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+
+    if (!context) return readImageFileAsDataUrl(file);
+
+    canvas.width = width;
+    canvas.height = height;
+    context.fillStyle = "#fff";
+    context.fillRect(0, 0, width, height);
+    context.drawImage(image, 0, 0, width, height);
+
+    return canvas.toDataURL("image/jpeg", quality);
+  } catch {
+    return readImageFileAsDataUrl(file);
+  } finally {
+    window.URL.revokeObjectURL(objectUrl);
+  }
 }
 
 function uid() {
@@ -1275,6 +1375,7 @@ function normalizeFlowerGifts(flowers) {
         id: flower.id || `${flower.userId}-${dayKey}-${givenAt.getTime()}`,
         userId: String(flower.userId),
         userName: flower.userName || "",
+        flowerType: normalizeFlowerType(firstText(flower.flowerType, flower.flowerId, flower.flower_id, flower.type)),
         givenAt: isoGivenAt,
         dayKey
       };
@@ -1938,25 +2039,37 @@ function App() {
   };
 
   const addPerson = (person) => {
-    setState((current) => ({
-      ...current,
-      people: [
-        {
-          ...person,
-          id: uid(),
-          publicId: createShrinePublicId(),
-          createdAt: new Date().toISOString(),
-          createdLocally: true,
-          createdBy: current.currentUser?.id || "guest",
-          createdByName: current.currentUser ? getUserName(current.currentUser) : "",
-          flowers: [],
-          messages: []
-        },
-        ...current.people
-      ]
-    }));
+    const personId = uid();
+    const publicId = createShrinePublicId();
+
+    setState((current) => {
+      const country = normalizeCountryName(person.country, current.currentCountry || initialState.currentCountry);
+      const newPerson = normalizePersonFlowers({
+        ...person,
+        id: personId,
+        publicId,
+        fullName: person.fullName.trim(),
+        surnameCheck: person.surnameCheck.trim(),
+        country,
+        createdAt: new Date().toISOString(),
+        createdLocally: true,
+        createdBy: current.currentUser?.id || "guest",
+        createdByName: current.currentUser ? getUserName(current.currentUser) : "",
+        flowers: [],
+        messages: []
+      });
+
+      return {
+        ...current,
+        selectedPersonId: personId,
+        currentCountry: country,
+        homeFilter: country,
+        countryPreferenceTouched: true,
+        people: [newPerson, ...current.people]
+      };
+    });
     showToast(t("memorialCreated"));
-    setScreen("home", { reset: true });
+    setScreen("detail", { reset: true });
   };
 
   const updatePerson = (person) => {
@@ -1982,7 +2095,7 @@ function App() {
     setScreen("detail", { replace: true });
   };
 
-  const giveFlowerToPerson = (personId) => {
+  const giveFlowerToPerson = (personId, flowerType = INITIAL_FLOWER_TYPE) => {
     const user = state.currentUser;
     if (!user) {
       setModal({ type: "accountPrompt", intent: "flower" });
@@ -1998,6 +2111,7 @@ function App() {
       id: uid(),
       userId: user.id,
       userName: getUserName(user),
+      flowerType: normalizeFlowerType(flowerType),
       givenAt: new Date().toISOString(),
       dayKey
     };
@@ -2206,9 +2320,10 @@ function App() {
 
   const selectedPerson = findPersonByShareId(state.people, state.selectedPersonId);
   const canEditSelectedShrine = canEditPersonShrine(selectedPerson, state.currentUser);
+  const accountPromptOpen = modal?.type === "accountPrompt";
 
   return (
-    <div className={`app-shell ${platformFontClass} ${isArabic ? "rtl" : ""}`} dir={isArabic ? "rtl" : "ltr"} lang={isArabic ? "ar" : "en"}>
+    <div className={`app-shell ${platformFontClass} ${isArabic ? "rtl" : ""}${accountPromptOpen ? " account-prompt-open" : ""}`} dir={isArabic ? "rtl" : "ltr"} lang={isArabic ? "ar" : "en"}>
       {opening && <SplashIntro />}
       {screen === "register" && (
         <RegisterScreen
@@ -2374,8 +2489,8 @@ function App() {
         <FlowerModal
           t={t}
           onClose={() => setModal(null)}
-          onGive={() => {
-            const added = giveFlowerToPerson(modal.personId);
+          onGive={(flowerType) => {
+            const added = giveFlowerToPerson(modal.personId, flowerType);
             if (added) {
               setModal(null);
             }
@@ -3217,15 +3332,23 @@ function AddScreen({ state, language, t, setModal, onSubmit, activeUser, goBack,
     info: initialPerson?.info || ""
   }));
   const [errors, setErrors] = useState({});
+  const [imageLoading, setImageLoading] = useState(false);
 
   const setField = (field, value) => setForm((current) => ({ ...current, [field]: value }));
 
-  const pickImage = (event) => {
-    const file = event.target.files?.[0];
+  const pickImage = async (event) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setField("photo", reader.result);
-    reader.readAsDataURL(file);
+
+    setImageLoading(true);
+    try {
+      const photo = await compressImageFile(file);
+      setField("photo", photo);
+    } finally {
+      setImageLoading(false);
+      input.value = "";
+    }
   };
 
   const submit = () => {
@@ -3348,8 +3471,8 @@ function AddScreen({ state, language, t, setModal, onSubmit, activeUser, goBack,
         />
         <div className="counter left">{infoWords}/250 {t("words")}</div>
         {errors.info && <p className="error-text">* {errors.info}</p>}
-        <button className="primary-button" onClick={submit}>
-          {isUpdate ? t("update") : t("create")}
+        <button className="primary-button" onClick={submit} disabled={imageLoading}>
+          {imageLoading ? t("pleaseWait") : isUpdate ? t("update") : t("create")}
         </button>
       </section>
     </main>
@@ -3375,7 +3498,6 @@ function SearchScreen({ state, language, t, updateState, setScreen, goBack }) {
           onChange={(event) => setQuery(event.target.value)}
         />
       </section>
-      {!query && <EmptyState title={t("startTyping")} />}
       {query && !results.length && <EmptyState title={t("noResults")} body={t("noResultsBody")} />}
       <section className="people-grid search-results">
         {results.map((person) => (
@@ -3510,11 +3632,25 @@ function ProfileAvatar({ user }) {
 
 function EditProfileScreen({ activeUser, state, language, t, updateState, setScreen, goBack, setModal, setToast }) {
   const [form, setForm] = useState({
+    photo: userAvatarSource(activeUser) || "",
     firstName: activeUser?.firstName || "",
     surname: activeUser?.surname || "",
     email: activeUser?.email || "",
     country: activeUser?.country || state.currentCountry || initialState.currentCountry
   });
+
+  const pickProfilePhoto = async (event) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    try {
+      const photo = await compressImageFile(file);
+      setForm((current) => ({ ...current, photo }));
+    } finally {
+      input.value = "";
+    }
+  };
 
   const save = () => {
     if (!activeUser) {
@@ -3537,6 +3673,17 @@ function EditProfileScreen({ activeUser, state, language, t, updateState, setScr
     <main className="main-screen scroll-screen edit-screen">
       <Header title={t("editProfile")} back={goBack} language={language} t={t} />
       <section className="add-form">
+        <label className="photo-picker profile-photo-picker">
+          {form.photo ? (
+            <img src={form.photo} alt={t("selected")} />
+          ) : (
+            <img className="profile-picker-default" src={defaultAvatar} alt="Default avatar" />
+          )}
+          <span>
+            <ImageUp size={24} />
+          </span>
+          <input type="file" accept="image/*" aria-label={t("attachPhoto")} onChange={pickProfilePhoto} />
+        </label>
         <Input
           label={t("firstName")}
           placeholder={t("firstName")}
@@ -3876,7 +4023,7 @@ function FlowerScreen({ state, language, t, setModal, goBack, flowerScreenMode }
               <strong>{flower.userName || t("guestAccount")}</strong>
               <span>{formatStoredDate(flower.givenAt)}</span>
             </div>
-            <RoseGraphic small />
+            <RoseGraphic small flowerType={flower.flowerType} />
           </article>
         ))}
       </section>
@@ -4060,6 +4207,9 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
   const lifeYears = personLifeYears(person, t);
   const displayAge = personDisplayAge(person);
   const activeFlowers = activeFlowerGifts(person.flowers);
+  const latestFlower = activeFlowers
+    .slice()
+    .sort((left, right) => Date.parse(right.givenAt) - Date.parse(left.givenAt))[0];
   const shrineMessages = normalizePersonMessages(person.messages);
   const canOpenFlowerSenders = canViewFlowerSenders(person, state.currentUser);
 
@@ -4132,7 +4282,7 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
             }}
             aria-label={t("giveFlower")}
           >
-            <RoseGraphic small />
+            <RoseGraphic small flowerType={latestFlower?.flowerType} />
             <span>{activeFlowers.length}</span>
           </button>
           <button className="detail-tool-button" onClick={() => setModal({ type: "aiSoon" })} aria-label="AI">
@@ -4611,9 +4761,21 @@ function Sheet({ children, onClose }) {
 
 function FlowerModal({ t, onGive, onClose }) {
   const [showLimit, setShowLimit] = useState(false);
+  const [flowerIndex, setFlowerIndex] = useState(
+    Math.max(0, FLOWER_CHOICES.findIndex((flower) => flower.id === INITIAL_FLOWER_TYPE))
+  );
+  const selectedFlower = FLOWER_CHOICES[flowerIndex] || FLOWER_CHOICES[0];
+
+  const previousFlower = () => {
+    setFlowerIndex((index) => (index - 1 + FLOWER_CHOICES.length) % FLOWER_CHOICES.length);
+  };
+
+  const nextFlower = () => {
+    setFlowerIndex((index) => (index + 1) % FLOWER_CHOICES.length);
+  };
 
   const give = () => {
-    if (onGive()) return;
+    if (onGive(selectedFlower.id)) return;
     setShowLimit(true);
   };
 
@@ -4623,14 +4785,14 @@ function FlowerModal({ t, onGive, onClose }) {
         <button className="flower-close-button" type="button" onClick={onClose} aria-label={t("back")}>
           <X size={36} />
         </button>
-        <button className="flower-nav-button left" type="button" aria-hidden="true" tabIndex={-1}>
+        <button className="flower-nav-button left" type="button" onClick={previousFlower} aria-label="Previous flower">
           <ChevronLeft size={50} />
         </button>
-        <button className="flower-nav-button right" type="button" aria-hidden="true" tabIndex={-1}>
+        <button className="flower-nav-button right" type="button" onClick={nextFlower} aria-label="Next flower">
           <ChevronRight size={50} />
         </button>
         <button className="flower-pick-button" type="button" onClick={give} aria-label={t("giveFlower")}>
-          <RoseGraphic />
+          <RoseGraphic flowerType={selectedFlower.id} />
         </button>
         {showLimit && (
           <>
@@ -4980,11 +5142,14 @@ function AccountPrompt({ t, intent = "follow", onCreate, onLogin, onClose, onCon
   const isAdd = intent === "add";
   const isFlower = intent === "flower";
   return (
-    <div className="modal-backdrop bottom" onClick={onClose}>
+    <div className="modal-backdrop bottom account-prompt-backdrop" onClick={onClose}>
       <div className="account-prompt" onClick={(event) => event.stopPropagation()}>
         <span className="drag-handle" />
         <div className="prompt-icon">
-          <LockKeyhole size={34} />
+          <LockKeyhole className="prompt-main-icon" size={30} />
+          <span className="prompt-icon-badge">
+            <CircleUserRound size={13} />
+          </span>
         </div>
         <h2>{isAdd ? t("accountPromptAddTitle") : isFlower ? t("accountPromptFlowerTitle") : t("accountPromptTitle")}</h2>
         <p>{isAdd ? t("accountPromptAddBody") : isFlower ? t("accountPromptFlowerBody") : t("accountPromptBody")}</p>
@@ -4992,7 +5157,7 @@ function AccountPrompt({ t, intent = "follow", onCreate, onLogin, onClose, onCon
           <UserRoundPlus size={20} /> {t("createAccount")}
         </button>
         <button className="outline-button" onClick={onLogin}>
-          <DoorOpen size={20} /> {t("signIn")}
+          <LogIn size={20} /> {t("signIn")}
         </button>
         <button className="ghost-link" onClick={onContinueBrowsing || onClose}>
           {t("continueBrowsing")}
@@ -5091,33 +5256,18 @@ function Flag({ country, large = false }) {
   );
 }
 
-function RoseGraphic({ small = false }) {
+function RoseGraphic({ flowerType = DEFAULT_FLOWER_TYPE, small = false }) {
+  const flower = flowerAssetByType(flowerType);
+
   return (
-    <svg
+    <img
       className={`rose-graphic ${small ? "small" : ""}`}
-      viewBox="0 0 96 140"
-      role="img"
-      aria-label="Rose"
-      focusable="false"
-    >
-      <path className="rose-stem-shadow" d="M50 50 C47 72 49 100 43 130" />
-      <path className="rose-stem" d="M51 50 C48 73 50 101 44 130" />
-      <path className="rose-leaf back" d="M47 86 C29 83 19 71 28 64 C42 54 53 69 47 86Z" />
-      <path className="rose-leaf front" d="M47 102 C62 89 76 88 76 101 C72 115 55 115 47 102Z" />
-      <g className="rose-bloom">
-        <path className="petal p1" d="M44 13 C54 4 72 6 80 21 C66 18 57 25 53 39 C48 30 43 22 44 13Z" />
-        <path className="petal p2" d="M42 14 C28 8 15 16 14 32 C25 24 38 28 46 41 C47 30 46 21 42 14Z" />
-        <path className="petal p3" d="M22 30 C9 41 13 60 30 67 C27 52 34 41 49 37 C38 29 29 27 22 30Z" />
-        <path className="petal p4" d="M72 28 C86 37 87 58 69 68 C73 52 65 43 50 37 C59 29 67 26 72 28Z" />
-        <path className="petal p5" d="M30 23 C41 12 61 13 72 25 C59 27 49 35 45 51 C37 42 31 33 30 23Z" />
-        <path className="petal p6" d="M28 47 C38 32 57 27 72 38 C60 44 53 55 53 70 C40 65 30 58 28 47Z" />
-        <path className="petal p7" d="M67 47 C55 32 35 29 22 41 C36 46 45 57 47 72 C58 66 66 58 67 47Z" />
-        <path className="petal p8" d="M36 64 C47 72 61 72 72 63 C68 78 54 88 40 82 C31 78 28 69 36 64Z" />
-        <path className="petal center" d="M37 37 C45 24 62 25 69 38 C57 36 50 43 47 56 C44 46 41 40 37 37Z" />
-        <path className="petal core" d="M44 39 C50 31 60 32 65 40 C58 41 52 46 50 54 C49 47 46 43 44 39Z" />
-        <path className="petal fold" d="M38 49 C48 41 61 43 68 53 C57 51 48 56 42 66 C39 59 37 53 38 49Z" />
-      </g>
-    </svg>
+      src={flower.src}
+      alt={flower.label}
+      draggable="false"
+      loading={small ? "lazy" : "eager"}
+      decoding="async"
+    />
   );
 }
 

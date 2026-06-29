@@ -1264,6 +1264,23 @@ button {
   stroke-width: 3;
 }
 
+.profile-photo-picker {
+  width: 116px;
+  height: 116px;
+  margin: 2px auto 18px;
+  border-radius: 50%;
+  border-color: rgba(17, 17, 17, 0.2);
+}
+
+.profile-photo-picker img {
+  border-radius: inherit;
+}
+
+.profile-photo-picker .profile-picker-default {
+  object-fit: cover;
+  background: #fff;
+}
+
 .add-screen .field-wrap input,
 .add-screen .select-field,
 .add-screen .date-field {
@@ -2149,7 +2166,8 @@ button {
 
 .flower-sender-card .rose-graphic.small {
   justify-self: end;
-  width: 28px;
+  width: 42px;
+  height: 54px;
 }
 
 .flower-page-note {
@@ -2757,81 +2775,28 @@ button {
 }
 
 .detail-flower-button .rose-graphic.small {
-  width: 22px;
+  width: 24px;
+  height: 30px;
   flex: 0 0 auto;
 }
 
 .rose-graphic {
-  width: min(50vw, 210px);
+  display: block;
+  width: min(74vw, 340px);
   max-width: 100%;
+  max-height: min(60vh, 460px);
   height: auto;
-  overflow: visible;
+  object-fit: contain;
   filter: drop-shadow(0 16px 18px rgba(0, 0, 0, 0.28));
+  pointer-events: none;
+  user-select: none;
 }
 
 .rose-graphic.small {
   width: 28px;
+  height: 34px;
+  object-fit: contain;
   filter: drop-shadow(0 2px 2px rgba(36, 72, 49, 0.18));
-}
-
-.rose-stem-shadow {
-  fill: none;
-  stroke: rgba(10, 44, 31, 0.28);
-  stroke-width: 5.6;
-  stroke-linecap: round;
-}
-
-.rose-stem {
-  fill: none;
-  stroke: #176343;
-  stroke-width: 4.2;
-  stroke-linecap: round;
-}
-
-.rose-leaf {
-  fill: #2f8b64;
-  stroke: #176343;
-  stroke-width: 1.1;
-}
-
-.rose-leaf.front {
-  fill: #3da374;
-}
-
-.rose-bloom {
-  transform-origin: 48px 46px;
-}
-
-.petal {
-  stroke: rgba(98, 0, 10, 0.32);
-  stroke-linejoin: round;
-  stroke-width: 0.9;
-}
-
-.petal.p1,
-.petal.p2,
-.petal.p3,
-.petal.p4 {
-  fill: #be0617;
-}
-
-.petal.p5,
-.petal.p6,
-.petal.p7,
-.petal.p8 {
-  fill: #dd0c1e;
-}
-
-.petal.center {
-  fill: #f32a36;
-}
-
-.petal.core {
-  fill: #a50413;
-}
-
-.petal.fold {
-  fill: rgba(239, 21, 34, 0.9);
 }
 
 .detail-entry {
@@ -3360,6 +3325,10 @@ button {
   opacity: 0.4;
 }
 
+.account-prompt-open .bottom-nav button {
+  opacity: 0;
+}
+
 .home-indicator {
   display: none;
 }
@@ -3377,6 +3346,12 @@ button {
 .modal-backdrop.bottom {
   align-items: end;
   padding: 0;
+}
+
+.account-prompt-backdrop {
+  justify-items: center;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.52);
 }
 
 .flower-backdrop {
@@ -3422,14 +3397,18 @@ button {
 .flower-nav-button {
   position: absolute;
   top: 49%;
-  z-index: 1;
+  z-index: 2;
   display: grid;
   place-items: center;
   width: 58px;
   height: 72px;
   color: rgba(255, 255, 255, 0.48);
   transform: translateY(-50%);
-  pointer-events: none;
+}
+
+.flower-nav-button:active {
+  color: rgba(255, 255, 255, 0.78);
+  transform: translateY(-50%) scale(0.96);
 }
 
 .flower-nav-button.left {
@@ -3443,10 +3422,10 @@ button {
 .flower-pick-button {
   display: grid;
   place-items: center;
-  width: min(78vw, 330px);
-  height: min(58vh, 430px);
+  width: min(82vw, 360px);
+  height: min(62vh, 470px);
   min-height: 300px;
-  padding: 24px;
+  padding: 14px;
 }
 
 .flower-pick-button:active .rose-graphic {
@@ -4152,47 +4131,104 @@ button {
 
 .account-prompt {
   align-self: end;
-  width: min(100%, var(--app-max-width));
-  padding: 24px 24px 30px;
-  border-radius: 30px 30px 0 0;
+  width: min(calc(var(--app-frame-width) - 32px), 488px);
+  margin-bottom: max(24px, env(safe-area-inset-bottom));
+  padding: 22px 28px 23px;
+  border-radius: 30px;
   background: #fff;
-  box-shadow: 0 -18px 48px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 -8px 34px rgba(30, 94, 126, 0.22);
+  text-align: center;
 }
 
 .drag-handle {
   display: block;
   width: 62px;
   height: 5px;
-  margin: 0 auto 26px;
+  margin: 0 auto 22px;
   border-radius: 999px;
   background: #d7d7d7;
 }
 
 .prompt-icon {
+  position: relative;
   display: grid;
   place-items: center;
-  width: 72px;
-  height: 72px;
-  margin: 0 auto 28px;
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 21px;
   border-radius: 50%;
   color: var(--blue);
   background: #e8f6ff;
 }
 
+.prompt-main-icon {
+  stroke-width: 2.4;
+}
+
+.prompt-icon-badge {
+  position: absolute;
+  right: 13px;
+  bottom: 12px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #e8f6ff;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--blue);
+}
+
+.prompt-icon-badge svg {
+  width: 12px;
+  height: 12px;
+  stroke-width: 3;
+}
+
 .account-prompt h2 {
-  margin: 0 0 14px;
-  font-size: 1.72rem;
-  line-height: 1.25;
+  margin: 0 0 11px;
+  color: #050505;
+  font-size: 1.46rem;
+  line-height: 1.18;
+  font-weight: 800;
 }
 
 .account-prompt p {
   margin: 0 0 24px;
   color: #686e77;
+  font-size: 0.98rem;
   line-height: 1.55;
+  font-weight: 400;
+}
+
+.account-prompt .primary-button,
+.account-prompt .outline-button {
+  min-height: 54px;
+  border-radius: 15px;
+  box-shadow: none;
+  font-size: 1.02rem;
+  font-weight: 500;
+}
+
+.account-prompt .primary-button {
+  color: rgba(255, 255, 255, 0.9);
+  background: #2d9beb;
 }
 
 .account-prompt .outline-button {
-  margin: 12px 0 18px;
+  border-color: #2d9beb;
+  color: #2494e8;
+}
+
+.account-prompt .outline-button {
+  margin: 10px 0 16px;
+}
+
+.account-prompt .ghost-link {
+  min-height: 30px;
+  color: #666;
+  font-size: 1.02rem;
+  font-weight: 500;
 }
 
 .logout-backdrop {
