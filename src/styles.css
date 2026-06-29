@@ -3483,6 +3483,151 @@ button {
   opacity: 0;
 }
 
+.add-screen .top-header,
+.search-screen .top-header,
+.gallery-screen .top-header,
+.flowers-screen .top-header,
+.message-screen .top-header,
+.detail-screen .top-header,
+.blocked-screen .top-header,
+.terms-screen .top-header,
+.contact-screen .top-header,
+.user-dashboard-screen .top-header,
+.edit-screen .top-header {
+  direction: ltr;
+  min-height: calc(106px + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
+  border-radius: 22px 22px 0 0;
+  background: #d9f5ff;
+}
+
+.add-screen .top-header .rays,
+.search-screen .top-header .rays,
+.gallery-screen .top-header .rays,
+.flowers-screen .top-header .rays,
+.message-screen .top-header .rays,
+.detail-screen .top-header .rays,
+.blocked-screen .top-header .rays,
+.terms-screen .top-header .rays,
+.contact-screen .top-header .rays,
+.user-dashboard-screen .top-header .rays,
+.edit-screen .top-header .rays {
+  opacity: 0.9;
+  background:
+    radial-gradient(circle at 50% 106%, rgba(255, 255, 255, 0.98) 0 15%, rgba(255, 255, 255, 0.76) 23%, rgba(255, 255, 255, 0) 42%),
+    repeating-conic-gradient(from -18deg at 50% 104%, rgba(255, 255, 255, 0.86) 0 7deg, rgba(123, 215, 240, 0.3) 7deg 16deg, rgba(255, 255, 255, 0.62) 16deg 23deg, rgba(93, 200, 228, 0.24) 23deg 31deg),
+    linear-gradient(180deg, #d4f4fd 0%, #eefbff 100%);
+}
+
+.add-screen .top-header h1,
+.search-screen .top-header h1,
+.gallery-screen .top-header h1,
+.flowers-screen .top-header h1,
+.message-screen .top-header h1,
+.blocked-screen .top-header h1,
+.terms-screen .top-header h1,
+.contact-screen .top-header h1,
+.user-dashboard-screen .top-header h1,
+.edit-screen .top-header h1 {
+  color: var(--blue);
+  font-size: 1.72rem;
+  line-height: 1;
+  text-transform: none;
+}
+
+.add-screen .header-icon.left,
+.search-screen .header-icon.left,
+.gallery-screen .header-icon.left,
+.flowers-screen .header-icon.left,
+.message-screen .header-icon.left,
+.detail-screen .header-icon.left,
+.blocked-screen .header-icon.left,
+.terms-screen .header-icon.left,
+.contact-screen .header-icon.left,
+.user-dashboard-screen .header-icon.left,
+.edit-screen .header-icon.left,
+.rtl .add-screen .header-icon.left,
+.rtl .search-screen .header-icon.left,
+.rtl .gallery-screen .header-icon.left,
+.rtl .flowers-screen .header-icon.left,
+.rtl .message-screen .header-icon.left,
+.rtl .detail-screen .header-icon.left,
+.rtl .blocked-screen .header-icon.left,
+.rtl .terms-screen .header-icon.left,
+.rtl .contact-screen .header-icon.left,
+.rtl .user-dashboard-screen .header-icon.left,
+.rtl .edit-screen .header-icon.left {
+  top: calc(37px + env(safe-area-inset-top));
+  right: auto;
+  left: 18px;
+  width: 40px;
+  height: 40px;
+  color: #fff;
+  filter: drop-shadow(0 1px 2px rgba(74, 157, 184, 0.18));
+  transform: none;
+}
+
+.add-screen .header-icon.left svg,
+.search-screen .header-icon.left svg,
+.gallery-screen .header-icon.left svg,
+.flowers-screen .header-icon.left svg,
+.message-screen .header-icon.left svg,
+.detail-screen .header-icon.left svg,
+.blocked-screen .header-icon.left svg,
+.terms-screen .header-icon.left svg,
+.contact-screen .header-icon.left svg,
+.user-dashboard-screen .header-icon.left svg,
+.edit-screen .header-icon.left svg {
+  width: 34px;
+  height: 34px;
+  stroke-width: 2.45;
+}
+
+.rtl .add-screen .header-icon.left svg,
+.rtl .search-screen .header-icon.left svg,
+.rtl .gallery-screen .header-icon.left svg,
+.rtl .flowers-screen .header-icon.left svg,
+.rtl .message-screen .header-icon.left svg,
+.rtl .detail-screen .header-icon.left svg,
+.rtl .blocked-screen .header-icon.left svg,
+.rtl .terms-screen .header-icon.left svg,
+.rtl .contact-screen .header-icon.left svg,
+.rtl .user-dashboard-screen .header-icon.left svg,
+.rtl .edit-screen .header-icon.left svg {
+  transform: scale(var(--visual-icon-scale));
+}
+
+.add-screen .header-action,
+.search-screen .header-action,
+.gallery-screen .header-action,
+.flowers-screen .header-action,
+.message-screen .header-action,
+.detail-screen .header-action,
+.blocked-screen .header-action,
+.terms-screen .header-action,
+.contact-screen .header-action,
+.user-dashboard-screen .header-action,
+.edit-screen .header-action {
+  top: calc(37px + env(safe-area-inset-top));
+  right: 20px;
+  left: auto;
+  transform: none;
+}
+
+.flowers-screen .flower-header-button {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  color: #fff;
+  background: transparent;
+}
+
+.flowers-screen .flower-header-button svg {
+  width: 31px;
+  height: 31px;
+  stroke-width: 2.6;
+}
+
 .terms-content {
   padding: 22px 18px 80px;
   background: var(--soft);
