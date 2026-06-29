@@ -11,6 +11,10 @@ npm run dev
 
 The app stores accounts and memorial entries in browser `localStorage`, so the data you enter stays on the same browser/device until storage is cleared.
 
+The admin dashboard syncs a sanitized live copy of users, memorials, comments,
+contact messages, terms, and global blocked people to the backend. Local
+development stores that copy in `.data/live-admin.json`.
+
 ## Activation OTP
 
 Create `.env.local` from `.env.example` and add your Oncallos API key for WhatsApp OTP. Email OTP uses a signed challenge; in local development the code is printed in the server console unless Cloudflare Email Sending REST credentials are provided:
@@ -26,6 +30,8 @@ CLOUDFLARE_EMAIL_ACCOUNT_ID=your-email-sending-account-id
 CLOUDFLARE_EMAIL_API_TOKEN=your-email-sending-api-token
 ALLOWED_ORIGINS=http://localhost:5184,http://127.0.0.1:5184,http://localhost:5173,http://127.0.0.1:5173,capacitor://localhost
 PORT=5184
+ADMIN_DASHBOARD_TOKEN=replace-with-a-long-random-admin-key
+ADMIN_IDENTIFIERS=admin@example.com,+201234567890
 ```
 
 The key is used only by the local Express server. It is not shipped to the browser. If you open Vite directly on `5173`, the frontend automatically sends OTP requests to the local Express API on `5184`.
@@ -38,15 +44,23 @@ npm run build
 
 ## Deploy to Cloudflare Workers
 
-The Worker in `worker/index.js` serves the built app and handles `/api/otp/send`, `/api/otp/verify`, `/api/otp/email/send`, and `/api/otp/email/verify` on the same deployed domain.
+The Worker in `worker/index.js` serves the built app and handles `/api/otp/send`, `/api/otp/verify`, `/api/otp/email/send`, `/api/otp/email/verify`, `/api/live`, `/api/contact`, and `/api/admin/*` on the same deployed domain.
 
 ```bash
 npm install
 npx wrangler login
+npx wrangler kv namespace create SHRINE_DATA
 npx wrangler secret put ONCALLOS_API_KEY
 npx wrangler secret put OTP_EMAIL_SECRET
+npx wrangler secret put ADMIN_DASHBOARD_TOKEN
 npm run worker:deploy
 ```
+
+After creating the KV namespace, paste its `id` into the commented
+`kv_namespaces` block in `wrangler.jsonc` and uncomment it. Set
+`ADMIN_IDENTIFIERS` to the allowed admin email/phone values in `wrangler.jsonc`
+or as an environment variable. `ADMIN_DASHBOARD_TOKEN` must stay a secret and
+is the key used on the admin sign-in screen.
 
 The npm Worker scripts deploy `wrangler.jsonc`, which targets the
 `shrine-the-book-of-heaven` Worker and serves both the API and the built React

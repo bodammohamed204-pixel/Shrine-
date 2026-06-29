@@ -1,5 +1,6 @@
 import "dotenv/config";
 import crypto from "node:crypto";
+import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
@@ -13,6 +14,8 @@ dotenv.config({ path: path.join(__dirname, ".env.local"), override: false });
 const app = express();
 const port = Number(process.env.PORT || 5184);
 const oncallosBaseUrl = "https://public.oncallos.com";
+const liveDataPath = path.join(__dirname, ".data", "live-admin.json");
+const adminSessionTtlMs = 12 * 60 * 60 * 1000;
 const emailOtpTtlMs = 10 * 60 * 1000;
 const otpRateLimitFallbackSeconds = 60 * 60;
 const devEmailOtpSecret = crypto.randomBytes(32).toString("hex");
@@ -56,8 +59,8 @@ app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (origin && isAllowedOrigin(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Admin-Token");
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS");
     res.setHeader("Access-Control-Expose-Headers", "Retry-After, X-RateLimit-Remaining-Hour, X-RateLimit-Remaining-Day");
     res.setHeader("Vary", "Origin");
   }
@@ -101,6 +104,162 @@ app.get("/api/geo/country", (req, res) => {
   res.json({ countryCode: requestCountryCode(req) });
 });
 
+app.get("/api/live", async (_req, res) => {
+  const data = await readLiveData();
+  res.setHeader("Cache-Control", "no-store");
+  return res.json({ success: true, storageConfigured: true, live: publicLivePayload(data) });
+});
+
+app.post("/api/live/sync", async (req, res) => {
+  const current = await readLiveData();
+  const incomingUsers = [
+    ...ensureArray(req.body.users),
+    ...(req.body.currentUser ? [req.body.currentUser] : [])
+  ].map(normalizeLiveUser).filter(Boolean);
+  const incomingShrines = ensureArray(req.body.people || req.body.shrines).map(normalizeLiveShrine).filter(Boolean);
+  const next = await writeLiveData({
+    ...current,
+    users: mergeById(current.users, incomingUsers, current.removedUserIds),
+    shrines: mergeById(current.shrines, incomingShrines),
+    comments: mergeById(current.comments, incomingShrines.flatMap((shrine) => ensureArray(shrine.messages)), current.removedCommentIds)
+  });
+  res.setHeader("Cache-Control", "no-store");
+  return res.json({ success: true, storageConfigured: true, live: publicLivePayload(next) });
+});
+
+app.post("/api/contact", async (req, res) => {
+  const message = normalizeContactMessage(req.body);
+  if (!message) {
+    return res.status(400).json({ success: false, error: "Message is required." });
+  }
+
+  const current = await readLiveData();
+  await writeLiveData({
+    ...current,
+    contactMessages: [message, ...current.contactMessages]
+  });
+  return res.json({ success: true, message });
+});
+
+app.post("/api/admin/login", (req, res) => {
+  const secret = adminSecret();
+  const identifier = firstText(req.body.identifier, req.body.email, req.body.phone);
+  const accessKey = String(firstText(req.body.accessKey, req.body.password, req.body.token) || "").trim();
+
+  if (!secret) {
+    return res.status(503).json({ success: false, error: "Admin token is not configured." });
+  }
+
+  if (!safeEqual(accessKey, secret)) {
+    return res.status(401).json({ success: false, error: "Invalid admin key." });
+  }
+
+  if (!adminIdentifierAllowed(identifier)) {
+    return res.status(403).json({ success: false, error: "This admin identifier is not allowed." });
+  }
+
+  return res.json({
+    success: true,
+    sessionToken: createAdminSession(identifier),
+    expiresInSeconds: adminSessionTtlMs / 1000
+  });
+});
+
+app.get("/api/admin/dashboard", requireAdmin, async (_req, res) => {
+  const data = await readLiveData();
+  res.setHeader("Cache-Control", "no-store");
+  return res.json({ success: true, dashboard: liveDashboardPayload(data) });
+});
+
+app.patch("/api/admin/terms", requireAdmin, async (req, res) => {
+  const data = await readLiveData();
+  const terms = normalizeTermsSections(req.body?.terms || req.body);
+  await writeLiveData({ ...data, terms });
+  return res.json({ success: true, terms });
+});
+
+app.delete("/api/admin/users/:id", requireAdmin, async (req, res) => {
+  const data = await readLiveData();
+  const id = String(req.params.id || "").trim();
+  await writeLiveData({
+    ...data,
+    removedUserIds: uniqueStrings([...data.removedUserIds, id]),
+    users: data.users.filter((user) => user.id !== id)
+  });
+  return res.json({ success: true });
+});
+
+app.delete("/api/admin/comments/:id", requireAdmin, async (req, res) => {
+  const data = await readLiveData();
+  const id = String(req.params.id || "").trim();
+  await writeLiveData({
+    ...data,
+    removedCommentIds: uniqueStrings([...data.removedCommentIds, id]),
+    comments: data.comments.filter((comment) => comment.id !== id),
+    shrines: data.shrines.map((shrine) => ({
+      ...shrine,
+      messages: ensureArray(shrine.messages).filter((message) => message.id !== id)
+    }))
+  });
+  return res.json({ success: true });
+});
+
+app.patch("/api/admin/contact/:id", requireAdmin, async (req, res) => {
+  const data = await readLiveData();
+  const id = String(req.params.id || "").trim();
+  const status = req.body?.status === "done" ? "done" : "new";
+  await writeLiveData({
+    ...data,
+    contactMessages: data.contactMessages.map((message) =>
+      message.id === id ? { ...message, status, updatedAt: nowIso() } : message
+    )
+  });
+  return res.json({ success: true });
+});
+
+app.delete("/api/admin/contact/:id", requireAdmin, async (req, res) => {
+  const data = await readLiveData();
+  const id = String(req.params.id || "").trim();
+  await writeLiveData({
+    ...data,
+    contactMessages: data.contactMessages.filter((message) => message.id !== id)
+  });
+  return res.json({ success: true });
+});
+
+app.post("/api/admin/blocked", requireAdmin, async (req, res) => {
+  const data = await readLiveData();
+  const personId = stableId(firstText(req.body?.personId, req.body?.id));
+  if (!personId) {
+    return res.status(400).json({ success: false, error: "personId is required." });
+  }
+
+  const shrine = data.shrines.find((item) => item.id === personId || item.publicId === personId);
+  const blocked = {
+    personId: shrine?.id || personId,
+    publicId: shrine?.publicId || "",
+    fullName: shrine?.fullName || limitText(req.body?.fullName, 180),
+    blockedAt: nowIso()
+  };
+  const blockedPeople = mergeById(
+    data.blockedPeople.map((person) => ({ ...person, id: person.personId || person.publicId })),
+    [{ ...blocked, id: blocked.personId || blocked.publicId }]
+  ).map(({ id: _id, ...person }) => person);
+
+  await writeLiveData({ ...data, blockedPeople });
+  return res.json({ success: true, blocked });
+});
+
+app.delete("/api/admin/blocked/:id", requireAdmin, async (req, res) => {
+  const data = await readLiveData();
+  const id = String(req.params.id || "").trim();
+  await writeLiveData({
+    ...data,
+    blockedPeople: data.blockedPeople.filter((person) => person.personId !== id && person.publicId !== id)
+  });
+  return res.json({ success: true });
+});
+
 function getApiKey() {
   return process.env.ONCALLOS_API_KEY?.trim();
 }
@@ -130,6 +289,310 @@ function safeEqual(a, b) {
   const left = Buffer.from(String(a || ""));
   const right = Buffer.from(String(b || ""));
   return left.length === right.length && crypto.timingSafeEqual(left, right);
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function limitText(value, maxLength = 500) {
+  const text = String(value || "").trim().replace(/\s+/g, " ");
+  return text.length > maxLength ? text.slice(0, maxLength).trim() : text;
+}
+
+function firstText(...values) {
+  for (const value of values) {
+    const text = String(value || "").trim();
+    if (text) return text;
+  }
+  return "";
+}
+
+function cleanId(value) {
+  return String(value || "").trim().replace(/[^a-zA-Z0-9@.+:_-]/g, "").slice(0, 120);
+}
+
+function stableId(value, fallback = "") {
+  return cleanId(firstText(value, fallback));
+}
+
+function ensureArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function normalizeIsoDate(value, fallback = nowIso()) {
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : fallback;
+}
+
+function defaultLiveData() {
+  return {
+    version: 1,
+    updatedAt: "",
+    terms: {},
+    users: [],
+    shrines: [],
+    comments: [],
+    contactMessages: [],
+    blockedPeople: [],
+    removedUserIds: [],
+    removedCommentIds: []
+  };
+}
+
+function normalizeTermsSections(value) {
+  const terms = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  const normalizeLanguageTerms = (sections) =>
+    ensureArray(sections)
+      .map((section, index) => ({
+        title: limitText(section?.title || `${index + 1}. Terms`, 120),
+        body: limitText(section?.body || section?.text || "", 3000)
+      }))
+      .filter((section) => section.title || section.body);
+
+  return {
+    EN: normalizeLanguageTerms(terms.EN || terms.en),
+    AR: normalizeLanguageTerms(terms.AR || terms.ar)
+  };
+}
+
+function normalizeLiveUser(user) {
+  if (!user || typeof user !== "object" || Array.isArray(user)) return null;
+  const id = stableId(firstText(user.id, user.userId, user.email, user.phone, user.otpPhone));
+  if (!id) return null;
+
+  return {
+    id,
+    firstName: limitText(user.firstName, 80),
+    surname: limitText(user.surname, 80),
+    name: limitText(firstText(user.name, `${user.firstName || ""} ${user.surname || ""}`), 140),
+    email: normalizeEmail(user.email),
+    phone: limitText(user.phone, 32),
+    phoneCode: limitText(user.phoneCode, 12),
+    otpPhone: limitText(user.otpPhone, 32),
+    country: limitText(user.country || user.phoneCountry, 80),
+    gender: limitText(user.gender, 24),
+    photo: limitText(firstText(user.photo, user.avatar, user.photoUrl, user.avatarUrl), 1200),
+    createdAt: normalizeIsoDate(user.createdAt, ""),
+    updatedAt: normalizeIsoDate(firstText(user.updatedAt, user.createdAt), nowIso())
+  };
+}
+
+function normalizeLiveComment(message, shrine = {}, index = 0) {
+  if (!message || typeof message !== "object" || Array.isArray(message)) return null;
+  const shrineId = stableId(firstText(message.shrineId, shrine.id, shrine.publicId));
+  const id = stableId(firstText(message.id, message.commentId, message.messageId), `${shrineId}-comment-${index}`);
+  const text = limitText(firstText(message.text, message.body, message.content, message.message), 2000);
+  const attachment = limitText(firstText(message.attachment, message.attachmentUrl, message.image, message.imageUrl), 1200);
+  if (!id || (!text && !attachment)) return null;
+
+  return {
+    id,
+    shrineId,
+    shrinePublicId: stableId(firstText(message.shrinePublicId, shrine.publicId)),
+    shrineName: limitText(firstText(message.shrineName, shrine.fullName, shrine.name), 180),
+    userId: stableId(message.userId),
+    userName: limitText(firstText(message.userName, message.user_name, message.authorName), 140),
+    userPhoto: limitText(firstText(message.userPhoto, message.userPhotoUrl, message.avatar, message.avatarUrl), 1200),
+    text,
+    attachment,
+    attachmentName: limitText(message.attachmentName, 160),
+    createdAt: normalizeIsoDate(message.createdAt, nowIso())
+  };
+}
+
+function normalizeLiveShrine(person) {
+  if (!person || typeof person !== "object" || Array.isArray(person)) return null;
+  const id = stableId(firstText(person.id, person.publicId, person.shareId));
+  const fullName = limitText(firstText(person.fullName, person.name, person.title), 180);
+  if (!id || !fullName) return null;
+
+  const shrine = {
+    id,
+    publicId: stableId(firstText(person.publicId, person.shareId, person.shortId, person.slug)),
+    fullName,
+    surnameCheck: limitText(person.surnameCheck, 120),
+    photo: limitText(firstText(person.photo, person.photoUrl, person.image, person.imageUrl), 1200),
+    birthDate: limitText(person.birthDate, 24),
+    deathDate: limitText(person.deathDate, 24),
+    age: limitText(person.age, 8),
+    gender: limitText(person.gender, 24),
+    country: limitText(person.country, 80),
+    info: limitText(firstText(person.info, person.description, person.bio), 3000),
+    createdBy: stableId(person.createdBy),
+    createdByName: limitText(person.createdByName, 140),
+    createdAt: normalizeIsoDate(person.createdAt, ""),
+    updatedAt: normalizeIsoDate(firstText(person.updatedAt, person.createdAt), nowIso())
+  };
+  shrine.messages = ensureArray(person.messages).map((message, index) => normalizeLiveComment(message, shrine, index)).filter(Boolean);
+  return shrine;
+}
+
+function normalizeContactMessage(message) {
+  if (!message || typeof message !== "object" || Array.isArray(message)) return null;
+  const text = limitText(firstText(message.message, message.text, message.body), 3000);
+  if (!text) return null;
+  return {
+    id: stableId(message.id, crypto.randomUUID()),
+    email: normalizeEmail(message.email),
+    name: limitText(message.name, 140),
+    message: text,
+    status: ["new", "done"].includes(message.status) ? message.status : "new",
+    createdAt: normalizeIsoDate(message.createdAt, nowIso()),
+    updatedAt: normalizeIsoDate(message.updatedAt, "")
+  };
+}
+
+function uniqueStrings(values) {
+  return Array.from(new Set(ensureArray(values).map((value) => String(value || "").trim()).filter(Boolean)));
+}
+
+function mergeById(existing, incoming, removedIds = []) {
+  const removed = new Set(uniqueStrings(removedIds));
+  const merged = new Map();
+  for (const item of ensureArray(existing)) {
+    if (item?.id && !removed.has(item.id)) merged.set(item.id, item);
+  }
+  for (const item of ensureArray(incoming)) {
+    if (item?.id && !removed.has(item.id)) merged.set(item.id, { ...merged.get(item.id), ...item });
+  }
+  return Array.from(merged.values());
+}
+
+function normalizeLiveData(data) {
+  const source = data && typeof data === "object" && !Array.isArray(data) ? data : {};
+  const next = {
+    ...defaultLiveData(),
+    ...source,
+    terms: normalizeTermsSections(source.terms),
+    users: ensureArray(source.users).map(normalizeLiveUser).filter(Boolean),
+    shrines: ensureArray(source.shrines).map(normalizeLiveShrine).filter(Boolean),
+    contactMessages: ensureArray(source.contactMessages).map(normalizeContactMessage).filter(Boolean),
+    blockedPeople: ensureArray(source.blockedPeople)
+      .map((person) => ({
+        personId: stableId(firstText(person?.personId, person?.id, person)),
+        publicId: stableId(person?.publicId),
+        fullName: limitText(person?.fullName || person?.name, 180),
+        blockedAt: normalizeIsoDate(person?.blockedAt, nowIso())
+      }))
+      .filter((person) => person.personId || person.publicId),
+    removedUserIds: uniqueStrings(source.removedUserIds),
+    removedCommentIds: uniqueStrings(source.removedCommentIds)
+  };
+  next.comments = mergeById(
+    ensureArray(source.comments).map((comment, index) => normalizeLiveComment(comment, { id: comment?.shrineId }, index)).filter(Boolean),
+    next.shrines.flatMap((shrine) => ensureArray(shrine.messages)),
+    next.removedCommentIds
+  );
+  next.updatedAt = normalizeIsoDate(source.updatedAt, "");
+  return next;
+}
+
+async function readLiveData() {
+  try {
+    const text = await fs.readFile(liveDataPath, "utf8");
+    return normalizeLiveData(JSON.parse(text));
+  } catch {
+    return defaultLiveData();
+  }
+}
+
+async function writeLiveData(data) {
+  const next = normalizeLiveData({ ...data, updatedAt: nowIso() });
+  await fs.mkdir(path.dirname(liveDataPath), { recursive: true });
+  await fs.writeFile(liveDataPath, JSON.stringify(next, null, 2));
+  return next;
+}
+
+function publicLivePayload(data) {
+  return {
+    updatedAt: data.updatedAt,
+    terms: data.terms,
+    blockedPeople: data.blockedPeople,
+    removedUserIds: data.removedUserIds,
+    removedCommentIds: data.removedCommentIds
+  };
+}
+
+function liveDashboardPayload(data) {
+  return {
+    ...data,
+    stats: {
+      users: data.users.length,
+      shrines: data.shrines.length,
+      comments: data.comments.length,
+      contactMessages: data.contactMessages.length,
+      blockedPeople: data.blockedPeople.length
+    }
+  };
+}
+
+function adminSecret() {
+  return String(process.env.ADMIN_DASHBOARD_TOKEN || process.env.ADMIN_SESSION_SECRET || "").trim();
+}
+
+function normalizeAdminIdentifier(value) {
+  const text = String(value || "").trim().toLowerCase();
+  if (!text) return "";
+  if (text.includes("@")) return normalizeEmail(text);
+  return normalizePhone(text).replace(/[^\d+]/g, "");
+}
+
+function adminIdentifiers() {
+  const raw = [
+    process.env.ADMIN_IDENTIFIERS,
+    process.env.ADMIN_EMAILS,
+    process.env.ADMIN_PHONES
+  ].filter(Boolean).join(",");
+
+  return new Set(raw.split(/[,;\n]/).map(normalizeAdminIdentifier).filter(Boolean));
+}
+
+function adminIdentifierAllowed(identifier) {
+  const configured = adminIdentifiers();
+  if (!configured.size) return true;
+  return configured.has(normalizeAdminIdentifier(identifier));
+}
+
+function signAdminValue(value) {
+  const secret = adminSecret();
+  return secret ? crypto.createHmac("sha256", secret).update(value).digest("base64url") : "";
+}
+
+function createAdminSession(identifier) {
+  const payload = {
+    identifier: normalizeAdminIdentifier(identifier) || "admin",
+    expiresAt: new Date(Date.now() + adminSessionTtlMs).toISOString(),
+    nonce: crypto.randomUUID()
+  };
+  const payloadToken = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+  return `${payloadToken}.${signAdminValue(payloadToken)}`;
+}
+
+function verifyAdminSession(token) {
+  const secret = adminSecret();
+  if (!secret || !token) return false;
+  if (safeEqual(token, secret)) return true;
+
+  const [payloadToken, signature] = String(token).split(".");
+  if (!payloadToken || !signature || !safeEqual(signature, signAdminValue(payloadToken))) return false;
+  try {
+    const payload = JSON.parse(Buffer.from(payloadToken, "base64url").toString("utf8"));
+    return Date.parse(payload.expiresAt) >= Date.now() && adminIdentifierAllowed(payload.identifier);
+  } catch {
+    return false;
+  }
+}
+
+function adminTokenFromRequest(req) {
+  const authorization = req.headers.authorization || "";
+  const bearer = authorization.match(/^Bearer\s+(.+)$/i)?.[1] || "";
+  return (bearer || req.headers["x-admin-token"] || "").trim();
+}
+
+function requireAdmin(req, res, next) {
+  if (verifyAdminSession(adminTokenFromRequest(req))) return next();
+  return res.status(401).json({ success: false, error: "Admin access is required." });
 }
 
 function generateNumericCode(codeLength) {

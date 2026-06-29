@@ -4,6 +4,8 @@ const DEFAULT_META_DESCRIPTION = "Create and share memorial shrines.";
 const SHARE_META_START = "<!-- Shrine share preview meta:start -->";
 const SHARE_META_END = "<!-- Shrine share preview meta:end -->";
 const SHRINE_API_PATH_PREFIX = "/api/shrines/";
+const LIVE_DATA_KEY = "shrine:live:v1";
+const ADMIN_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const EMAIL_OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_RATE_LIMIT_FALLBACK_SECONDS = 60 * 60;
 const COUNTRY_HEADER_NAMES = [
@@ -56,8 +58,8 @@ function corsHeaders(request, env) {
 
   return {
     "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Admin-Token",
+    "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
     "Access-Control-Expose-Headers": "Retry-After, X-RateLimit-Remaining-Hour, X-RateLimit-Remaining-Day",
     Vary: "Origin"
   };
@@ -538,6 +540,569 @@ function normalizeCommentApiData(data, fallbackId) {
   };
 }
 
+function noStoreCorsHeaders(request, env) {
+  return {
+    ...corsHeaders(request, env),
+    "Cache-Control": "no-store"
+  };
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function limitText(value, maxLength = 500) {
+  const text = String(value || "").trim().replace(/\s+/g, " ");
+  return text.length > maxLength ? text.slice(0, maxLength).trim() : text;
+}
+
+function stableId(value, fallback = "") {
+  const text = firstText(value, fallback);
+  if (!text) return "";
+  return cleanShareId(text) || text.replace(/[^\w@.+:-]/g, "").slice(0, 100);
+}
+
+function ensureArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function normalizeIsoDate(value, fallback = nowIso()) {
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : fallback;
+}
+
+function defaultLiveData() {
+  return {
+    version: 1,
+    updatedAt: "",
+    terms: {},
+    users: [],
+    shrines: [],
+    comments: [],
+    contactMessages: [],
+    blockedPeople: [],
+    removedUserIds: [],
+    removedCommentIds: []
+  };
+}
+
+function normalizeTermsSections(value) {
+  const terms = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  const normalizeLanguageTerms = (sections) =>
+    ensureArray(sections)
+      .map((section, index) => ({
+        title: limitText(section?.title || `${index + 1}. Terms`, 120),
+        body: limitText(section?.body || section?.text || "", 3000)
+      }))
+      .filter((section) => section.title || section.body);
+
+  return {
+    EN: normalizeLanguageTerms(terms.EN || terms.en),
+    AR: normalizeLanguageTerms(terms.AR || terms.ar)
+  };
+}
+
+function normalizeLiveUser(user) {
+  if (!user || typeof user !== "object" || Array.isArray(user)) return null;
+
+  const id = stableId(firstText(user.id, user.userId, user.email, user.phone, user.otpPhone));
+  if (!id) return null;
+
+  return {
+    id,
+    firstName: limitText(user.firstName, 80),
+    surname: limitText(user.surname, 80),
+    name: limitText(firstText(user.name, `${user.firstName || ""} ${user.surname || ""}`), 140),
+    email: normalizeEmail(user.email),
+    phone: limitText(user.phone, 32),
+    phoneCode: limitText(user.phoneCode, 12),
+    otpPhone: limitText(user.otpPhone, 32),
+    country: limitText(user.country || user.phoneCountry, 80),
+    gender: limitText(user.gender, 24),
+    photo: limitText(firstText(user.photo, user.avatar, user.photoUrl, user.avatarUrl), 1200),
+    createdAt: normalizeIsoDate(user.createdAt, ""),
+    updatedAt: normalizeIsoDate(firstText(user.updatedAt, user.createdAt), nowIso())
+  };
+}
+
+function normalizeLiveComment(message, shrine, index = 0) {
+  if (!message || typeof message !== "object" || Array.isArray(message)) return null;
+
+  const shrineId = stableId(firstText(shrine?.id, shrine?.publicId));
+  const id = stableId(firstText(message.id, message.commentId, message.messageId), `${shrineId}-comment-${index}`);
+  const text = limitText(firstText(message.text, message.body, message.content, message.message), 2000);
+  const attachment = limitText(firstText(message.attachment, message.attachmentUrl, message.image, message.imageUrl), 1200);
+  if (!id || (!text && !attachment)) return null;
+
+  return {
+    id,
+    shrineId,
+    shrinePublicId: stableId(shrine?.publicId),
+    shrineName: limitText(shrine?.fullName || shrine?.name, 180),
+    userId: stableId(message.userId),
+    userName: limitText(firstText(message.userName, message.user_name, message.authorName), 140),
+    userPhoto: limitText(firstText(message.userPhoto, message.userPhotoUrl, message.avatar, message.avatarUrl), 1200),
+    text,
+    attachment,
+    attachmentName: limitText(message.attachmentName, 160),
+    createdAt: normalizeIsoDate(message.createdAt, nowIso())
+  };
+}
+
+function normalizeLiveShrine(person) {
+  if (!person || typeof person !== "object" || Array.isArray(person)) return null;
+
+  const id = stableId(firstText(person.id, person.publicId, person.shareId));
+  const fullName = limitText(firstText(person.fullName, person.name, person.title), 180);
+  if (!id || !fullName) return null;
+
+  const shrine = {
+    id,
+    publicId: stableId(firstText(person.publicId, person.shareId, person.shortId, person.slug)),
+    fullName,
+    surnameCheck: limitText(person.surnameCheck, 120),
+    photo: limitText(firstText(person.photo, person.photoUrl, person.image, person.imageUrl), 1200),
+    birthDate: limitText(person.birthDate, 24),
+    deathDate: limitText(person.deathDate, 24),
+    age: limitText(person.age, 8),
+    gender: limitText(person.gender, 24),
+    country: limitText(person.country, 80),
+    info: limitText(firstText(person.info, person.description, person.bio), 3000),
+    createdBy: stableId(person.createdBy),
+    createdByName: limitText(person.createdByName, 140),
+    createdAt: normalizeIsoDate(person.createdAt, ""),
+    updatedAt: normalizeIsoDate(firstText(person.updatedAt, person.createdAt), nowIso())
+  };
+
+  shrine.messages = ensureArray(person.messages)
+    .map((message, index) => normalizeLiveComment(message, shrine, index))
+    .filter(Boolean);
+
+  return shrine;
+}
+
+function normalizeContactMessage(message) {
+  if (!message || typeof message !== "object" || Array.isArray(message)) return null;
+
+  const text = limitText(firstText(message.message, message.text, message.body), 3000);
+  if (!text) return null;
+
+  return {
+    id: stableId(message.id, crypto.randomUUID()),
+    email: normalizeEmail(message.email),
+    name: limitText(message.name, 140),
+    message: text,
+    status: ["new", "done"].includes(message.status) ? message.status : "new",
+    createdAt: normalizeIsoDate(message.createdAt, nowIso()),
+    updatedAt: normalizeIsoDate(message.updatedAt, "")
+  };
+}
+
+function uniqueStrings(values) {
+  return Array.from(new Set(ensureArray(values).map((value) => String(value || "").trim()).filter(Boolean)));
+}
+
+function mergeById(existing, incoming, removedIds = []) {
+  const removed = new Set(uniqueStrings(removedIds));
+  const merged = new Map();
+
+  for (const item of ensureArray(existing)) {
+    if (item?.id && !removed.has(item.id)) merged.set(item.id, item);
+  }
+
+  for (const item of ensureArray(incoming)) {
+    if (item?.id && !removed.has(item.id)) merged.set(item.id, { ...merged.get(item.id), ...item });
+  }
+
+  return Array.from(merged.values());
+}
+
+function normalizeLiveData(data) {
+  const source = data && typeof data === "object" && !Array.isArray(data) ? data : {};
+  const next = {
+    ...defaultLiveData(),
+    ...source,
+    terms: normalizeTermsSections(source.terms),
+    users: ensureArray(source.users).map(normalizeLiveUser).filter(Boolean),
+    shrines: ensureArray(source.shrines).map(normalizeLiveShrine).filter(Boolean),
+    contactMessages: ensureArray(source.contactMessages).map(normalizeContactMessage).filter(Boolean),
+    blockedPeople: ensureArray(source.blockedPeople)
+      .map((person) => ({
+        personId: stableId(firstText(person?.personId, person?.id, person)),
+        publicId: stableId(person?.publicId),
+        fullName: limitText(person?.fullName || person?.name, 180),
+        blockedAt: normalizeIsoDate(person?.blockedAt, nowIso())
+      }))
+      .filter((person) => person.personId || person.publicId),
+    removedUserIds: uniqueStrings(source.removedUserIds),
+    removedCommentIds: uniqueStrings(source.removedCommentIds)
+  };
+
+  const removedCommentIds = new Set(next.removedCommentIds);
+  next.comments = mergeById(
+    ensureArray(source.comments).map((comment, index) => normalizeLiveComment(comment, { id: comment?.shrineId }, index)).filter(Boolean),
+    next.shrines.flatMap((shrine) => ensureArray(shrine.messages)),
+    next.removedCommentIds
+  ).filter((comment) => !removedCommentIds.has(comment.id));
+
+  next.updatedAt = normalizeIsoDate(source.updatedAt, "");
+  return next;
+}
+
+function liveStore(env) {
+  return env.SHRINE_DATA || null;
+}
+
+async function readLiveData(env) {
+  const store = liveStore(env);
+  if (!store) return defaultLiveData();
+
+  const text = await store.get(LIVE_DATA_KEY);
+  if (!text) return defaultLiveData();
+
+  try {
+    return normalizeLiveData(JSON.parse(text));
+  } catch {
+    return defaultLiveData();
+  }
+}
+
+async function writeLiveData(env, data) {
+  const store = liveStore(env);
+  if (!store) return false;
+
+  const next = normalizeLiveData({
+    ...data,
+    updatedAt: nowIso()
+  });
+  await store.put(LIVE_DATA_KEY, JSON.stringify(next));
+  return true;
+}
+
+function liveStoreMissingResponse(request, env) {
+  return jsonResponse(
+    {
+      success: false,
+      error: "Live admin storage is not configured. Add a Cloudflare KV binding named SHRINE_DATA."
+    },
+    503,
+    noStoreCorsHeaders(request, env)
+  );
+}
+
+function publicLivePayload(data) {
+  return {
+    updatedAt: data.updatedAt,
+    terms: data.terms,
+    blockedPeople: data.blockedPeople,
+    removedUserIds: data.removedUserIds,
+    removedCommentIds: data.removedCommentIds
+  };
+}
+
+function liveDashboardPayload(data) {
+  return {
+    ...data,
+    stats: {
+      users: data.users.length,
+      shrines: data.shrines.length,
+      comments: data.comments.length,
+      contactMessages: data.contactMessages.length,
+      blockedPeople: data.blockedPeople.length
+    }
+  };
+}
+
+async function livePublicResponse(request, env) {
+  const data = await readLiveData(env);
+  return jsonResponse(
+    {
+      success: true,
+      storageConfigured: Boolean(liveStore(env)),
+      live: publicLivePayload(data)
+    },
+    200,
+    noStoreCorsHeaders(request, env)
+  );
+}
+
+async function syncLiveData(request, env) {
+  if (!liveStore(env)) {
+    return jsonResponse(
+      { success: true, storageConfigured: false, live: publicLivePayload(defaultLiveData()) },
+      200,
+      noStoreCorsHeaders(request, env)
+    );
+  }
+
+  const body = await parseJson(request);
+  if (!body) {
+    return jsonResponse({ success: false, error: "Invalid JSON body." }, 400, noStoreCorsHeaders(request, env));
+  }
+
+  const current = await readLiveData(env);
+  const incomingUsers = [
+    ...ensureArray(body.users),
+    ...(body.currentUser ? [body.currentUser] : [])
+  ].map(normalizeLiveUser).filter(Boolean);
+  const incomingShrines = ensureArray(body.people || body.shrines).map(normalizeLiveShrine).filter(Boolean);
+  const next = {
+    ...current,
+    users: mergeById(current.users, incomingUsers, current.removedUserIds),
+    shrines: mergeById(current.shrines, incomingShrines),
+    comments: mergeById(current.comments, incomingShrines.flatMap((shrine) => ensureArray(shrine.messages)), current.removedCommentIds)
+  };
+
+  await writeLiveData(env, next);
+  const saved = await readLiveData(env);
+  return jsonResponse(
+    { success: true, storageConfigured: true, live: publicLivePayload(saved) },
+    200,
+    noStoreCorsHeaders(request, env)
+  );
+}
+
+async function createContactMessage(request, env) {
+  if (!liveStore(env)) return liveStoreMissingResponse(request, env);
+
+  const body = await parseJson(request);
+  const message = normalizeContactMessage(body);
+  if (!message) {
+    return jsonResponse({ success: false, error: "Message is required." }, 400, noStoreCorsHeaders(request, env));
+  }
+
+  const current = await readLiveData(env);
+  await writeLiveData(env, {
+    ...current,
+    contactMessages: [message, ...current.contactMessages]
+  });
+
+  return jsonResponse({ success: true, message }, 200, noStoreCorsHeaders(request, env));
+}
+
+function adminSecret(env) {
+  return String(env.ADMIN_DASHBOARD_TOKEN || env.ADMIN_SESSION_SECRET || "").trim();
+}
+
+function adminIdentifiers(env) {
+  const raw = [
+    env.ADMIN_IDENTIFIERS,
+    env.ADMIN_EMAILS,
+    env.ADMIN_PHONES
+  ].filter(Boolean).join(",");
+
+  return new Set(
+    raw
+      .split(/[,;\n]/)
+      .map((value) => normalizeAdminIdentifier(value))
+      .filter(Boolean)
+  );
+}
+
+function normalizeAdminIdentifier(value) {
+  const text = String(value || "").trim().toLowerCase();
+  if (!text) return "";
+  if (text.includes("@")) return normalizeEmail(text);
+  return normalizePhone(text).replace(/[^\d+]/g, "");
+}
+
+function adminIdentifierAllowed(identifier, env) {
+  const configured = adminIdentifiers(env);
+  if (!configured.size) return true;
+  return configured.has(normalizeAdminIdentifier(identifier));
+}
+
+async function signAdminValue(value, env) {
+  const secret = adminSecret(env);
+  if (!secret) return "";
+
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(value));
+  return base64UrlEncode(new Uint8Array(signature));
+}
+
+async function createAdminSession(identifier, env) {
+  const payloadToken = base64UrlEncode(encoder.encode(JSON.stringify({
+    identifier: normalizeAdminIdentifier(identifier) || "admin",
+    expiresAt: new Date(Date.now() + ADMIN_SESSION_TTL_MS).toISOString(),
+    nonce: crypto.randomUUID()
+  })));
+  return `${payloadToken}.${await signAdminValue(payloadToken, env)}`;
+}
+
+async function verifyAdminSession(token, env) {
+  const secret = adminSecret(env);
+  if (!secret || !token) return false;
+  if (safeEqual(token, secret)) return true;
+
+  const [payloadToken, signature] = String(token).split(".");
+  if (!payloadToken || !signature || !safeEqual(signature, await signAdminValue(payloadToken, env))) return false;
+
+  try {
+    const payload = JSON.parse(base64UrlDecode(payloadToken));
+    if (Date.parse(payload.expiresAt) < Date.now()) return false;
+    return adminIdentifierAllowed(payload.identifier, env);
+  } catch {
+    return false;
+  }
+}
+
+async function isAdminRequest(request, env) {
+  const authorization = request.headers.get("Authorization") || "";
+  const bearer = authorization.match(/^Bearer\s+(.+)$/i)?.[1] || "";
+  const token = bearer || request.headers.get("X-Admin-Token") || "";
+  return verifyAdminSession(token.trim(), env);
+}
+
+function unauthorizedAdminResponse(request, env) {
+  return jsonResponse({ success: false, error: "Admin access is required." }, 401, noStoreCorsHeaders(request, env));
+}
+
+async function adminLogin(request, env) {
+  const body = await parseJson(request);
+  if (!body) {
+    return jsonResponse({ success: false, error: "Invalid JSON body." }, 400, noStoreCorsHeaders(request, env));
+  }
+
+  const secret = adminSecret(env);
+  const identifier = firstText(body.identifier, body.email, body.phone);
+  const accessKey = String(firstText(body.accessKey, body.password, body.token) || "").trim();
+
+  if (!secret) {
+    return jsonResponse({ success: false, error: "Admin token is not configured." }, 503, noStoreCorsHeaders(request, env));
+  }
+
+  if (!safeEqual(accessKey, secret)) {
+    return jsonResponse({ success: false, error: "Invalid admin key." }, 401, noStoreCorsHeaders(request, env));
+  }
+
+  if (!adminIdentifierAllowed(identifier, env)) {
+    return jsonResponse({ success: false, error: "This admin identifier is not allowed." }, 403, noStoreCorsHeaders(request, env));
+  }
+
+  return jsonResponse(
+    {
+      success: true,
+      sessionToken: await createAdminSession(identifier, env),
+      expiresInSeconds: ADMIN_SESSION_TTL_MS / 1000
+    },
+    200,
+    noStoreCorsHeaders(request, env)
+  );
+}
+
+function findShrineForBlock(data, personId) {
+  return data.shrines.find((shrine) => shrine.id === personId || shrine.publicId === personId) || null;
+}
+
+async function adminApiResponse(request, env, url) {
+  if (url.pathname === "/api/admin/login") {
+    if (request.method !== "POST") return methodNotAllowed(request, env, "Use POST /api/admin/login.");
+    return adminLogin(request, env);
+  }
+
+  if (!(await isAdminRequest(request, env))) return unauthorizedAdminResponse(request, env);
+  if (!liveStore(env)) return liveStoreMissingResponse(request, env);
+
+  const segments = url.pathname.replace(/^\/api\/admin\/?/, "").split("/").filter(Boolean).map(safeDecodeURIComponent);
+  const [resource, id] = segments;
+  const data = await readLiveData(env);
+
+  if (request.method === "GET" && resource === "dashboard") {
+    return jsonResponse({ success: true, dashboard: liveDashboardPayload(data) }, 200, noStoreCorsHeaders(request, env));
+  }
+
+  if (request.method === "PATCH" && resource === "terms") {
+    const body = await parseJson(request);
+    const terms = normalizeTermsSections(body?.terms || body);
+    await writeLiveData(env, { ...data, terms });
+    return jsonResponse({ success: true, terms }, 200, noStoreCorsHeaders(request, env));
+  }
+
+  if (request.method === "DELETE" && resource === "users" && id) {
+    const removedUserIds = uniqueStrings([...data.removedUserIds, id]);
+    await writeLiveData(env, {
+      ...data,
+      removedUserIds,
+      users: data.users.filter((user) => user.id !== id)
+    });
+    return jsonResponse({ success: true }, 200, noStoreCorsHeaders(request, env));
+  }
+
+  if (request.method === "DELETE" && resource === "comments" && id) {
+    const removedCommentIds = uniqueStrings([...data.removedCommentIds, id]);
+    await writeLiveData(env, {
+      ...data,
+      removedCommentIds,
+      comments: data.comments.filter((comment) => comment.id !== id),
+      shrines: data.shrines.map((shrine) => ({
+        ...shrine,
+        messages: ensureArray(shrine.messages).filter((message) => message.id !== id)
+      }))
+    });
+    return jsonResponse({ success: true }, 200, noStoreCorsHeaders(request, env));
+  }
+
+  if (request.method === "PATCH" && resource === "contact" && id) {
+    const body = await parseJson(request);
+    const status = body?.status === "done" ? "done" : "new";
+    await writeLiveData(env, {
+      ...data,
+      contactMessages: data.contactMessages.map((message) =>
+        message.id === id ? { ...message, status, updatedAt: nowIso() } : message
+      )
+    });
+    return jsonResponse({ success: true }, 200, noStoreCorsHeaders(request, env));
+  }
+
+  if (request.method === "DELETE" && resource === "contact" && id) {
+    await writeLiveData(env, {
+      ...data,
+      contactMessages: data.contactMessages.filter((message) => message.id !== id)
+    });
+    return jsonResponse({ success: true }, 200, noStoreCorsHeaders(request, env));
+  }
+
+  if (request.method === "POST" && resource === "blocked") {
+    const body = await parseJson(request);
+    const personId = stableId(firstText(body?.personId, body?.id));
+    if (!personId) {
+      return jsonResponse({ success: false, error: "personId is required." }, 400, noStoreCorsHeaders(request, env));
+    }
+
+    const shrine = findShrineForBlock(data, personId);
+    const blocked = {
+      personId: shrine?.id || personId,
+      publicId: shrine?.publicId || "",
+      fullName: shrine?.fullName || limitText(body?.fullName, 180),
+      blockedAt: nowIso()
+    };
+    const blockedPeople = mergeById(
+      data.blockedPeople.map((person) => ({ ...person, id: person.personId || person.publicId })),
+      [{ ...blocked, id: blocked.personId || blocked.publicId }]
+    ).map(({ id: _id, ...person }) => person);
+
+    await writeLiveData(env, { ...data, blockedPeople });
+    return jsonResponse({ success: true, blocked }, 200, noStoreCorsHeaders(request, env));
+  }
+
+  if (request.method === "DELETE" && resource === "blocked" && id) {
+    await writeLiveData(env, {
+      ...data,
+      blockedPeople: data.blockedPeople.filter((person) => person.personId !== id && person.publicId !== id)
+    });
+    return jsonResponse({ success: true }, 200, noStoreCorsHeaders(request, env));
+  }
+
+  return jsonResponse({ success: false, error: "Admin endpoint not found." }, 404, noStoreCorsHeaders(request, env));
+}
+
 function configuredShrineApiBaseUrl(env) {
   return normalizeBaseUrl(env.SHRINE_API_BASE_URL || env.API_BASE_URL || env.VITE_API_BASE_URL);
 }
@@ -559,6 +1124,31 @@ async function readJsonResponse(response) {
   } catch {
     return null;
   }
+}
+
+async function fetchShrineFromLiveData(personId, env) {
+  const target = stableId(personId);
+  if (!target || !liveStore(env)) return null;
+
+  const data = await readLiveData(env);
+  const blockedIds = new Set(data.blockedPeople.flatMap((person) => [person.personId, person.publicId]).filter(Boolean));
+  if (blockedIds.has(target)) return null;
+
+  const shrine = data.shrines.find((item) => item.id === target || item.publicId === target);
+  return shrine ? normalizeShrineApiData({ shrine }, personId) : null;
+}
+
+async function fetchCommentFromLiveData(personId, commentId, env) {
+  const targetShrine = stableId(personId);
+  const targetComment = stableId(commentId);
+  if (!targetShrine || !targetComment || !liveStore(env)) return null;
+
+  const data = await readLiveData(env);
+  if (data.removedCommentIds.includes(targetComment)) return null;
+
+  const shrine = data.shrines.find((item) => item.id === targetShrine || item.publicId === targetShrine);
+  const comment = shrine ? findCommentInShrine(shrine, targetComment) : null;
+  return comment || normalizeCommentApiData(data.comments.find((item) => item.id === targetComment), targetComment);
 }
 
 async function fetchShrineFromApi(personId, request, env, { allowSameOrigin = true } = {}) {
@@ -620,7 +1210,9 @@ async function fetchCommentFromApi(personId, commentId, request, env, { allowSam
 }
 
 async function shrineApiResponse(request, env, personId) {
-  const shrine = await fetchShrineFromApi(personId, request, env, { allowSameOrigin: false });
+  const shrine =
+    (await fetchShrineFromLiveData(personId, env)) ||
+    (await fetchShrineFromApi(personId, request, env, { allowSameOrigin: false }));
   if (!shrine) {
     return jsonResponse({ success: false, error: "Shrine not found." }, 404, corsHeaders(request, env));
   }
@@ -629,7 +1221,9 @@ async function shrineApiResponse(request, env, personId) {
 }
 
 async function shrineCommentApiResponse(request, env, personId, commentId) {
-  const comment = await fetchCommentFromApi(personId, commentId, request, env, { allowSameOrigin: false });
+  const comment =
+    (await fetchCommentFromLiveData(personId, commentId, env)) ||
+    (await fetchCommentFromApi(personId, commentId, request, env, { allowSameOrigin: false }));
   if (!comment) {
     return jsonResponse({ success: false, error: "Comment not found." }, 404, corsHeaders(request, env));
   }
@@ -748,7 +1342,9 @@ async function shrineInfoPage(request, env, url) {
 
   const match = shrineInfoMatch(url.pathname);
   const personId = match ? safeDecodeURIComponent(match[1]) : "";
-  const shrine = personId ? await fetchShrineFromApi(personId, request, env) : null;
+  const shrine = personId
+    ? (await fetchShrineFromLiveData(personId, env)) || (await fetchShrineFromApi(personId, request, env))
+    : null;
 
   return new Response(injectSharePreviewMeta(html, shrinePreviewMeta(personId, shrine, env, request)), {
     status: assetResponse.status,
@@ -781,8 +1377,8 @@ async function shrineCommentPage(request, env, url) {
   const commentId = match ? safeDecodeURIComponent(match[2]) : "";
   const [shrine, comment] = personId && commentId
     ? await Promise.all([
-        fetchShrineFromApi(personId, request, env),
-        fetchCommentFromApi(personId, commentId, request, env)
+        fetchShrineFromLiveData(personId, env).then((liveShrine) => liveShrine || fetchShrineFromApi(personId, request, env)),
+        fetchCommentFromLiveData(personId, commentId, env).then((liveComment) => liveComment || fetchCommentFromApi(personId, commentId, request, env))
       ])
     : [null, null];
 
@@ -1135,6 +1731,14 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders(request, env) });
     }
 
+    if (request.method === "OPTIONS" && (url.pathname.startsWith("/api/live") || url.pathname === "/api/contact")) {
+      return new Response(null, { status: 204, headers: corsHeaders(request, env) });
+    }
+
+    if (request.method === "OPTIONS" && url.pathname.startsWith("/api/admin")) {
+      return new Response(null, { status: 204, headers: corsHeaders(request, env) });
+    }
+
     if (request.method === "OPTIONS" && shrineApiMatch(url.pathname)) {
       return new Response(null, { status: 204, headers: corsHeaders(request, env) });
     }
@@ -1148,6 +1752,31 @@ export default {
         return methodNotAllowed(request, env, "Use GET /api/geo/country.");
       }
       return geoCountry(request, env);
+    }
+
+    if (url.pathname === "/api/live") {
+      if (request.method !== "GET") {
+        return methodNotAllowed(request, env, "Use GET /api/live.");
+      }
+      return livePublicResponse(request, env);
+    }
+
+    if (url.pathname === "/api/live/sync") {
+      if (request.method !== "POST") {
+        return methodNotAllowed(request, env, "Use POST /api/live/sync with a JSON body.");
+      }
+      return syncLiveData(request, env);
+    }
+
+    if (url.pathname === "/api/contact") {
+      if (request.method !== "POST") {
+        return methodNotAllowed(request, env, "Use POST /api/contact with a JSON body.");
+      }
+      return createContactMessage(request, env);
+    }
+
+    if (url.pathname.startsWith("/api/admin")) {
+      return adminApiResponse(request, env, url);
     }
 
     const shrineApi = shrineApiMatch(url.pathname);

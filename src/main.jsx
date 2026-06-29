@@ -53,6 +53,7 @@ import countries from "./countries.js";
 import "./styles.css";
 
 const STORAGE_KEY = "shrine_mobile_state_v1";
+const ADMIN_SESSION_STORAGE_KEY = "shrine_admin_session_v1";
 const PRODUCTION_API_BASE_URL = "https://book-of-heaven.onholding.workers.dev";
 const PRODUCTION_APP_URL = "https://app.shrine-app.com";
 const SAME_ORIGIN_API_HOSTS = new Set(["book-of-heaven.onholding.workers.dev"]);
@@ -62,6 +63,8 @@ const OTP_RESEND_COOLDOWN_SECONDS = 60;
 const FLOWER_LIFETIME_DAYS = 7;
 const FLOWER_LIFETIME_MS = FLOWER_LIFETIME_DAYS * 24 * 60 * 60 * 1000;
 const FLOWER_FADE_CHECK_INTERVAL_MS = 60 * 1000;
+const LIVE_SYNC_DEBOUNCE_MS = 900;
+const LIVE_POLL_INTERVAL_MS = 60 * 1000;
 const AGE_OPTIONS = Array.from({ length: 120 }, (_, index) => String(index + 1));
 const FLOWER_CHOICES = [
   { id: "tulip-cream-red", label: "Cream red tulip", src: tulipCreamRed },
@@ -452,6 +455,163 @@ async function readApiJson(response, fallbackMessage) {
   }
 }
 
+async function apiJson(path, options = {}, fallbackMessage = "Request failed.") {
+  const response = await fetch(apiUrl(path), {
+    headers: {
+      Accept: "application/json",
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers || {})
+    },
+    ...options
+  });
+  const data = await readApiJson(response, fallbackMessage);
+  return { response, data };
+}
+
+function normalizeLiveData(data) {
+  const live = data?.live && typeof data.live === "object" ? data.live : data && typeof data === "object" ? data : {};
+  const normalizeTerms = (terms) => {
+    const source = terms && typeof terms === "object" ? terms : {};
+    return {
+      EN: Array.isArray(source.EN) ? source.EN : [],
+      AR: Array.isArray(source.AR) ? source.AR : []
+    };
+  };
+
+  return {
+    terms: normalizeTerms(live.terms),
+    blockedPeople: Array.isArray(live.blockedPeople) ? live.blockedPeople : [],
+    removedUserIds: Array.isArray(live.removedUserIds) ? live.removedUserIds.map(String) : [],
+    removedCommentIds: Array.isArray(live.removedCommentIds) ? live.removedCommentIds.map(String) : [],
+    updatedAt: live.updatedAt || ""
+  };
+}
+
+async function fetchLiveData(signal) {
+  try {
+    const { response, data } = await apiJson("/api/live", { method: "GET", signal }, "Could not load live data.");
+    if (!response.ok || !data?.success) return null;
+    return normalizeLiveData(data);
+  } catch {
+    return null;
+  }
+}
+
+function compactMediaValue(value) {
+  const text = String(value || "").trim();
+  if (!text || text.startsWith("data:")) return "";
+  return text;
+}
+
+function userForLiveSync(user) {
+  if (!user) return null;
+  return {
+    id: user.id,
+    firstName: user.firstName,
+    surname: user.surname,
+    email: user.email,
+    phone: user.phone,
+    phoneCode: user.phoneCode,
+    otpPhone: user.otpPhone,
+    country: user.country,
+    gender: user.gender,
+    photo: compactMediaValue(user.photo || user.avatar || user.photoUrl || user.avatarUrl),
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt
+  };
+}
+
+function personForLiveSync(person) {
+  if (!person || person.id === "sample-ronald-reagan") return null;
+  return {
+    id: person.id,
+    publicId: person.publicId,
+    fullName: person.fullName,
+    surnameCheck: person.surnameCheck,
+    photo: compactMediaValue(person.photo),
+    birthDate: person.birthDate,
+    deathDate: person.deathDate,
+    age: person.age,
+    gender: person.gender,
+    country: person.country,
+    info: person.info,
+    createdBy: person.createdBy,
+    createdByName: person.createdByName,
+    createdAt: person.createdAt,
+    updatedAt: person.updatedAt,
+    messages: normalizePersonMessages(person.messages).map((message) => ({
+      id: message.id,
+      text: message.text,
+      attachment: compactMediaValue(message.attachment),
+      attachmentName: message.attachmentName,
+      userId: message.userId,
+      userName: message.userName,
+      userPhoto: compactMediaValue(message.userPhoto),
+      createdAt: message.createdAt
+    }))
+  };
+}
+
+function createLiveSyncPayload(state) {
+  return {
+    currentUser: userForLiveSync(state.currentUser),
+    users: (state.users || []).map(userForLiveSync).filter(Boolean),
+    people: (state.people || []).map(personForLiveSync).filter(Boolean)
+  };
+}
+
+async function syncLiveState(state) {
+  const payload = createLiveSyncPayload(state);
+  try {
+    const { response, data } = await apiJson(
+      "/api/live/sync",
+      {
+        method: "POST",
+        body: JSON.stringify(payload)
+      },
+      "Could not sync live data."
+    );
+    if (!response.ok || !data?.success) return null;
+    return normalizeLiveData(data);
+  } catch {
+    return null;
+  }
+}
+
+function savedAdminSession() {
+  try {
+    return JSON.parse(localStorage.getItem(ADMIN_SESSION_STORAGE_KEY)) || null;
+  } catch {
+    return null;
+  }
+}
+
+function saveAdminSession(session) {
+  try {
+    if (!session?.sessionToken) {
+      localStorage.removeItem(ADMIN_SESSION_STORAGE_KEY);
+      return;
+    }
+    localStorage.setItem(ADMIN_SESSION_STORAGE_KEY, JSON.stringify(session));
+  } catch {
+    // Admin login can still continue for the current render.
+  }
+}
+
+function adminAuthHeaders(session) {
+  return session?.sessionToken ? { Authorization: `Bearer ${session.sessionToken}` } : {};
+}
+
+async function adminApi(path, session, options = {}, fallbackMessage = "Admin request failed.") {
+  return apiJson(path, {
+    ...options,
+    headers: {
+      ...adminAuthHeaders(session),
+      ...(options.headers || {})
+    }
+  }, fallbackMessage);
+}
+
 function isEmailOtpSenderUnavailable(data, selectedChannel) {
   const message = String(data?.error || data?.message || "");
   return (
@@ -776,6 +936,12 @@ const initialState = {
   currentCountry: initialCountryName,
   homeFilter: initialCountryName,
   countryPreferenceTouched: false,
+  live: {
+    terms: {},
+    blockedPeople: [],
+    removedUserIds: [],
+    removedCommentIds: []
+  },
   flowerFadeNotices: [],
   guest: true
 };
@@ -878,10 +1044,35 @@ const copy = {
     english: "English",
     userDashboard: "User Dashboard",
     dashboardIntro: "Edit or delete saved users on this device.",
+    adminDashboard: "Admin Dashboard",
+    adminIntro: "Live moderation and content controls.",
+    adminSignIn: "Admin sign in",
+    adminIdentifier: "Admin email or phone",
+    adminAccessKey: "Admin access key",
+    adminKeyHelp: "Use the admin key configured on the server.",
+    adminUsers: "Users",
+    adminTerms: "Terms",
+    adminContact: "Contact",
+    adminComments: "Comments",
+    adminBlocked: "Blocked",
+    adminStats: "Stats",
+    adminLiveOffline: "Live storage is not configured yet.",
+    adminRefresh: "Refresh",
+    adminSignedIn: "Admin signed in",
+    adminSaved: "Admin changes saved",
+    adminDeleted: "Deleted",
+    adminBlockedPerson: "Person blocked",
+    adminUnblockedPerson: "Person unblocked",
+    adminNoData: "No live data yet",
+    adminMarkDone: "Mark done",
+    adminMarkNew: "Mark new",
+    adminBlockPerson: "Block person",
+    adminLogout: "Exit admin",
     noUsers: "No users yet",
     noUsersBody: "Accounts you create on this device will appear here.",
     editUser: "Edit user",
     deleteUser: "Delete user",
+    deleteItem: "Delete",
     deleteUserConfirm: "Delete this user from this device?",
     userSaved: "User saved",
     userDeleted: "User deleted",
@@ -956,6 +1147,8 @@ const copy = {
     accountPromptAddBody: "Add a shrine, preserve details, and manage it safely from your own account.",
     accountPromptFlowerTitle: "Create an account to give a flower",
     accountPromptFlowerBody: "Each user can give one flower per day, so your daily flower needs to belong to your account.",
+    accountPromptMessageTitle: "Create an account to write",
+    accountPromptMessageBody: "Guest browsing is view-only. Create an account or sign in to write or reply.",
     signIn: "Sign in",
     gallery: "Gallery",
     giveFlower: "Give Flower",
@@ -1074,10 +1267,35 @@ const copy = {
     english: "الإنجليزية",
     userDashboard: "لوحة المستخدمين",
     dashboardIntro: "عدّل أو احذف المستخدمين المحفوظين على هذا الجهاز.",
+    adminDashboard: "لوحة الأدمن",
+    adminIntro: "تحكم حي في المحتوى والإشراف.",
+    adminSignIn: "دخول الأدمن",
+    adminIdentifier: "إيميل أو هاتف الأدمن",
+    adminAccessKey: "مفتاح دخول الأدمن",
+    adminKeyHelp: "استخدم مفتاح الأدمن المحفوظ على السيرفر.",
+    adminUsers: "المستخدمون",
+    adminTerms: "الشروط",
+    adminContact: "تواصل معنا",
+    adminComments: "الكومنتات",
+    adminBlocked: "المحظورون",
+    adminStats: "الإحصائيات",
+    adminLiveOffline: "التخزين الحي غير مفعّل بعد.",
+    adminRefresh: "تحديث",
+    adminSignedIn: "تم دخول الأدمن",
+    adminSaved: "تم حفظ تعديلات الأدمن",
+    adminDeleted: "تم الحذف",
+    adminBlockedPerson: "تم حظر الشخص",
+    adminUnblockedPerson: "تم إلغاء الحظر",
+    adminNoData: "لا توجد بيانات حية بعد",
+    adminMarkDone: "تم التعامل",
+    adminMarkNew: "جديد",
+    adminBlockPerson: "حظر الشخص",
+    adminLogout: "خروج الأدمن",
     noUsers: "لا يوجد مستخدمون حتى الآن",
     noUsersBody: "ستظهر هنا الحسابات التي يتم إنشاؤها على هذا الجهاز.",
     editUser: "تعديل المستخدم",
     deleteUser: "حذف المستخدم",
+    deleteItem: "حذف",
     deleteUserConfirm: "هل تريد حذف هذا المستخدم من هذا الجهاز؟",
     userSaved: "تم حفظ المستخدم",
     userDeleted: "تم حذف المستخدم",
@@ -1152,6 +1370,8 @@ const copy = {
     accountPromptAddBody: "أضف راحلًا، احفظ التفاصيل، وادر الصفحة بأمان من حسابك.",
     accountPromptFlowerTitle: "أنشئ حسابًا لإهداء وردة",
     accountPromptFlowerBody: "لكل مستخدم وردة واحدة يوميًا، لذلك يجب حفظها على حسابك.",
+    accountPromptMessageTitle: "أنشئ حسابًا للكتابة",
+    accountPromptMessageBody: "حساب الزائر للمشاهدة فقط. أنشئ حسابًا أو سجل الدخول للكتابة أو الرد.",
     signIn: "تسجيل الدخول",
     gallery: "المعرض",
     giveFlower: "إهداء وردة",
@@ -1270,6 +1490,7 @@ function loadState() {
       language: normalizeLanguage(merged.language),
       currentCountry,
       homeFilter,
+      live: normalizeLiveData(merged.live),
       countryPreferenceTouched: Boolean(merged.countryPreferenceTouched)
     };
   } catch {
@@ -1606,6 +1827,44 @@ function normalizePersonFlowers(person) {
   };
 }
 
+function liveBlockedPersonIds(state) {
+  return new Set(
+    (state.live?.blockedPeople || [])
+      .flatMap((person) => [person.personId, person.publicId, person.id])
+      .map((value) => String(value || "").trim())
+      .filter(Boolean)
+  );
+}
+
+function removedLiveCommentIds(state) {
+  return new Set((state.live?.removedCommentIds || []).map((value) => String(value || "").trim()).filter(Boolean));
+}
+
+function isPersonLiveBlocked(person, state) {
+  const blockedIds = liveBlockedPersonIds(state);
+  return blockedIds.has(String(person?.id || "")) || blockedIds.has(String(person?.publicId || ""));
+}
+
+function visiblePeopleForState(state) {
+  const localBlocked = new Set((state.blocked || []).map(String));
+  return (state.people || []).filter((person) => !localBlocked.has(String(person.id)) && !isPersonLiveBlocked(person, state));
+}
+
+function findVisiblePersonByShareId(state, personId) {
+  return findPersonByShareId(visiblePeopleForState(state), personId);
+}
+
+function visiblePersonMessages(person, state) {
+  const removed = removedLiveCommentIds(state);
+  return normalizePersonMessages(person?.messages).filter((message) => !removed.has(String(message.id || "")));
+}
+
+function liveTermsForLanguage(state, language) {
+  const lang = normalizeLanguage(language);
+  const liveTerms = state.live?.terms?.[lang];
+  return Array.isArray(liveTerms) && liveTerms.length ? liveTerms : termsSections[lang];
+}
+
 function userHasGivenFlowerToday(people, userId, dayKey = localDateKey()) {
   if (!userId) return false;
 
@@ -1891,6 +2150,7 @@ function App() {
   const screenHistoryRef = useRef([]);
   const apiShrineFetchRef = useRef(new Set());
   const apiCommentFetchRef = useRef(new Set());
+  const liveSyncSignatureRef = useRef("");
 
   useEffect(() => {
     const splashTimer = setTimeout(() => setOpening(false), 2600);
@@ -1906,17 +2166,52 @@ function App() {
   }, [state]);
 
   useEffect(() => {
+    const controller = new AbortController();
+    let mounted = true;
+
+    const loadLiveData = async () => {
+      const live = await fetchLiveData(controller.signal);
+      if (!mounted || !live) return;
+      setState((current) => ({ ...current, live }));
+    };
+
+    loadLiveData();
+    const interval = setInterval(loadLiveData, LIVE_POLL_INTERVAL_MS);
+    return () => {
+      mounted = false;
+      controller.abort();
+      clearInterval(interval);
+    };
+  }, []);
+
+  useEffect(() => {
+    const payload = createLiveSyncPayload(state);
+    const signature = JSON.stringify(payload);
+    if (signature === liveSyncSignatureRef.current) return undefined;
+
+    const timer = setTimeout(async () => {
+      liveSyncSignatureRef.current = signature;
+      const live = await syncLiveState(state);
+      if (live) {
+        setState((current) => ({ ...current, live }));
+      }
+    }, LIVE_SYNC_DEBOUNCE_MS);
+
+    return () => clearTimeout(timer);
+  }, [state.currentUser, state.people, state.users]);
+
+  useEffect(() => {
     screenRef.current = screen;
   }, [screen]);
 
   useEffect(() => {
-    const selectedPerson = screen === "detail" ? findPersonByShareId(state.people, state.selectedPersonId) : null;
+    const selectedPerson = screen === "detail" ? findVisiblePersonByShareId(state, state.selectedPersonId) : null;
     updateDocumentPreviewMeta(selectedPerson);
   }, [screen, state.people, state.selectedPersonId]);
 
   useEffect(() => {
     const personId = state.selectedPersonId;
-    const existingPerson = findPersonByShareId(state.people, personId);
+    const existingPerson = findVisiblePersonByShareId(state, personId);
     const shouldLoadSharedShrine =
       personId &&
       sharedTarget?.personId === personId &&
@@ -1947,7 +2242,7 @@ function App() {
   useEffect(() => {
     const personId = state.selectedPersonId;
     const commentId = sharedTarget?.type === "comment" ? sharedTarget.commentId || "" : "";
-    const person = findPersonByShareId(state.people, personId);
+    const person = findVisiblePersonByShareId(state, personId);
     const fetchKey = `${person?.id || personId}:${commentId}`;
     const shouldLoadSharedComment =
       personId &&
@@ -2228,13 +2523,18 @@ function App() {
     if (!personId || (!text && !attachment)) return false;
 
     const user = state.currentUser;
+    if (!user) {
+      setModal({ type: "accountPrompt", intent: "message" });
+      return false;
+    }
+
     const nextMessage = {
       id: uid(),
       text,
       attachment,
       attachmentName: String(message?.attachmentName || "").trim(),
-      userId: user?.id || "guest",
-      userName: user ? getUserName(user) : t("guestAccount"),
+      userId: user.id,
+      userName: getUserName(user),
       userPhoto: user?.photo || user?.avatar || "",
       createdAt: new Date().toISOString()
     };
@@ -2411,7 +2711,7 @@ function App() {
     onSharedTargetHandled: () => setSharedTarget(null)
   };
 
-  const selectedPerson = findPersonByShareId(state.people, state.selectedPersonId);
+  const selectedPerson = findVisiblePersonByShareId(state, state.selectedPersonId);
   const canEditSelectedShrine = canEditPersonShrine(selectedPerson, state.currentUser);
   const accountPromptOpen = modal?.type === "accountPrompt";
 
@@ -2476,6 +2776,7 @@ function App() {
       {screen === "profile" && <ProfileScreen {...commonProps} />}
       {screen === "editProfile" && <EditProfileScreen {...commonProps} />}
       {screen === "userDashboard" && <UserDashboardScreen {...commonProps} />}
+      {screen === "admin" && <AdminDashboardScreen {...commonProps} />}
       {screen === "blocked" && <BlockedUsersScreen {...commonProps} />}
       {screen === "terms" && <TermsScreen {...commonProps} />}
       {screen === "contact" && <ContactScreen {...commonProps} />}
@@ -3316,7 +3617,7 @@ function SuccessScreen({ state, language, t, toggleLanguage, setScreen, goBack }
 function HomeScreen({ state, language, t, updateState, setModal, setScreen, activeUser, canUseAccount, bootLoading }) {
   const selectedCountry = findCountry(state.currentCountry || activeUser?.country || initialState.currentCountry);
   const filteredPeople = useMemo(() => {
-    const people = state.people.filter((person) => !state.blocked.includes(person.id));
+    const people = visiblePeopleForState(state);
     if (state.homeFilter === "Follow") {
       return people.filter((person) => state.following.includes(person.id));
     }
@@ -3324,7 +3625,7 @@ function HomeScreen({ state, language, t, updateState, setModal, setScreen, acti
       return people.filter((person) => person.country === state.homeFilter);
     }
     return people;
-  }, [state.people, state.blocked, state.following, state.homeFilter]);
+  }, [state]);
 
   const tabs = [
     { id: "Sponsor", label: t("sponsorTab") },
@@ -3598,7 +3899,7 @@ function AddScreen({ state, language, t, setModal, onSubmit, activeUser, goBack,
 
 function SearchScreen({ state, language, t, updateState, setScreen, goBack }) {
   const [query, setQuery] = useState("");
-  const results = state.people.filter((person) => {
+  const results = visiblePeopleForState(state).filter((person) => {
     const value = `${person.fatherName || ""} ${person.fullName} ${person.country} ${person.info}`.toLowerCase();
     return query.trim() && value.includes(query.toLowerCase());
   });
@@ -3669,6 +3970,7 @@ function SettingsScreen({ state, language, t, updateState, setScreen, goBack, lo
           )}
         </div>
         <SettingsItem icon={<Ban />} label={t("blockedUsers")} onClick={() => setScreen("blocked")} />
+        <SettingsItem icon={<ShieldCheck />} label={t("adminDashboard")} onClick={() => setScreen("admin")} />
         <SettingsItem icon={<Headset />} label={t("contactUs")} onClick={() => setScreen("contact")} />
         <SettingsItem icon={<FileText />} label={t("terms")} onClick={() => setScreen("terms")} />
         {activeUser ? (
@@ -4000,6 +4302,399 @@ function UserDashboardScreen({ state, language, t, updateState, goBack, setModal
   );
 }
 
+function termsToDraft(sections) {
+  return (sections || [])
+    .map((section) => [section.title || "", section.body || ""].filter(Boolean).join("\n"))
+    .join("\n\n");
+}
+
+function draftToTerms(value) {
+  return String(value || "")
+    .split(/\n{2,}/)
+    .map((block, index) => {
+      const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
+      if (!lines.length) return null;
+      return {
+        title: lines[0] || `${index + 1}. Terms`,
+        body: lines.slice(1).join(" ")
+      };
+    })
+    .filter(Boolean);
+}
+
+function normalizeDashboard(data) {
+  const dashboard = data?.dashboard && typeof data.dashboard === "object" ? data.dashboard : {};
+  return {
+    stats: dashboard.stats || {},
+    terms: normalizeLiveData({ live: { terms: dashboard.terms } }).terms,
+    users: Array.isArray(dashboard.users) ? dashboard.users : [],
+    shrines: Array.isArray(dashboard.shrines) ? dashboard.shrines : [],
+    comments: Array.isArray(dashboard.comments) ? dashboard.comments : [],
+    contactMessages: Array.isArray(dashboard.contactMessages) ? dashboard.contactMessages : [],
+    blockedPeople: Array.isArray(dashboard.blockedPeople) ? dashboard.blockedPeople : [],
+    updatedAt: dashboard.updatedAt || ""
+  };
+}
+
+function AdminDashboardScreen({ state, language, t, goBack, setToast }) {
+  const [session, setSession] = useState(() => savedAdminSession());
+  const [identifier, setIdentifier] = useState(state.currentUser?.email || state.currentUser?.otpPhone || "");
+  const [accessKey, setAccessKey] = useState("");
+  const [keyVisible, setKeyVisible] = useState(false);
+  const [dashboard, setDashboard] = useState(null);
+  const [activeTab, setActiveTab] = useState("users");
+  const [termsDraft, setTermsDraft] = useState({ EN: "", AR: "" });
+  const [loading, setLoading] = useState(false);
+  const signedIn = Boolean(session?.sessionToken);
+
+  const loadDashboard = async (activeSession = session) => {
+    if (!activeSession?.sessionToken) return;
+    setLoading(true);
+    try {
+      const { response, data } = await adminApi("/api/admin/dashboard", activeSession, { method: "GET" }, "Could not load admin dashboard.");
+      if (response.status === 401) {
+        saveAdminSession(null);
+        setSession(null);
+        setDashboard(null);
+        return;
+      }
+      if (!response.ok || !data?.success) {
+        setToast(data?.error || t("adminLiveOffline"));
+        return;
+      }
+      const nextDashboard = normalizeDashboard(data);
+      setDashboard(nextDashboard);
+      setTermsDraft({
+        EN: termsToDraft(nextDashboard.terms.EN.length ? nextDashboard.terms.EN : termsSections.EN),
+        AR: termsToDraft(nextDashboard.terms.AR.length ? nextDashboard.terms.AR : termsSections.AR)
+      });
+    } catch {
+      setToast(t("adminLiveOffline"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (signedIn) loadDashboard(session);
+  }, [signedIn, session?.sessionToken]);
+
+  const login = async (event) => {
+    event.preventDefault();
+    if (loading) return;
+    setLoading(true);
+    try {
+      const { response, data } = await apiJson(
+        "/api/admin/login",
+        {
+          method: "POST",
+          body: JSON.stringify({ identifier, accessKey })
+        },
+        "Could not sign in."
+      );
+      if (!response.ok || !data?.success) {
+        setToast(data?.error || t("badLogin"));
+        return;
+      }
+      const nextSession = { sessionToken: data.sessionToken, identifier };
+      saveAdminSession(nextSession);
+      setSession(nextSession);
+      setAccessKey("");
+      setToast(t("adminSignedIn"));
+    } catch {
+      setToast(t("adminLiveOffline"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logoutAdmin = () => {
+    saveAdminSession(null);
+    setSession(null);
+    setDashboard(null);
+  };
+
+  const runAction = async (requestFactory, successKey = "adminSaved") => {
+    if (!session?.sessionToken || loading) return;
+    setLoading(true);
+    try {
+      const { response, data } = await requestFactory();
+      if (!response.ok || !data?.success) {
+        setToast(data?.error || t("adminLiveOffline"));
+        return;
+      }
+      setToast(t(successKey));
+      await loadDashboard(session);
+    } catch {
+      setToast(t("adminLiveOffline"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveTerms = () =>
+    runAction(
+      () =>
+        adminApi(
+          "/api/admin/terms",
+          session,
+          {
+            method: "PATCH",
+            body: JSON.stringify({
+              terms: {
+                EN: draftToTerms(termsDraft.EN),
+                AR: draftToTerms(termsDraft.AR)
+              }
+            })
+          },
+          "Could not save terms."
+        ),
+      "adminSaved"
+    );
+
+  const deleteUser = (userId) =>
+    runAction(
+      () => adminApi(`/api/admin/users/${encodeURIComponent(userId)}`, session, { method: "DELETE" }, "Could not delete user."),
+      "adminDeleted"
+    );
+
+  const deleteComment = (commentId) =>
+    runAction(
+      () => adminApi(`/api/admin/comments/${encodeURIComponent(commentId)}`, session, { method: "DELETE" }, "Could not delete comment."),
+      "adminDeleted"
+    );
+
+  const updateContact = (messageId, status) =>
+    runAction(
+      () =>
+        adminApi(
+          `/api/admin/contact/${encodeURIComponent(messageId)}`,
+          session,
+          { method: "PATCH", body: JSON.stringify({ status }) },
+          "Could not update message."
+        ),
+      "adminSaved"
+    );
+
+  const deleteContact = (messageId) =>
+    runAction(
+      () => adminApi(`/api/admin/contact/${encodeURIComponent(messageId)}`, session, { method: "DELETE" }, "Could not delete message."),
+      "adminDeleted"
+    );
+
+  const blockPerson = (person) =>
+    runAction(
+      () =>
+        adminApi(
+          "/api/admin/blocked",
+          session,
+          {
+            method: "POST",
+            body: JSON.stringify({ personId: person.id || person.publicId, fullName: person.fullName })
+          },
+          "Could not block person."
+        ),
+      "adminBlockedPerson"
+    );
+
+  const unblockPerson = (personId) =>
+    runAction(
+      () => adminApi(`/api/admin/blocked/${encodeURIComponent(personId)}`, session, { method: "DELETE" }, "Could not unblock person."),
+      "adminUnblockedPerson"
+    );
+
+  const tabs = [
+    { id: "users", label: t("adminUsers"), count: dashboard?.users.length || 0 },
+    { id: "terms", label: t("adminTerms"), count: "" },
+    { id: "contact", label: t("adminContact"), count: dashboard?.contactMessages.length || 0 },
+    { id: "comments", label: t("adminComments"), count: dashboard?.comments.length || 0 },
+    { id: "blocked", label: t("adminBlocked"), count: dashboard?.blockedPeople.length || 0 }
+  ];
+
+  const blockedIds = new Set((dashboard?.blockedPeople || []).flatMap((person) => [person.personId, person.publicId]).filter(Boolean));
+  const blockableShrines = (dashboard?.shrines || []).filter((person) => !blockedIds.has(person.id) && !blockedIds.has(person.publicId));
+
+  if (!signedIn) {
+    return (
+      <main className="main-screen admin-screen scroll-screen">
+        <Header title={t("adminDashboard")} compact back={goBack} language={language} t={t} />
+        <form className="admin-login-panel" onSubmit={login}>
+          <ShieldCheck size={44} />
+          <h2>{t("adminSignIn")}</h2>
+          <p>{t("adminKeyHelp")}</p>
+          <Input label={t("adminIdentifier")} value={identifier} onChange={setIdentifier} />
+          <PasswordInput
+            label={t("adminAccessKey")}
+            value={accessKey}
+            visible={keyVisible}
+            onToggle={() => setKeyVisible((value) => !value)}
+            onChange={setAccessKey}
+            t={t}
+          />
+          <button className="primary-button" type="submit" disabled={loading || !accessKey.trim()}>
+            {loading ? t("pleaseWait") : t("adminSignIn")}
+          </button>
+        </form>
+      </main>
+    );
+  }
+
+  return (
+    <main className="main-screen admin-screen scroll-screen">
+      <Header
+        title={t("adminDashboard")}
+        compact
+        back={goBack}
+        language={language}
+        t={t}
+        action={
+          <button className="header-icon" type="button" onClick={() => loadDashboard(session)} aria-label={t("adminRefresh")}>
+            <LayoutGrid size={27} />
+          </button>
+        }
+      />
+      <section className="admin-overview">
+        <div>
+          <span>{t("adminStats")}</span>
+          <strong>{dashboard ? dashboard.stats.shrines || 0 : 0}</strong>
+          <small>{t("memorial")}</small>
+        </div>
+        <div>
+          <span>{t("adminUsers")}</span>
+          <strong>{dashboard ? dashboard.stats.users || 0 : 0}</strong>
+          <small>{t("adminUsers")}</small>
+        </div>
+        <div>
+          <span>{t("adminComments")}</span>
+          <strong>{dashboard ? dashboard.stats.comments || 0 : 0}</strong>
+          <small>{t("adminComments")}</small>
+        </div>
+      </section>
+      <div className="admin-tabs" role="tablist" aria-label={t("adminDashboard")}>
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            className={activeTab === tab.id ? "active" : ""}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            <span>{tab.label}</span>
+            {tab.count !== "" && <strong>{tab.count}</strong>}
+          </button>
+        ))}
+      </div>
+      {!dashboard && <EmptyState title={loading ? t("pleaseWait") : t("adminNoData")} body={t("adminIntro")} />}
+
+      {dashboard && activeTab === "users" && (
+        <section className="admin-list">
+          {!dashboard.users.length && <EmptyState title={t("adminNoData")} />}
+          {dashboard.users.map((user) => (
+            <article className="admin-row" key={user.id}>
+              <div>
+                <strong>{user.name || `${user.firstName || ""} ${user.surname || ""}`.trim() || user.email || user.phone || t("guestAccount")}</strong>
+                <span>{[user.email, `${user.phoneCode || ""} ${user.phone || ""}`.trim(), user.country].filter(Boolean).join(" • ")}</span>
+              </div>
+              <button className="danger-button small" type="button" onClick={() => deleteUser(user.id)} disabled={loading}>
+                <Trash2 size={18} /> {t("deleteUser")}
+              </button>
+            </article>
+          ))}
+        </section>
+      )}
+
+      {dashboard && activeTab === "terms" && (
+        <section className="admin-editor">
+          <label className="field-label">English</label>
+          <textarea className="text-area" value={termsDraft.EN} onChange={(event) => setTermsDraft((current) => ({ ...current, EN: event.target.value }))} />
+          <label className="field-label">العربية</label>
+          <textarea className="text-area" value={termsDraft.AR} onChange={(event) => setTermsDraft((current) => ({ ...current, AR: event.target.value }))} />
+          <button className="primary-button" type="button" onClick={saveTerms} disabled={loading}>
+            {loading ? t("pleaseWait") : t("save")}
+          </button>
+        </section>
+      )}
+
+      {dashboard && activeTab === "contact" && (
+        <section className="admin-list">
+          {!dashboard.contactMessages.length && <EmptyState title={t("adminNoData")} />}
+          {dashboard.contactMessages.map((message) => (
+            <article className="admin-row expanded" key={message.id}>
+              <div>
+                <strong>{message.email || message.name || t("guestAccount")}</strong>
+                <span>{formatStoredDate(message.createdAt)} • {message.status || "new"}</span>
+                <p>{message.message}</p>
+              </div>
+              <div className="admin-row-actions">
+                <button className="outline-button small" type="button" onClick={() => updateContact(message.id, message.status === "done" ? "new" : "done")} disabled={loading}>
+                  <Check size={18} /> {message.status === "done" ? t("adminMarkNew") : t("adminMarkDone")}
+                </button>
+                <button className="danger-button small" type="button" onClick={() => deleteContact(message.id)} disabled={loading}>
+                  <Trash2 size={18} /> {t("deleteItem")}
+                </button>
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
+
+      {dashboard && activeTab === "comments" && (
+        <section className="admin-list">
+          {!dashboard.comments.length && <EmptyState title={t("adminNoData")} />}
+          {dashboard.comments.map((comment) => (
+            <article className="admin-row expanded" key={comment.id}>
+              <div>
+                <strong>{comment.userName || t("guestAccount")} • {comment.shrineName || t("memorial")}</strong>
+                <span>{formatStoredDate(comment.createdAt)}</span>
+                <p>{comment.text || comment.attachmentName || comment.attachment}</p>
+              </div>
+              <button className="danger-button small" type="button" onClick={() => deleteComment(comment.id)} disabled={loading}>
+                <Trash2 size={18} /> {t("deleteItem")}
+              </button>
+            </article>
+          ))}
+        </section>
+      )}
+
+      {dashboard && activeTab === "blocked" && (
+        <section className="admin-list">
+          {dashboard.blockedPeople.map((person) => (
+            <article className="admin-row" key={person.personId || person.publicId}>
+              <div>
+                <strong>{person.fullName || person.personId || person.publicId}</strong>
+                <span>{formatStoredDate(person.blockedAt)}</span>
+              </div>
+              <button className="outline-button small" type="button" onClick={() => unblockPerson(person.personId || person.publicId)} disabled={loading}>
+                {t("unblock")}
+              </button>
+            </article>
+          ))}
+          <h2 className="admin-section-title">{t("adminBlockPerson")}</h2>
+          {!blockableShrines.length && <EmptyState title={t("adminNoData")} />}
+          {blockableShrines.map((person) => (
+            <article className="admin-row" key={person.id}>
+              <div>
+                <strong>{person.fullName}</strong>
+                <span>{[person.country, person.createdByName].filter(Boolean).join(" • ")}</span>
+              </div>
+              <button className="danger-button small" type="button" onClick={() => blockPerson(person)} disabled={loading}>
+                <Ban size={18} /> {t("block")}
+              </button>
+            </article>
+          ))}
+        </section>
+      )}
+
+      <section className="admin-footer-actions">
+        <button className="outline-button small" type="button" onClick={logoutAdmin}>
+          <LogOut size={18} /> {t("adminLogout")}
+        </button>
+      </section>
+    </main>
+  );
+}
+
 function InfoLine({ icon, label, value }) {
   return (
     <div className="info-line">
@@ -4015,7 +4710,7 @@ function InfoLine({ icon, label, value }) {
 function GalleryScreen({ state, t, setScreen, goBack }) {
   const [viewMode, setViewMode] = useState("list");
   const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
-  const person = findPersonByShareId(state.people, state.selectedPersonId);
+  const person = findVisiblePersonByShareId(state, state.selectedPersonId);
 
   useEffect(() => {
     if (!photoViewerOpen) return undefined;
@@ -4041,7 +4736,7 @@ function GalleryScreen({ state, t, setScreen, goBack }) {
     );
   }
 
-  const galleryItems = personGalleryItems(person);
+  const galleryItems = personGalleryItems({ ...person, messages: visiblePersonMessages(person, state) });
 
   return (
     <main className="main-screen gallery-screen scroll-screen">
@@ -4096,7 +4791,7 @@ function GalleryScreen({ state, t, setScreen, goBack }) {
 }
 
 function FlowerScreen({ state, language, t, setModal, goBack, flowerScreenMode }) {
-  const person = findPersonByShareId(state.people, state.selectedPersonId);
+  const person = findVisiblePersonByShareId(state, state.selectedPersonId);
 
   if (!person) {
     return (
@@ -4151,10 +4846,10 @@ function FlowerScreen({ state, language, t, setModal, goBack, flowerScreenMode }
   );
 }
 
-function MessageScreen({ state, language, t, goBack, setScreen, onSendMessage, activeUser }) {
+function MessageScreen({ state, language, t, goBack, setScreen, setModal, onSendMessage, activeUser, canUseAccount }) {
   const [draft, setDraft] = useState("");
   const [attachment, setAttachment] = useState(null);
-  const person = findPersonByShareId(state.people, state.selectedPersonId);
+  const person = findVisiblePersonByShareId(state, state.selectedPersonId);
 
   if (!person) {
     return (
@@ -4165,12 +4860,17 @@ function MessageScreen({ state, language, t, goBack, setScreen, onSendMessage, a
     );
   }
 
-  const messages = normalizePersonMessages(person.messages);
-  const canSend = Boolean(draft.trim() || attachment?.src);
+  const messages = visiblePersonMessages(person, state);
+  const canSend = canUseAccount && Boolean(draft.trim() || attachment?.src);
   const draftPreview = draft.trim();
   const hasDraftPreview = Boolean(draftPreview || attachment?.src);
 
   const pickAttachment = (event) => {
+    if (!canUseAccount) {
+      setModal({ type: "accountPrompt", intent: "message" });
+      return;
+    }
+
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
@@ -4186,6 +4886,10 @@ function MessageScreen({ state, language, t, goBack, setScreen, onSendMessage, a
   };
 
   const send = () => {
+    if (!canUseAccount) {
+      setModal({ type: "accountPrompt", intent: "message" });
+      return;
+    }
     if (!canSend) return;
     const sent = onSendMessage(person.id, {
       text: draft,
@@ -4232,40 +4936,48 @@ function MessageScreen({ state, language, t, goBack, setScreen, onSendMessage, a
           </article>
         )}
       </section>
-      <form
-        className="message-composer"
-        onSubmit={(event) => {
-          event.preventDefault();
-          send();
-        }}
-      >
-        {attachment && (
-          <div className="message-attachment-preview">
-            <img src={attachment.src} alt={attachment.name} />
-            <span>{attachment.name}</span>
-            <button type="button" onClick={() => setAttachment(null)} aria-label={t("removeAttachment")}>
-              <X size={18} />
+      {canUseAccount ? (
+        <form
+          className="message-composer"
+          onSubmit={(event) => {
+            event.preventDefault();
+            send();
+          }}
+        >
+          {attachment && (
+            <div className="message-attachment-preview">
+              <img src={attachment.src} alt={attachment.name} />
+              <span>{attachment.name}</span>
+              <button type="button" onClick={() => setAttachment(null)} aria-label={t("removeAttachment")}>
+                <X size={18} />
+              </button>
+            </div>
+          )}
+          <div className="message-composer-row">
+            <label className="message-attach-button" aria-label={t("attachPhoto")}>
+              <Paperclip size={31} />
+              <input type="file" accept="image/*" onChange={pickAttachment} />
+            </label>
+            <textarea
+              className="message-input"
+              dir="auto"
+              rows={1}
+              placeholder={t("writeMessage")}
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+            />
+            <button className="message-send-button" type="submit" disabled={!canSend} aria-label={t("send")}>
+              <ArrowUp size={27} />
             </button>
           </div>
-        )}
-        <div className="message-composer-row">
-          <label className="message-attach-button" aria-label={t("attachPhoto")}>
-            <Paperclip size={31} />
-            <input type="file" accept="image/*" onChange={pickAttachment} />
-          </label>
-          <textarea
-            className="message-input"
-            dir="auto"
-            rows={1}
-            placeholder={t("writeMessage")}
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-          />
-          <button className="message-send-button" type="submit" disabled={!canSend} aria-label={t("send")}>
-            <ArrowUp size={27} />
+        </form>
+      ) : (
+        <div className="message-account-gate">
+          <button className="primary-button" type="button" onClick={() => setModal({ type: "accountPrompt", intent: "message" })}>
+            <UserRoundPlus size={20} /> {t("createAccount")}
           </button>
         </div>
-      </form>
+      )}
     </main>
   );
 }
@@ -4288,7 +5000,7 @@ function DetailScreen({
   const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
   const entryRef = useRef(null);
   const messageRefs = useRef(new Map());
-  const person = findPersonByShareId(state.people, state.selectedPersonId);
+  const person = findVisiblePersonByShareId(state, state.selectedPersonId);
   const sharedCommentPersonId = sharedTarget?.type === "comment" ? sharedTarget.personId : "";
   const sharedCommentId = sharedTarget?.type === "comment" ? sharedTarget.commentId || "" : "";
 
@@ -4342,7 +5054,7 @@ function DetailScreen({
   const latestFlower = activeFlowers
     .slice()
     .sort((left, right) => Date.parse(right.givenAt) - Date.parse(left.givenAt))[0];
-  const shrineMessages = normalizePersonMessages(person.messages);
+  const shrineMessages = visiblePersonMessages(person, state);
   const canOpenFlowerSenders = canViewFlowerSenders(person, state.currentUser);
   const isFollowing = state.following.includes(person.id);
   const ageText = displayAge ? `${displayAge} ${normalizeLanguage(language) === "AR" ? "سنه" : "Years"}` : "";
@@ -4578,13 +5290,14 @@ function BlockedUsersScreen({ state, language, t, updateState, goBack }) {
   );
 }
 
-function TermsScreen({ language, t, goBack }) {
+function TermsScreen({ state, language, t, goBack }) {
+  const sections = liveTermsForLanguage(state, language);
   return (
     <main className="main-screen terms-screen scroll-screen">
       <Header title={t("terms")} compact back={goBack} language={language} t={t} />
       <section className="terms-content">
         <p className="updated">{t("lastUpdated")}: {today()}</p>
-        {termsSections[language].map((section) => (
+        {sections.map((section) => (
           <article key={section.title}>
             <h2>{section.title}</h2>
             <p>{section.body}</p>
@@ -4595,9 +5308,41 @@ function TermsScreen({ language, t, goBack }) {
   );
 }
 
-function ContactScreen({ language, t, goBack, setToast }) {
+function ContactScreen({ language, t, goBack, setToast, activeUser }) {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const submit = async () => {
+    if (!message.trim() || sending) return;
+    setSending(true);
+    try {
+      const { response, data } = await apiJson(
+        "/api/contact",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            email: email || activeUser?.email || "",
+            name: activeUser ? getUserName(activeUser) : "",
+            message
+          })
+        },
+        "Could not save message."
+      );
+      if (!response.ok || !data?.success) {
+        setToast(data?.error || t("adminLiveOffline"));
+        return;
+      }
+      setEmail("");
+      setMessage("");
+      setToast(t("messageSaved"));
+    } catch {
+      setToast(t("adminLiveOffline"));
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <main className="main-screen contact-screen scroll-screen">
       <Header title={t("contactUs")} back={goBack} language={language} t={t} />
@@ -4612,12 +5357,10 @@ function ContactScreen({ language, t, goBack, setToast }) {
         />
         <button
           className="primary-button"
-          onClick={() => {
-            setMessage("");
-            setToast(t("messageSaved"));
-          }}
+          onClick={submit}
+          disabled={sending || !message.trim()}
         >
-          {t("send")}
+          {sending ? t("pleaseWait") : t("send")}
         </button>
       </section>
     </main>
@@ -4651,6 +5394,10 @@ function BottomNav({ active, variant = "main", canEditShrine = false, setScreen,
       return;
     }
     if (id === "message") {
+      if (!canUseAccount) {
+        setModal({ type: "accountPrompt", intent: "message" });
+        return;
+      }
       setScreen("message");
       return;
     }
@@ -5300,6 +6047,7 @@ function VerifyModal({
 function AccountPrompt({ t, intent = "follow", onCreate, onLogin, onClose, onContinueBrowsing }) {
   const isAdd = intent === "add";
   const isFlower = intent === "flower";
+  const isMessage = intent === "message";
   return (
     <div className="modal-backdrop bottom account-prompt-backdrop" onClick={onClose}>
       <div className="account-prompt" onClick={(event) => event.stopPropagation()}>
@@ -5310,8 +6058,24 @@ function AccountPrompt({ t, intent = "follow", onCreate, onLogin, onClose, onCon
             <CircleUserRound size={13} />
           </span>
         </div>
-        <h2>{isAdd ? t("accountPromptAddTitle") : isFlower ? t("accountPromptFlowerTitle") : t("accountPromptTitle")}</h2>
-        <p>{isAdd ? t("accountPromptAddBody") : isFlower ? t("accountPromptFlowerBody") : t("accountPromptBody")}</p>
+        <h2>
+          {isAdd
+            ? t("accountPromptAddTitle")
+            : isFlower
+              ? t("accountPromptFlowerTitle")
+              : isMessage
+                ? t("accountPromptMessageTitle")
+                : t("accountPromptTitle")}
+        </h2>
+        <p>
+          {isAdd
+            ? t("accountPromptAddBody")
+            : isFlower
+              ? t("accountPromptFlowerBody")
+              : isMessage
+                ? t("accountPromptMessageBody")
+                : t("accountPromptBody")}
+        </p>
         <button className="primary-button" onClick={onCreate}>
           <UserRoundPlus size={20} /> {t("createAccount")}
         </button>

@@ -1609,6 +1609,217 @@ button {
   font-size: 0.94rem;
 }
 
+.admin-screen {
+  background: #f5f7fb;
+}
+
+.admin-login-panel,
+.admin-editor,
+.admin-list,
+.admin-overview,
+.admin-footer-actions {
+  width: min(100% - 32px, 720px);
+  margin-inline: auto;
+}
+
+.admin-login-panel {
+  display: grid;
+  gap: 16px;
+  margin-top: 28px;
+  padding: 22px;
+  border: 1px solid #dce5ee;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-login-panel svg {
+  color: #168258;
+}
+
+.admin-login-panel h2,
+.admin-login-panel p {
+  margin: 0;
+}
+
+.admin-login-panel h2 {
+  color: #172033;
+  font-size: 1.28rem;
+  font-weight: 800;
+}
+
+.admin-login-panel p {
+  color: #5f6878;
+  line-height: 1.5;
+}
+
+.admin-overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 14px 0 10px;
+}
+
+.admin-overview > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 13px 12px;
+  border: 1px solid #dce5ee;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.admin-overview span,
+.admin-overview small {
+  min-width: 0;
+  overflow: hidden;
+  color: #637083;
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-overview strong {
+  color: #172033;
+  font-size: 1.36rem;
+  line-height: 1;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 8px;
+  width: min(100% - 32px, 720px);
+  margin: 0 auto 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.admin-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-height: 42px;
+  padding: 0 13px;
+  border: 1px solid #d7e1eb;
+  border-radius: 8px;
+  color: #2a3444;
+  background: #fff;
+  font-weight: 800;
+}
+
+.admin-tabs button.active {
+  border-color: #168258;
+  color: #0c6b47;
+  background: #edf8f3;
+}
+
+.admin-tabs strong {
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #e8eef6;
+  font-size: 0.82rem;
+}
+
+.admin-list,
+.admin-editor {
+  display: grid;
+  gap: 12px;
+  padding-bottom: 18px;
+}
+
+.admin-editor {
+  padding: 14px 16px 108px;
+  border: 1px solid #dce5ee;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.admin-editor .text-area {
+  min-height: 210px;
+}
+
+.admin-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(118px, 170px);
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #dce5ee;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+.admin-row.expanded {
+  align-items: start;
+}
+
+.admin-row > div {
+  min-width: 0;
+}
+
+.admin-row strong,
+.admin-row span,
+.admin-row p {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-row strong {
+  color: #151a22;
+  font-size: 0.98rem;
+  line-height: 1.28;
+  font-weight: 800;
+}
+
+.admin-row span {
+  margin-top: 5px;
+  color: #667085;
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.admin-row p {
+  margin: 10px 0 0;
+  color: #323a48;
+  font-size: 0.93rem;
+  line-height: 1.5;
+}
+
+.admin-row-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-section-title {
+  margin: 12px 2px 0;
+  color: #172033;
+  font-size: 1.06rem;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.admin-footer-actions {
+  display: grid;
+  padding: 0 0 108px;
+}
+
+@media (max-width: 520px) {
+  .admin-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .profile-screen {
   position: relative;
   display: flex;
@@ -2388,6 +2599,24 @@ button {
   transform: translateX(-50%);
   border-top: 1px solid #d6d8dc;
   background: #fff;
+}
+
+.message-account-gate {
+  position: fixed;
+  right: auto;
+  bottom: 0;
+  left: 50%;
+  z-index: 35;
+  width: var(--app-frame-width);
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  border-top: 1px solid #d6d8dc;
+  background: #fff;
+}
+
+.message-account-gate .primary-button {
+  min-height: 52px;
+  border-radius: 12px;
 }
 
 .message-composer-row {
