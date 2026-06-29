@@ -15,12 +15,15 @@
   --app-max-width: 520px;
   --app-frame-width: min(100vw, var(--app-max-width));
   --visual-icon-scale: 0.88;
+  --splash-background: linear-gradient(180deg, #f8fdff 0%, #c9eff6 48%, #a7e1ed 100%);
   font-size: 14.5px;
   color: var(--ink);
   background: #eef2f7;
 }
 
 html {
+  min-height: 100%;
+  background: #eef2f7;
   -webkit-text-size-adjust: 100%;
   text-rendering: optimizeLegibility;
 }
@@ -38,6 +41,11 @@ body {
   background: #eef2f7;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 button,
@@ -83,12 +91,23 @@ button {
   left: 50%;
   z-index: 120;
   width: var(--app-frame-width);
+  min-height: 100vh;
+  min-height: 100dvh;
   transform: translateX(-50%);
   overflow: hidden;
   isolation: isolate;
   pointer-events: none;
-  background: linear-gradient(180deg, #f8fdff 0%, #c9eff6 48%, #a7e1ed 100%);
+  background: var(--splash-background);
   animation: splash-fade 2.6s ease forwards;
+}
+
+@supports (top: calc(0px - env(safe-area-inset-top, 0px))) {
+  .splash-intro {
+    top: calc(0px - env(safe-area-inset-top, 0px));
+    bottom: calc(0px - env(safe-area-inset-bottom, 0px));
+    min-height: calc(100vh + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px));
+    min-height: calc(100dvh + env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 .splash-rays {
@@ -860,9 +879,11 @@ button {
 .header-icon {
   display: grid;
   place-items: center;
+  padding: 0;
   border: 0;
   background: transparent;
   color: var(--blue);
+  line-height: 0;
 }
 
 .header-icon.left {
@@ -1260,7 +1281,7 @@ button {
   flex-direction: column;
   min-height: 100vh;
   min-height: 100dvh;
-  padding: calc(45px + env(safe-area-inset-top)) 0 calc(clamp(132px, 17vh, 166px) + env(safe-area-inset-bottom));
+  padding: calc(45px + env(safe-area-inset-top)) 0 calc(clamp(110px, 14.5vh, 144px) + env(safe-area-inset-bottom));
   background: #f6f6f6;
 }
 
@@ -1969,6 +1990,8 @@ button {
 .flowers-screen .flower-header-button {
   width: 34px;
   height: 34px;
+  box-sizing: border-box;
+  padding: 0;
   border: 3px solid var(--blue);
   border-radius: 50%;
   color: var(--blue);
