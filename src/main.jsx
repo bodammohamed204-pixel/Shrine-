@@ -1054,6 +1054,7 @@ const copy = {
     adminAccessKey: "Admin access key",
     adminKeyHelp: "Use the admin key configured on the server.",
     adminUsers: "Users",
+    adminAdmins: "Admins",
     adminTerms: "Terms",
     adminContact: "Contact",
     adminComments: "Comments",
@@ -1066,10 +1067,19 @@ const copy = {
     adminDeleted: "Deleted",
     adminBlockedPerson: "Person blocked",
     adminUnblockedPerson: "Person unblocked",
+    adminAdded: "Admin added",
+    adminRemoved: "Admin removed",
+    adminAddAdmin: "Add admin",
+    adminNewIdentifier: "Admin email or phone",
+    adminConfiguredAdmin: "Configured",
+    adminLiveAdmin: "Live",
     adminNoData: "No live data yet",
     adminMarkDone: "Mark done",
     adminMarkNew: "Mark new",
     adminBlockPerson: "Block person",
+    adminAccountRequired: "Create a user account with this email or phone first.",
+    adminSourceSecret: "Configured",
+    adminSourceLive: "Live",
     adminLogout: "Exit admin",
     noUsers: "No users yet",
     noUsersBody: "Accounts you create on this device will appear here.",
@@ -1277,6 +1287,7 @@ const copy = {
     adminAccessKey: "مفتاح دخول الأدمن",
     adminKeyHelp: "استخدم مفتاح الأدمن المحفوظ على السيرفر.",
     adminUsers: "المستخدمون",
+    adminAdmins: "الأدمنز",
     adminTerms: "الشروط",
     adminContact: "تواصل معنا",
     adminComments: "الكومنتات",
@@ -1289,10 +1300,19 @@ const copy = {
     adminDeleted: "تم الحذف",
     adminBlockedPerson: "تم حظر الشخص",
     adminUnblockedPerson: "تم إلغاء الحظر",
+    adminAdded: "تم إضافة الأدمن",
+    adminRemoved: "تم حذف الأدمن",
+    adminAddAdmin: "إضافة أدمن",
+    adminNewIdentifier: "إيميل أو هاتف الأدمن",
+    adminConfiguredAdmin: "ثابت",
+    adminLiveAdmin: "حي",
     adminNoData: "لا توجد بيانات حية بعد",
     adminMarkDone: "تم التعامل",
     adminMarkNew: "جديد",
     adminBlockPerson: "حظر الشخص",
+    adminAccountRequired: "لازم يكون فيه حساب مستخدم بنفس الإيميل أو الرقم أولًا.",
+    adminSourceSecret: "إعداد ثابت",
+    adminSourceLive: "حي",
     adminLogout: "خروج الأدمن",
     noUsers: "لا يوجد مستخدمون حتى الآن",
     noUsersBody: "ستظهر هنا الحسابات التي يتم إنشاؤها على هذا الجهاز.",
@@ -4325,12 +4345,69 @@ function draftToTerms(value) {
     .filter(Boolean);
 }
 
+function normalizeAdminIdentifierValue(value) {
+  const text = String(value || "").trim().toLowerCase();
+  if (!text) return "";
+  if (text.includes("@")) return normalizeAccountEmail(text);
+  return normalizePhoneDigits(text.startsWith("+") ? text : text).replace(/^00/, "+");
+}
+
+function adminIdentifierVariants(value) {
+  const normalized = normalizeAdminIdentifierValue(value);
+  if (!normalized) return [];
+  if (normalized.includes("@")) return [normalized];
+
+  const variants = new Set([normalized]);
+  const digits = normalizePhoneDigits(normalized);
+  if (/^01\d{9}$/.test(digits)) variants.add(`+2${digits}`);
+  if (/^201\d{9}$/.test(digits)) variants.add(`0${digits.slice(2)}`);
+  if (normalized.startsWith("+") && /^201\d{9}$/.test(digits)) variants.add(`0${digits.slice(2)}`);
+  return Array.from(variants);
+}
+
+function countryFromInternationalPhone(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  const text = raw.startsWith("+") ? raw.replace(/\s/g, "") : `+${normalizePhoneDigits(raw)}`;
+  return countries
+    .slice()
+    .sort((left, right) => right.code.length - left.code.length)
+    .find((country) => text.startsWith(country.code)) || null;
+}
+
+function adminIdentifierForSubmit(value, country) {
+  const text = String(value || "").trim();
+  if (!text || text.includes("@") || text.startsWith("+")) return text;
+  const inferredCountry = countryFromInternationalPhone(text);
+  const rawDigits = normalizePhoneDigits(text);
+  if (inferredCountry && rawDigits.startsWith(normalizePhoneDigits(inferredCountry.code))) {
+    return `+${rawDigits}`;
+  }
+  const digits = normalizePhoneDigits(text).replace(/^0+/, "");
+  return country?.code && digits ? `${country.code}${digits}` : text;
+}
+
+function userMatchesAdminIdentifier(user, identifier) {
+  const target = new Set(adminIdentifierVariants(identifier));
+  if (!target.size) return false;
+
+  const userValues = [
+    user?.email,
+    user?.otpPhone,
+    user?.phone,
+    user?.phoneCode && user?.phone ? `${user.phoneCode}${normalizePhoneDigits(user.phone).replace(/^0+/, "")}` : ""
+  ];
+
+  return userValues.some((value) => adminIdentifierVariants(value).some((variant) => target.has(variant)));
+}
+
 function normalizeDashboard(data) {
   const dashboard = data?.dashboard && typeof data.dashboard === "object" ? data.dashboard : {};
   return {
     stats: dashboard.stats || {},
     terms: normalizeLiveData({ live: { terms: dashboard.terms } }).terms,
     users: Array.isArray(dashboard.users) ? dashboard.users : [],
+    admins: Array.isArray(dashboard.admins) ? dashboard.admins : [],
     shrines: Array.isArray(dashboard.shrines) ? dashboard.shrines : [],
     comments: Array.isArray(dashboard.comments) ? dashboard.comments : [],
     contactMessages: Array.isArray(dashboard.contactMessages) ? dashboard.contactMessages : [],
@@ -4339,7 +4416,7 @@ function normalizeDashboard(data) {
   };
 }
 
-function AdminDashboardScreen({ state, language, t, goBack, setToast }) {
+function AdminDashboardScreen({ state, language, t, goBack, setToast, setModal }) {
   const [session, setSession] = useState(() => savedAdminSession());
   const [identifier, setIdentifier] = useState(state.currentUser?.email || state.currentUser?.otpPhone || "");
   const [accessKey, setAccessKey] = useState("");
@@ -4347,6 +4424,8 @@ function AdminDashboardScreen({ state, language, t, goBack, setToast }) {
   const [dashboard, setDashboard] = useState(null);
   const [activeTab, setActiveTab] = useState("users");
   const [termsDraft, setTermsDraft] = useState({ EN: "", AR: "" });
+  const [newAdminIdentifier, setNewAdminIdentifier] = useState("");
+  const [adminPhoneCountry, setAdminPhoneCountry] = useState(() => findCountry(state.currentCountry || state.currentUser?.country || initialState.currentCountry));
   const [loading, setLoading] = useState(false);
   const signedIn = Boolean(session?.sessionToken);
 
@@ -4381,6 +4460,11 @@ function AdminDashboardScreen({ state, language, t, goBack, setToast }) {
   useEffect(() => {
     if (signedIn) loadDashboard(session);
   }, [signedIn, session?.sessionToken]);
+
+  useEffect(() => {
+    const inferredCountry = countryFromInternationalPhone(newAdminIdentifier);
+    if (inferredCountry) setAdminPhoneCountry(inferredCountry);
+  }, [newAdminIdentifier]);
 
   const login = async (event) => {
     event.preventDefault();
@@ -4461,6 +4545,42 @@ function AdminDashboardScreen({ state, language, t, goBack, setToast }) {
       "adminDeleted"
     );
 
+  const addAdmin = (event) => {
+    event.preventDefault();
+    const identifierValue = adminIdentifierForSubmit(newAdminIdentifier, adminPhoneCountry);
+    if (!identifierValue) return;
+
+    if (!dashboard?.users.some((user) => userMatchesAdminIdentifier(user, identifierValue))) {
+      setToast(t("adminAccountRequired"));
+      return;
+    }
+
+    runAction(
+      () =>
+        adminApi(
+          "/api/admin/admins",
+          session,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              identifier: identifierValue,
+              countryCode: adminPhoneCountry?.code || "",
+              createdBy: session?.identifier || identifier
+            })
+          },
+          "Could not add admin."
+        ),
+      "adminAdded"
+    );
+    setNewAdminIdentifier("");
+  };
+
+  const deleteAdmin = (adminIdentifier) =>
+    runAction(
+      () => adminApi(`/api/admin/admins/${encodeURIComponent(adminIdentifier)}`, session, { method: "DELETE" }, "Could not remove admin."),
+      "adminRemoved"
+    );
+
   const deleteComment = (commentId) =>
     runAction(
       () => adminApi(`/api/admin/comments/${encodeURIComponent(commentId)}`, session, { method: "DELETE" }, "Could not delete comment."),
@@ -4508,6 +4628,7 @@ function AdminDashboardScreen({ state, language, t, goBack, setToast }) {
 
   const tabs = [
     { id: "users", label: t("adminUsers"), count: dashboard?.users.length || 0 },
+    { id: "admins", label: t("adminAdmins"), count: dashboard?.admins.length || 0 },
     { id: "terms", label: t("adminTerms"), count: "" },
     { id: "contact", label: t("adminContact"), count: dashboard?.contactMessages.length || 0 },
     { id: "comments", label: t("adminComments"), count: dashboard?.comments.length || 0 },
@@ -4602,6 +4723,50 @@ function AdminDashboardScreen({ state, language, t, goBack, setToast }) {
               <button className="danger-button small" type="button" onClick={() => deleteUser(user.id)} disabled={loading}>
                 <Trash2 size={18} /> {t("deleteUser")}
               </button>
+            </article>
+          ))}
+        </section>
+      )}
+
+      {dashboard && activeTab === "admins" && (
+        <section className="admin-list">
+          <form className="admin-inline-form" onSubmit={addAdmin}>
+            <Input label={t("adminNewIdentifier")} value={newAdminIdentifier} onChange={setNewAdminIdentifier} />
+            {!newAdminIdentifier.includes("@") && (
+              <SelectField
+                label={t("country")}
+                value={`${countryLabel(adminPhoneCountry, language)} ${adminPhoneCountry?.code || ""}`.trim()}
+                onClick={() =>
+                  setModal({
+                    type: "country",
+                    title: t("country"),
+                    withCodes: true,
+                    selectedCountry: adminPhoneCountry?.name,
+                    onPick: (country) => setAdminPhoneCountry(country)
+                  })
+                }
+              />
+            )}
+            <button className="primary-button small" type="submit" disabled={loading || !newAdminIdentifier.trim()}>
+              <UserRoundPlus size={18} /> {t("adminAddAdmin")}
+            </button>
+          </form>
+          {!dashboard.admins.length && <EmptyState title={t("adminNoData")} />}
+          {dashboard.admins.map((admin) => (
+            <article className="admin-row" key={admin.id || admin.identifier}>
+              <div>
+                <strong>{admin.label || admin.identifier}</strong>
+                <span>{admin.identifier} • {admin.source === "secret" ? t("adminConfiguredAdmin") : t("adminLiveAdmin")}</span>
+              </div>
+              {admin.removable ? (
+                <button className="danger-button small" type="button" onClick={() => deleteAdmin(admin.identifier)} disabled={loading}>
+                  <Trash2 size={18} /> {t("deleteItem")}
+                </button>
+              ) : (
+                <span className="admin-lock-badge">
+                  <ShieldCheck size={18} /> {t("adminConfiguredAdmin")}
+                </span>
+              )}
             </article>
           ))}
         </section>

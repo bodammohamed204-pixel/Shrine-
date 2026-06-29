@@ -580,6 +580,7 @@ function defaultLiveData() {
     shrines: [],
     comments: [],
     contactMessages: [],
+    admins: [],
     blockedPeople: [],
     removedUserIds: [],
     removedCommentIds: []
@@ -698,6 +699,82 @@ function normalizeContactMessage(message) {
   };
 }
 
+function normalizeAdminIdentifier(value) {
+  const text = String(value || "").trim().toLowerCase();
+  if (!text) return "";
+  if (text.includes("@")) return normalizeEmail(text);
+  return normalizePhone(text).replace(/[^\d+]/g, "");
+}
+
+function adminIdentifierVariants(value) {
+  const normalized = normalizeAdminIdentifier(value);
+  if (!normalized) return [];
+  if (normalized.includes("@")) return [normalized];
+
+  const variants = new Set([normalized]);
+  const digits = normalized.replace(/\D/g, "");
+  if (/^01\d{9}$/.test(digits)) variants.add(`+2${digits}`);
+  if (/^201\d{9}$/.test(digits)) variants.add(`0${digits.slice(2)}`);
+  if (/^\+201\d{9}$/.test(normalized)) variants.add(`0${digits.slice(2)}`);
+  return Array.from(variants);
+}
+
+function addAdminIdentifierVariants(set, value) {
+  for (const variant of adminIdentifierVariants(value)) set.add(variant);
+}
+
+function normalizeLiveAdmin(admin) {
+  const source = admin && typeof admin === "object" && !Array.isArray(admin) ? admin : { identifier: admin };
+  const identifier = normalizeAdminIdentifier(firstText(source.identifier, source.email, source.phone, source.id));
+  if (!identifier) return null;
+
+  return {
+    id: identifier,
+    identifier,
+    label: limitText(firstText(source.label, source.name, source.identifier, source.email, source.phone), 140),
+    createdAt: normalizeIsoDate(source.createdAt, nowIso()),
+    createdBy: normalizeAdminIdentifier(source.createdBy)
+  };
+}
+
+function adminIdentifierInput(source) {
+  const identifier = firstText(source?.identifier, source?.email, source?.phone);
+  if (!identifier || identifier.includes("@")) return identifier;
+
+  const countryCode = firstText(source?.countryCode, source?.phoneCode);
+  if (String(identifier).trim().startsWith("+")) return identifier;
+
+  const rawDigits = String(identifier).replace(/\D/g, "");
+  const countryDigits = String(countryCode || "").replace(/\D/g, "");
+  if (countryDigits && rawDigits.startsWith(countryDigits)) return `+${rawDigits}`;
+  if (!countryCode) return identifier;
+
+  const digits = rawDigits.replace(/^0+/, "");
+  return digits ? `${countryCode}${digits}` : identifier;
+}
+
+function liveUserAdminIdentifiers(user) {
+  const identifiers = new Set();
+  addAdminIdentifierVariants(identifiers, user?.email);
+  addAdminIdentifierVariants(identifiers, user?.otpPhone);
+  addAdminIdentifierVariants(identifiers, user?.phone);
+
+  const phoneDigits = String(user?.phone || "").replace(/\D/g, "").replace(/^0+/, "");
+  if (user?.phoneCode && phoneDigits) addAdminIdentifierVariants(identifiers, `${user.phoneCode}${phoneDigits}`);
+
+  return identifiers;
+}
+
+function findAdminAccount(data, identifier) {
+  const requested = new Set(adminIdentifierVariants(identifier));
+  if (!requested.size) return null;
+
+  return ensureArray(data?.users).find((user) => {
+    const userIdentifiers = liveUserAdminIdentifiers(user);
+    return Array.from(requested).some((variant) => userIdentifiers.has(variant));
+  }) || null;
+}
+
 function uniqueStrings(values) {
   return Array.from(new Set(ensureArray(values).map((value) => String(value || "").trim()).filter(Boolean)));
 }
@@ -726,6 +803,7 @@ function normalizeLiveData(data) {
     users: ensureArray(source.users).map(normalizeLiveUser).filter(Boolean),
     shrines: ensureArray(source.shrines).map(normalizeLiveShrine).filter(Boolean),
     contactMessages: ensureArray(source.contactMessages).map(normalizeContactMessage).filter(Boolean),
+    admins: mergeById([], ensureArray(source.admins).map(normalizeLiveAdmin).filter(Boolean)),
     blockedPeople: ensureArray(source.blockedPeople)
       .map((person) => ({
         personId: stableId(firstText(person?.personId, person?.id, person)),
@@ -800,14 +878,17 @@ function publicLivePayload(data) {
   };
 }
 
-function liveDashboardPayload(data) {
+function liveDashboardPayload(data, env) {
+  const admins = dashboardAdmins(data, env);
   return {
     ...data,
+    admins,
     stats: {
       users: data.users.length,
       shrines: data.shrines.length,
       comments: data.comments.length,
       contactMessages: data.contactMessages.length,
+      admins: admins.length,
       blockedPeople: data.blockedPeople.length
     }
   };
@@ -899,17 +980,58 @@ function adminIdentifiers(env) {
   );
 }
 
-function normalizeAdminIdentifier(value) {
-  const text = String(value || "").trim().toLowerCase();
-  if (!text) return "";
-  if (text.includes("@")) return normalizeEmail(text);
-  return normalizePhone(text).replace(/[^\d+]/g, "");
+function configuredAdminIdentifierSet(env) {
+  const configured = adminIdentifiers(env);
+  const variants = new Set();
+  for (const value of configured) addAdminIdentifierVariants(variants, value);
+  return variants;
 }
 
-function adminIdentifierAllowed(identifier, env) {
-  const configured = adminIdentifiers(env);
-  if (!configured.size) return true;
-  return configured.has(normalizeAdminIdentifier(identifier));
+function liveAdminIdentifierSet(data) {
+  const variants = new Set();
+  for (const admin of ensureArray(data?.admins)) addAdminIdentifierVariants(variants, admin.identifier);
+  return variants;
+}
+
+function dashboardAdmins(data, env) {
+  const admins = new Map();
+
+  for (const identifier of adminIdentifiers(env)) {
+    const displayIdentifier = normalizeAdminIdentifier(identifier);
+    if (!displayIdentifier) continue;
+    admins.set(displayIdentifier, {
+      id: displayIdentifier,
+      identifier: displayIdentifier,
+      label: displayIdentifier,
+      source: "secret",
+      removable: false
+    });
+  }
+
+  for (const admin of ensureArray(data?.admins).map(normalizeLiveAdmin).filter(Boolean)) {
+    if (admins.has(admin.identifier)) continue;
+    admins.set(admin.identifier, {
+      ...admin,
+      source: "live",
+      removable: true
+    });
+  }
+
+  return Array.from(admins.values()).sort((left, right) => left.identifier.localeCompare(right.identifier));
+}
+
+async function adminIdentifierAllowed(identifier, env, data = null) {
+  const normalizedVariants = adminIdentifierVariants(identifier);
+  if (!normalizedVariants.length) return false;
+
+  const configured = configuredAdminIdentifierSet(env);
+  if (normalizedVariants.some((variant) => configured.has(variant))) return true;
+
+  const liveData = data || (liveStore(env) ? await readLiveData(env) : defaultLiveData());
+  const liveAdmins = liveAdminIdentifierSet(liveData);
+  if (normalizedVariants.some((variant) => liveAdmins.has(variant))) return true;
+
+  return !configured.size && !liveAdmins.size;
 }
 
 async function signAdminValue(value, env) {
@@ -982,7 +1104,7 @@ async function adminLogin(request, env) {
     return jsonResponse({ success: false, error: "Invalid admin key." }, 401, noStoreCorsHeaders(request, env));
   }
 
-  if (!adminIdentifierAllowed(identifier, env)) {
+  if (!(await adminIdentifierAllowed(identifier, env))) {
     return jsonResponse({ success: false, error: "This admin identifier is not allowed." }, 403, noStoreCorsHeaders(request, env));
   }
 
@@ -1015,7 +1137,7 @@ async function adminApiResponse(request, env, url) {
   const data = await readLiveData(env);
 
   if (request.method === "GET" && resource === "dashboard") {
-    return jsonResponse({ success: true, dashboard: liveDashboardPayload(data) }, 200, noStoreCorsHeaders(request, env));
+    return jsonResponse({ success: true, dashboard: liveDashboardPayload(data, env) }, 200, noStoreCorsHeaders(request, env));
   }
 
   if (request.method === "PATCH" && resource === "terms") {
@@ -1031,6 +1153,52 @@ async function adminApiResponse(request, env, url) {
       ...data,
       removedUserIds,
       users: data.users.filter((user) => user.id !== id)
+    });
+    return jsonResponse({ success: true }, 200, noStoreCorsHeaders(request, env));
+  }
+
+  if (request.method === "POST" && resource === "admins") {
+    const body = await parseJson(request);
+    const identifier = adminIdentifierInput(body);
+    const account = findAdminAccount(data, identifier);
+    if (!account) {
+      return jsonResponse({ success: false, error: "This admin must have an existing user account first." }, 404, noStoreCorsHeaders(request, env));
+    }
+
+    const admin = normalizeLiveAdmin({
+      identifier,
+      label: firstText(body?.label, body?.name, account.name, `${account.firstName || ""} ${account.surname || ""}`, account.email, account.otpPhone),
+      createdBy: body?.createdBy
+    });
+    if (!admin) {
+      return jsonResponse({ success: false, error: "A valid admin email or phone is required." }, 400, noStoreCorsHeaders(request, env));
+    }
+
+    const existing = dashboardAdmins(data, env).some((item) =>
+      adminIdentifierVariants(item.identifier).some((variant) => adminIdentifierVariants(admin.identifier).includes(variant))
+    );
+    if (existing) {
+      return jsonResponse({ success: false, error: "This admin already exists." }, 409, noStoreCorsHeaders(request, env));
+    }
+
+    await writeLiveData(env, {
+      ...data,
+      admins: mergeById(data.admins, [admin])
+    });
+    return jsonResponse({ success: true, admin }, 200, noStoreCorsHeaders(request, env));
+  }
+
+  if (request.method === "DELETE" && resource === "admins" && id) {
+    const identifier = normalizeAdminIdentifier(id);
+    const configured = configuredAdminIdentifierSet(env);
+    const deleteVariants = new Set(adminIdentifierVariants(identifier));
+    if (Array.from(deleteVariants).some((variant) => configured.has(variant))) {
+      return jsonResponse({ success: false, error: "Configured admin identifiers cannot be removed from the dashboard." }, 400, noStoreCorsHeaders(request, env));
+    }
+
+    await writeLiveData(env, {
+      ...data,
+      admins: data.admins.filter((admin) => !adminIdentifierVariants(admin.identifier).some((variant) => deleteVariants.has(variant)))
     });
     return jsonResponse({ success: true }, 200, noStoreCorsHeaders(request, env));
   }
