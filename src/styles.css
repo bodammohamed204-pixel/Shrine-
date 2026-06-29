@@ -1,7 +1,56 @@
+@font-face {
+  font-family: 'Noto Sans Arabic';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/noto-sans-arabic-400.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Noto Sans Arabic';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/noto-sans-arabic-500.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Noto Sans Arabic';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/noto-sans-arabic-600.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Noto Sans Arabic';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/noto-sans-arabic-700.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Noto Sans Arabic';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('/fonts/noto-sans-arabic-800.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Noto Sans Arabic';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url('/fonts/noto-sans-arabic-900.ttf') format('truetype');
+}
+
 :root {
-  --font-ios: -apple-system, BlinkMacSystemFont, 'SF Arabic', 'San Francisco Arabic', 'Helvetica Neue', Arial, sans-serif;
-  --font-android: 'Noto Sans Arabic', Arial, sans-serif;
-  --font-app: var(--font-android);
+  --font-system-fallback: -apple-system, BlinkMacSystemFont, 'SF Arabic', 'San Francisco Arabic', 'Helvetica Neue', Arial, sans-serif;
+  --font-ios: 'Noto Sans Arabic', var(--font-system-fallback);
+  --font-android: 'Noto Sans Arabic', var(--font-system-fallback);
+  --font-app: 'Noto Sans Arabic', var(--font-system-fallback);
   --blue: #2494e8;
   --blue-dark: #1675bd;
   --ink: #172033;
