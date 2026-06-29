@@ -844,6 +844,7 @@ const copy = {
     memorialUpdated: "Memorial updated",
     errFullName: "Full name is required",
     errDeathDate: "Date of death is required",
+    errAgeMismatch: "Age must be {age}",
     errCountry: "Country is required",
     errInfo: "Use 250 words or less",
     search: "Search",
@@ -1038,6 +1039,7 @@ const copy = {
     memorialUpdated: "تم تحديث المزار",
     errFullName: "الاسم الكامل مطلوب",
     errDeathDate: "تاريخ الوفاة مطلوب",
+    errAgeMismatch: "العمر لازم يكون {age}",
     errCountry: "الدولة مطلوبة",
     errInfo: "استخدم 250 كلمة أو أقل",
     search: "بحث",
@@ -1530,17 +1532,9 @@ function yearFromDate(value) {
   return match ? match[0] : "";
 }
 
-function personLifeYears(person, t) {
-  const birthYear = yearFromDate(person?.birthDate);
-  const deathYear = yearFromDate(person?.deathDate);
-  return `(${birthYear || t("unknownBirth")} - ${deathYear || ""})`;
-}
-
-function personDisplayAge(person) {
-  if (person?.age) return person.age;
-
-  const birthYearText = yearFromDate(person?.birthDate);
-  const deathYearText = yearFromDate(person?.deathDate);
+function ageFromBirthAndDeathYears(birthDate, deathDate) {
+  const birthYearText = yearFromDate(birthDate);
+  const deathYearText = yearFromDate(deathDate);
   if (!birthYearText || !deathYearText) return "";
 
   const birthYear = Number(birthYearText);
@@ -1550,6 +1544,18 @@ function personDisplayAge(person) {
   }
 
   return "";
+}
+
+function personLifeYears(person, t) {
+  const birthYear = yearFromDate(person?.birthDate);
+  const deathYear = yearFromDate(person?.deathDate);
+  return `(${birthYear || t("unknownBirth")} - ${deathYear || ""})`;
+}
+
+function personDisplayAge(person) {
+  if (person?.age) return person.age;
+
+  return ageFromBirthAndDeathYears(person?.birthDate, person?.deathDate);
 }
 
 function personCreatedDate(person) {
@@ -3335,6 +3341,27 @@ function AddScreen({ state, language, t, setModal, onSubmit, activeUser, goBack,
   const [imageLoading, setImageLoading] = useState(false);
 
   const setField = (field, value) => setForm((current) => ({ ...current, [field]: value }));
+  const ageErrorForForm = (nextForm) => {
+    const expectedAge = ageFromBirthAndDeathYears(nextForm.birthDate, nextForm.deathDate);
+    return nextForm.age && expectedAge && nextForm.age !== expectedAge
+      ? formatText(t("errAgeMismatch"), { age: expectedAge })
+      : "";
+  };
+  const setFieldAndValidateAge = (field, value) => {
+    const nextForm = { ...form, [field]: value };
+    setField(field, value);
+    setErrors((current) => {
+      const nextErrors = { ...current };
+      delete nextErrors[field];
+      const ageError = ageErrorForForm(nextForm);
+      if (ageError) {
+        nextErrors.age = ageError;
+      } else {
+        delete nextErrors.age;
+      }
+      return nextErrors;
+    });
+  };
 
   const pickImage = async (event) => {
     const input = event.currentTarget;
@@ -3356,6 +3383,8 @@ function AddScreen({ state, language, t, setModal, onSubmit, activeUser, goBack,
     if (!form.fullName.trim()) nextErrors.fullName = t("errFullName");
     if (!form.surnameCheck.trim()) nextErrors.surnameCheck = t("errSurname");
     if (!form.deathDate) nextErrors.deathDate = t("errDeathDate");
+    const ageError = ageErrorForForm(form);
+    if (ageError) nextErrors.age = ageError;
     if (!form.gender) nextErrors.gender = t("errGender");
     if (!form.country) nextErrors.country = t("errCountry");
     if (form.info.trim().split(/\s+/).filter(Boolean).length > 250) {
@@ -3412,23 +3441,24 @@ function AddScreen({ state, language, t, setModal, onSubmit, activeUser, goBack,
           requiredLabel={t("required")}
           value={form.deathDate}
           error={errors.deathDate}
-          onChange={(value) => setField("deathDate", value)}
+          onChange={(value) => setFieldAndValidateAge("deathDate", value)}
         />
         <DateField
           label={t("dateOfBirth")}
           value={form.birthDate}
-          onChange={(value) => setField("birthDate", value)}
+          onChange={(value) => setFieldAndValidateAge("birthDate", value)}
         />
         <div className="two-grid">
           <SelectField
             label={t("age")}
             placeholder={t("age")}
             value={form.age}
+            error={errors.age}
             onClick={() =>
               setModal({
                 type: "age",
                 value: form.age,
-                onPick: (age) => setField("age", age)
+                onPick: (age) => setFieldAndValidateAge("age", age)
               })
             }
           />
