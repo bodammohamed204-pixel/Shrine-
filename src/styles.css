@@ -2268,11 +2268,14 @@ button {
 }
 
 .message-person-row strong {
+  display: block;
   min-width: 0;
+  width: 100%;
   color: #050505;
   font-size: 1.55rem;
   font-weight: 900;
   line-height: 1.18;
+  text-align: left;
   unicode-bidi: plaintext;
   overflow-wrap: anywhere;
 }
