@@ -2037,8 +2037,8 @@ button {
 
 .detail-screen .top-header {
   direction: ltr;
-  min-height: calc(106px + env(safe-area-inset-top));
-  padding-top: env(safe-area-inset-top);
+  min-height: 106px;
+  padding-top: 0;
   border-radius: 22px 22px 0 0;
   background: #ddf7ff;
 }
@@ -2052,7 +2052,7 @@ button {
 }
 
 .detail-screen .header-action {
-  top: calc(37px + env(safe-area-inset-top));
+  top: 37px;
   right: 20px;
   left: auto;
 }
@@ -2089,7 +2089,7 @@ button {
 
 .detail-screen .header-icon.left,
 .rtl .detail-screen .header-icon.left {
-  top: calc(37px + env(safe-area-inset-top));
+  top: 37px;
   right: auto;
   left: 18px;
   width: 40px;
@@ -3495,8 +3495,8 @@ button {
 .user-dashboard-screen .top-header,
 .edit-screen .top-header {
   direction: ltr;
-  min-height: calc(106px + env(safe-area-inset-top));
-  padding-top: env(safe-area-inset-top);
+  min-height: 106px;
+  padding-top: 0;
   border-radius: 22px 22px 0 0;
   background: #d9f5ff;
 }
@@ -3557,7 +3557,7 @@ button {
 .rtl .contact-screen .header-icon.left,
 .rtl .user-dashboard-screen .header-icon.left,
 .rtl .edit-screen .header-icon.left {
-  top: calc(37px + env(safe-area-inset-top));
+  top: 37px;
   right: auto;
   left: 18px;
   width: 40px;
@@ -3608,7 +3608,7 @@ button {
 .contact-screen .header-action,
 .user-dashboard-screen .header-action,
 .edit-screen .header-action {
-  top: calc(37px + env(safe-area-inset-top));
+  top: 37px;
   right: 20px;
   left: auto;
   transform: none;
