@@ -41,6 +41,7 @@ import {
   UserRoundPlus,
   X
 } from "lucide-react";
+import defaultAvatar from "../assets/images/default-avatar.png";
 import countries from "./countries.js";
 import "./styles.css";
 
@@ -3490,7 +3491,7 @@ function ProfileAvatar({ user }) {
   if (uploadedSrc && !uploadedImageFailed) {
     return (
       <img
-        className="profile-avatar-image"
+        className="profile-avatar-image profile-avatar-user-image"
         src={uploadedSrc}
         alt={getUserName(user)}
         onError={() => setUploadedImageFailed(true)}
@@ -3499,13 +3500,11 @@ function ProfileAvatar({ user }) {
   }
 
   return (
-    <div className="profile-avatar-placeholder" role="img" aria-label="Default avatar">
-      <span className="profile-avatar-bust" aria-hidden="true">
-        <span className="profile-avatar-shoulders" />
-        <span className="profile-avatar-neck" />
-        <span className="profile-avatar-head" />
-      </span>
-    </div>
+    <img
+      className="profile-avatar-image profile-avatar-default-image"
+      src={defaultAvatar}
+      alt="Default avatar"
+    />
   );
 }
 
