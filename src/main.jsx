@@ -4391,9 +4391,16 @@ function ShrineHomeNavIcon() {
       <path
         d="M10.5 25.5L25.5 10.5"
         fill="none"
-        stroke="#161616"
+        stroke="#2494e8"
         strokeLinecap="round"
-        strokeWidth="7"
+        strokeWidth="10"
+      />
+      <path
+        d="M10.5 25.5L25.5 10.5"
+        fill="none"
+        stroke="#ffffff"
+        strokeLinecap="round"
+        strokeWidth="5.5"
       />
     </svg>
   );
