@@ -57,7 +57,6 @@ const ADMIN_SESSION_STORAGE_KEY = "shrine_admin_session_v1";
 const PRODUCTION_API_BASE_URL = "https://shrine-the-book-of-heaven.bodammohamed204.workers.dev";
 const PRODUCTION_APP_URL = "https://app.shrine-app.com";
 const SAME_ORIGIN_API_HOSTS = new Set([
-  "app.shrine-app.com",
   "book-of-heaven.onholding.workers.dev",
   "shrine-the-book-of-heaven.bodammohamed204.workers.dev"
 ]);
