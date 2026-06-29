@@ -3589,10 +3589,12 @@ function ProfileScreen({ activeUser, language, t, setScreen, goBack }) {
         <Pencil size={20} />
       </button>
       <h1>{t("myAccount")}</h1>
-      <div className="profile-avatar">
-        <ProfileAvatar user={user} />
-      </div>
-      <h2>{getUserName(user)}</h2>
+      <section className="profile-identity" aria-label={getUserName(user)}>
+        <div className="profile-avatar">
+          <ProfileAvatar user={user} />
+        </div>
+        <h2>{getUserName(user)}</h2>
+      </section>
       <section className="info-panel">
         <h3>{t("myInformation")}</h3>
         <InfoLine icon={<Mail />} label={t("emailAddress")} value={user?.email || t("guestAccount")} />
