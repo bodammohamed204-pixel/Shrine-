@@ -25,6 +25,7 @@
   ],
   "vars": {
     "ALLOWED_ORIGINS": "https://app.shrine-app.com,https://book-of-heaven.onholding.workers.dev,https://book-of-heaven.bodammohamed204.workers.dev,https://shrine-the-book-of-heaven.bodammohamed204.workers.dev,http://localhost,capacitor://localhost",
+    "CLOUDFLARE_EMAIL_ACCOUNT_ID": "aacd59c18e272207cbf72448d5a38683",
     "OTP_EMAIL_FROM": "noreply@shrine-app.com",
     "OTP_EMAIL_FROM_NAME": "Shrine"
   },

@@ -457,6 +457,26 @@ async function readApiJson(response, fallbackMessage) {
   }
 }
 
+function isEmailOtpSenderUnavailable(data, selectedChannel) {
+  const message = String(data?.error || data?.message || "");
+  return (
+    selectedChannel?.id === "email" &&
+    (data?.errorCode === "EMAIL_OTP_SENDER_UNAVAILABLE" ||
+      data?.errorCode === "EMAIL_OTP_NOT_CONFIGURED" ||
+      /domain is not owned by the same account/i.test(message) ||
+      /sender.*not.*verified/i.test(message) ||
+      /sender.*domain.*not.*available/i.test(message))
+  );
+}
+
+function otpSendErrorMessage(data, selectedChannel, t) {
+  if (isEmailOtpSenderUnavailable(data, selectedChannel)) {
+    return t("emailOtpUnavailable");
+  }
+
+  return data.error || data.message || t("couldNotSend");
+}
+
 function positiveSeconds(value) {
   const seconds = Number(value);
   return Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds) : 0;
@@ -914,6 +934,7 @@ const copy = {
     rateLimited: "Too many activation code requests. Try again in {time}.",
     enterCode: "Enter the activation code first.",
     couldNotSend: "Could not send activation code.",
+    emailOtpUnavailable: "Email codes are temporarily unavailable. Choose WhatsApp or try again later.",
     couldNotVerify: "Could not verify activation code.",
     codeWrong: "The code is incorrect or expired.",
     registrationCancelled: "Registration cancelled. Start again with the correct details.",
@@ -1109,6 +1130,7 @@ const copy = {
     rateLimited: "طلبات كود التفعيل كثيرة. حاول مرة أخرى بعد {time}.",
     enterCode: "أدخل كود التفعيل أولًا.",
     couldNotSend: "تعذر إرسال كود التفعيل.",
+    emailOtpUnavailable: "أكواد البريد الإلكتروني غير متاحة مؤقتًا. اختر واتساب أو حاول لاحقًا.",
     couldNotVerify: "تعذر التحقق من كود التفعيل.",
     codeWrong: "الكود غير صحيح أو انتهت صلاحيته.",
     registrationCancelled: "تم إلغاء التسجيل. ابدأ من جديد بالبيانات الصحيحة.",
@@ -4980,7 +5002,7 @@ function VerifyModal({
       });
       const data = await readApiJson(response, t("couldNotSend"));
       if (!response.ok || data.success === false) {
-        const errorMessage = data.error || data.message || t("couldNotSend");
+        const errorMessage = otpSendErrorMessage(data, selectedChannel, t);
         const canEnterExistingCode =
           selectedChannel.id === "mobile" && (response.status === 429 || /rate limit/i.test(errorMessage));
 

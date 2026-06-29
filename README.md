@@ -22,6 +22,7 @@ OTP_EMAIL_FROM=noreply@yourdomain.com
 OTP_EMAIL_FROM_NAME=Shrine
 # Optional for real local email sends through Cloudflare Email Sending REST:
 CLOUDFLARE_ACCOUNT_ID=your-cloudflare-account-id
+CLOUDFLARE_EMAIL_ACCOUNT_ID=your-email-sending-account-id
 CLOUDFLARE_EMAIL_API_TOKEN=your-email-sending-api-token
 ALLOWED_ORIGINS=http://localhost:5184,http://127.0.0.1:5184,http://localhost:5173,http://127.0.0.1:5173,capacitor://localhost
 PORT=5184
@@ -53,7 +54,13 @@ app. In the Cloudflare account that owns `shrine-app.com`, add a proxied CNAME
 record from `app` to `shrine-the-book-of-heaven.bodammohamed204.workers.dev`;
 the Worker route in `wrangler.jsonc` is `app.shrine-app.com/*`.
 
-Use the Oncallos key and email OTP secret as secret values when Wrangler asks for them. For real email delivery, enable Cloudflare Email Sending on your sender domain and replace `OTP_EMAIL_FROM` in `wrangler.jsonc` with an address from that domain. Secrets are stored in Cloudflare and are not bundled into the browser app.
+Use the Oncallos key and email OTP secret as secret values when Wrangler asks for them. For real email delivery, enable Cloudflare Email Sending on your sender domain and replace `OTP_EMAIL_FROM` in `wrangler.jsonc` with an address from that domain. If the Worker runs in a different Cloudflare account than the sender domain, keep `CLOUDFLARE_EMAIL_ACCOUNT_ID` in `wrangler.jsonc` pointed at the account that owns the sender domain and set this Worker secret:
+
+```bash
+npx wrangler secret put CLOUDFLARE_EMAIL_API_TOKEN
+```
+
+`CLOUDFLARE_EMAIL_API_TOKEN` needs permission to send through Cloudflare Email Sending for the account in `CLOUDFLARE_EMAIL_ACCOUNT_ID`. Secrets are stored in Cloudflare and are not bundled into the browser app.
 
 ## Production release
 

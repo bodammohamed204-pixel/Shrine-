@@ -201,6 +201,51 @@ function escapeHtml(value) {
     .replace(/"/g, "&quot;");
 }
 
+function emailOtpPublicError(message, code = "EMAIL_OTP_SEND_FAILED", status = 502) {
+  const error = new Error(message);
+  error.publicMessage = message;
+  error.publicCode = code;
+  error.status = status;
+  return error;
+}
+
+function isEmailSenderConfigurationError(error) {
+  const code = String(error?.code || error?.publicCode || "");
+  const message = String(error?.message || error || "");
+
+  return (
+    code === "E_SENDER_NOT_VERIFIED" ||
+    code === "E_SENDER_DOMAIN_NOT_AVAILABLE" ||
+    /domain is not owned by the same account/i.test(message) ||
+    /sender.*not.*verified/i.test(message) ||
+    /sender.*domain.*not.*available/i.test(message)
+  );
+}
+
+function normalizeEmailOtpError(error) {
+  if (error?.publicMessage) {
+    return {
+      status: error.status || 502,
+      errorCode: error.publicCode || "EMAIL_OTP_SEND_FAILED",
+      error: error.publicMessage
+    };
+  }
+
+  if (isEmailSenderConfigurationError(error)) {
+    return {
+      status: 503,
+      errorCode: "EMAIL_OTP_SENDER_UNAVAILABLE",
+      error: "Email OTP is temporarily unavailable. Please use WhatsApp or try again later."
+    };
+  }
+
+  return {
+    status: 502,
+    errorCode: "EMAIL_OTP_SEND_FAILED",
+    error: error instanceof Error ? error.message : "Could not send email OTP."
+  };
+}
+
 function normalizeBaseUrl(value) {
   const text = String(value || "").trim().replace(/\/$/, "");
   if (!text) return "";
@@ -907,20 +952,72 @@ async function verifyOtp(request, env) {
   return jsonResponse(result.body, result.status, { ...corsHeaders(request, env), ...result.headers });
 }
 
+async function sendEmailOtpWithRestApi({ email, from, fromName, subject, html, text }, env) {
+  const accountId = String(env.CLOUDFLARE_EMAIL_ACCOUNT_ID || env.CLOUDFLARE_ACCOUNT_ID || "").trim();
+  const apiToken = String(env.CLOUDFLARE_EMAIL_API_TOKEN || "").trim();
+
+  if (!accountId || !apiToken) return false;
+
+  const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/email/sending/send`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      to: email,
+      from: { address: from, name: fromName },
+      subject,
+      html,
+      text
+    })
+  });
+
+  if (response.ok) return true;
+
+  const responseText = await response.text();
+  let message = responseText || "Could not send email OTP.";
+  try {
+    const body = JSON.parse(responseText);
+    const messages = Array.isArray(body.errors) ? body.errors.map((item) => item.message).filter(Boolean) : [];
+    message = messages.join("; ") || body.message || message;
+  } catch {
+    // Keep the raw response text when Cloudflare does not return JSON.
+  }
+
+  throw emailOtpPublicError(
+    isEmailSenderConfigurationError(message)
+      ? "Email OTP is temporarily unavailable. Please use WhatsApp or try again later."
+      : "Could not send email OTP.",
+    isEmailSenderConfigurationError(message) ? "EMAIL_OTP_SENDER_UNAVAILABLE" : "EMAIL_OTP_SEND_FAILED",
+    isEmailSenderConfigurationError(message) ? 503 : 502
+  );
+}
+
 async function deliverEmailOtp(email, code, expiresAt, env) {
   const from = String(env.OTP_EMAIL_FROM || "").trim();
   const fromName = String(env.OTP_EMAIL_FROM_NAME || "Shrine").trim();
+  const subject = "Your Shrine activation code";
+  const html = `<p>Your Shrine activation code is <strong>${escapeHtml(code)}</strong>.</p><p>It expires at ${escapeHtml(expiresAt)}.</p>`;
+  const text = `Your Shrine activation code is ${code}. It expires at ${expiresAt}.`;
 
-  if (!env.EMAIL || !from) {
-    throw new Error("Email OTP is not configured on this server.");
+  if (!from) {
+    throw emailOtpPublicError("Email OTP is not configured on this server.", "EMAIL_OTP_NOT_CONFIGURED", 500);
+  }
+
+  const sentWithRestApi = await sendEmailOtpWithRestApi({ email, from, fromName, subject, html, text }, env);
+  if (sentWithRestApi) return;
+
+  if (!env.EMAIL) {
+    throw emailOtpPublicError("Email OTP is not configured on this server.", "EMAIL_OTP_NOT_CONFIGURED", 500);
   }
 
   await env.EMAIL.send({
     to: email,
     from: { email: from, name: fromName },
-    subject: "Your Shrine activation code",
-    html: `<p>Your Shrine activation code is <strong>${escapeHtml(code)}</strong>.</p><p>It expires at ${escapeHtml(expiresAt)}.</p>`,
-    text: `Your Shrine activation code is ${code}. It expires at ${expiresAt}.`
+    subject,
+    html,
+    text
   });
 }
 
@@ -962,12 +1059,14 @@ async function sendEmailOtp(request, env) {
       corsHeaders(request, env)
     );
   } catch (error) {
+    const publicError = normalizeEmailOtpError(error);
     return jsonResponse(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Could not send email OTP."
+        error: publicError.error,
+        errorCode: publicError.errorCode
       },
-      502,
+      publicError.status,
       corsHeaders(request, env)
     );
   }

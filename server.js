@@ -179,6 +179,32 @@ function escapeHtml(value) {
     .replace(/"/g, "&quot;");
 }
 
+function isEmailSenderConfigurationError(error) {
+  const message = String(error?.message || error || "");
+
+  return (
+    /domain is not owned by the same account/i.test(message) ||
+    /sender.*not.*verified/i.test(message) ||
+    /sender.*domain.*not.*available/i.test(message)
+  );
+}
+
+function normalizeEmailOtpError(error) {
+  if (isEmailSenderConfigurationError(error)) {
+    return {
+      status: 503,
+      errorCode: "EMAIL_OTP_SENDER_UNAVAILABLE",
+      error: "Email OTP is temporarily unavailable. Please use WhatsApp or try again later."
+    };
+  }
+
+  return {
+    status: 502,
+    errorCode: "EMAIL_OTP_SEND_FAILED",
+    error: error instanceof Error ? error.message : "Could not send email OTP."
+  };
+}
+
 function positiveSeconds(value) {
   const seconds = Number(value);
   return Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds) : 0;
@@ -224,7 +250,7 @@ function rateLimitedOtpResult(result) {
 
 async function deliverEmailOtp(email, code, expiresAt) {
   const from = process.env.OTP_EMAIL_FROM?.trim();
-  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
+  const accountId = process.env.CLOUDFLARE_EMAIL_ACCOUNT_ID?.trim() || process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
   const apiToken = process.env.CLOUDFLARE_EMAIL_API_TOKEN?.trim();
   const fromName = process.env.OTP_EMAIL_FROM_NAME?.trim() || "Shrine";
   const subject = "Your Shrine activation code";
@@ -402,9 +428,11 @@ app.post("/api/otp/email/send", async (req, res) => {
       ...(delivery.debugCode ? { debugCode: delivery.debugCode } : {})
     });
   } catch (error) {
-    return res.status(502).json({
+    const publicError = normalizeEmailOtpError(error);
+    return res.status(publicError.status).json({
       success: false,
-      error: error instanceof Error ? error.message : "Could not send email OTP."
+      error: publicError.error,
+      errorCode: publicError.errorCode
     });
   }
 });

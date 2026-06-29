@@ -124,10 +124,12 @@ The Cloudflare Worker serves the static app from `dist` and handles the OTP API 
 npm install
 npx wrangler login
 npx wrangler secret put ONCALLOS_API_KEY
+npx wrangler secret put OTP_EMAIL_SECRET
+npx wrangler secret put CLOUDFLARE_EMAIL_API_TOKEN
 npm run worker:deploy
 ```
 
-Use the Oncallos key only in Wrangler's secret prompt. Do not put it in `wrangler.jsonc`.
+Use API keys and OTP secrets only in Wrangler's secret prompt. Do not put them in `wrangler.jsonc`. `CLOUDFLARE_EMAIL_ACCOUNT_ID` can stay in `wrangler.jsonc` because it is not secret and tells the Worker which Cloudflare account owns the email sender domain.
 
 ## iOS Release
 
