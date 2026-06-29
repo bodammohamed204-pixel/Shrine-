@@ -23,12 +23,9 @@
   "send_email": [
     { "name": "EMAIL" }
   ],
-  // Live admin dashboard storage:
-  // 1. Run: npx wrangler kv namespace create SHRINE_DATA
-  // 2. Uncomment this block and paste the returned namespace id.
-  // "kv_namespaces": [
-  //   { "binding": "SHRINE_DATA", "id": "replace-with-kv-namespace-id" }
-  // ],
+  "kv_namespaces": [
+    { "binding": "SHRINE_DATA", "id": "33c8e39d20d54d1cb70df36241719bb3" }
+  ],
   "vars": {
     "ALLOWED_ORIGINS": "https://app.shrine-app.com,https://book-of-heaven.onholding.workers.dev,https://book-of-heaven.bodammohamed204.workers.dev,https://shrine-the-book-of-heaven.bodammohamed204.workers.dev,http://localhost,capacitor://localhost",
     "CLOUDFLARE_EMAIL_ACCOUNT_ID": "aacd59c18e272207cbf72448d5a38683",

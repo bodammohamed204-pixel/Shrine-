@@ -54,9 +54,13 @@ import "./styles.css";
 
 const STORAGE_KEY = "shrine_mobile_state_v1";
 const ADMIN_SESSION_STORAGE_KEY = "shrine_admin_session_v1";
-const PRODUCTION_API_BASE_URL = "https://book-of-heaven.onholding.workers.dev";
+const PRODUCTION_API_BASE_URL = "https://shrine-the-book-of-heaven.bodammohamed204.workers.dev";
 const PRODUCTION_APP_URL = "https://app.shrine-app.com";
-const SAME_ORIGIN_API_HOSTS = new Set(["book-of-heaven.onholding.workers.dev"]);
+const SAME_ORIGIN_API_HOSTS = new Set([
+  "app.shrine-app.com",
+  "book-of-heaven.onholding.workers.dev",
+  "shrine-the-book-of-heaven.bodammohamed204.workers.dev"
+]);
 const DEFAULT_META_DESCRIPTION = "Create and share memorial shrines.";
 const SHRINE_API_PATH_PREFIX = "/api/shrines/";
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
