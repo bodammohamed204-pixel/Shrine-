@@ -64,7 +64,8 @@
   --app-max-width: 520px;
   --app-frame-width: min(100vw, var(--app-max-width));
   --visual-icon-scale: 0.88;
-  --profile-header-height: 106px;
+  --profile-header-height: 92px;
+  --profile-header-icon-top: 29px;
   --profile-header-radius: 22px;
   --profile-page-padding-x: 16px;
   --profile-photo-width: clamp(110px, 30vw, 154px);
@@ -2065,7 +2066,7 @@ button {
 }
 
 .detail-screen .header-action {
-  top: 37px;
+  top: var(--profile-header-icon-top);
   right: 20px;
   left: auto;
 }
@@ -2102,7 +2103,7 @@ button {
 
 .detail-screen .header-icon.left,
 .rtl .detail-screen .header-icon.left {
-  top: 37px;
+  top: var(--profile-header-icon-top);
   right: auto;
   left: 18px;
   width: 40px;
@@ -3626,7 +3627,7 @@ button {
 .rtl .contact-screen .header-icon.left,
 .rtl .user-dashboard-screen .header-icon.left,
 .rtl .edit-screen .header-icon.left {
-  top: 37px;
+  top: var(--profile-header-icon-top);
   right: auto;
   left: 18px;
   width: 40px;
@@ -3677,7 +3678,7 @@ button {
 .contact-screen .header-action,
 .user-dashboard-screen .header-action,
 .edit-screen .header-action {
-  top: 37px;
+  top: var(--profile-header-icon-top);
   right: 20px;
   left: auto;
   transform: none;
