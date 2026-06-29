@@ -5123,20 +5123,7 @@ function RoseGraphic({ small = false }) {
 
 function AvatarSilhouette() {
   return (
-    <svg className="avatar-svg" viewBox="0 0 120 190" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Default avatar">
-      <defs>
-        <linearGradient id="avatarFade" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#d6d6d6" />
-          <stop offset="0.72" stopColor="#cecece" />
-          <stop offset="1" stopColor="#b8b8b8" />
-        </linearGradient>
-      </defs>
-      <rect width="120" height="190" fill="#fafafa" />
-      <path
-        d="M0 190v-18c0-16 20-29 47-38l2-16C38 109 31 91 30 76c-5-4-6-17 0-22 1-23 13-39 31-39 7 0 14 3 19 8 13 2 20 13 20 31 6 5 5 18 0 22-1 15-8 33-19 42l2 16c27 9 47 22 47 38v18H0Z"
-        fill="url(#avatarFade)"
-      />
-    </svg>
+    <img className="avatar-image" src={defaultAvatar} alt="Default avatar" />
   );
 }
 
