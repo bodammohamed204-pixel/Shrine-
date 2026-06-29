@@ -2070,7 +2070,7 @@ button {
 .detail-share-button svg {
   width: 31px;
   height: 31px;
-  stroke-width: 2.6;
+  stroke-width: 2.85;
 }
 
 .flower-header-button {
@@ -2904,7 +2904,7 @@ button {
   margin: 0 0 16px;
   color: #050505;
   font-family: var(--font-app);
-  font-size: 24px;
+  font-size: 22px;
   line-height: 1.14;
   font-weight: 900;
   overflow-wrap: anywhere;
@@ -2929,7 +2929,7 @@ button {
   direction: ltr;
   unicode-bidi: isolate;
   color: #2c9bea;
-  font-size: 18px;
+  font-size: 17px;
   line-height: 1.18;
   font-weight: 500;
 }
@@ -2939,7 +2939,7 @@ button {
   unicode-bidi: isolate;
   margin-top: 10px;
   color: #b3b3b3;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.2;
   font-weight: 400;
 }
@@ -3774,14 +3774,14 @@ button {
 }
 
 .bottom-nav.detail-bottom-nav {
-  --nav-icon-box: 38px;
-  --nav-icon-size: 29px;
+  --nav-icon-box: 36px;
+  --nav-icon-size: 28px;
   --nav-icon-stroke: 2.55;
   direction: ltr;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: center;
-  min-height: 62px;
-  padding: 6px 24px calc(6px + env(safe-area-inset-bottom));
+  min-height: 54px;
+  padding: 3px 24px calc(3px + env(safe-area-inset-bottom));
   background: #078fd0;
 }
 
