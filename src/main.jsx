@@ -1942,10 +1942,10 @@ function isDefaultPerson(person) {
   return defaultPeople.some((sample) => sample.id === person?.id) || person?.createdBy === "sample";
 }
 
-function canEditPersonShrine(person) {
-  if (!person || isDefaultPerson(person)) return false;
-  // Memorial edits are stored locally in this app, so stale creator ids from
-  // shared/imported records should not lock the saved local copy.
+function canEditPersonShrine(person, currentUser) {
+  if (!currentUser || !person || isDefaultPerson(person)) return false;
+  // Memorial edits are stored locally for signed-in users, so stale creator ids
+  // from shared/imported records should not lock the saved local copy.
   return true;
 }
 
@@ -5537,15 +5537,18 @@ function ContactScreen({ language, t, goBack, setToast, activeUser }) {
 
 function BottomNav({ active, variant = "main", canEditShrine = false, setScreen, setModal, canUseAccount, t }) {
   const isDetail = variant === "detail";
+  const detailAccountItem = canUseAccount
+    ? {
+        id: canEditShrine ? "editShrine" : "profile",
+        label: canEditShrine ? t("update") : t("profile"),
+        icon: <UserRoundPen size={41} />
+      }
+    : { id: "home", label: t("home"), icon: <ShrineHomeNavIcon /> };
   const items = isDetail
     ? [
         { id: "settings", label: t("settings"), icon: <Settings size={42} /> },
         { id: "message", label: t("message"), icon: <MessageSquare size={38} /> },
-        {
-          id: canEditShrine ? "editShrine" : "profile",
-          label: canEditShrine ? t("update") : t("profile"),
-          icon: <UserRoundPen size={41} />
-        }
+        detailAccountItem
       ]
     : [
         { id: "home", label: t("home"), icon: <ShrineHomeNavIcon /> },

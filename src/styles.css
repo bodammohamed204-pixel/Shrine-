@@ -2025,7 +2025,7 @@ button {
 
 .detail-screen .top-header {
   direction: ltr;
-  min-height: calc(118px + env(safe-area-inset-top));
+  min-height: calc(86px + env(safe-area-inset-top));
   padding-top: env(safe-area-inset-top);
   border-radius: 0;
   background: #ddf7ff;
@@ -2040,9 +2040,9 @@ button {
 }
 
 .detail-screen .header-action {
-  top: calc(52px + env(safe-area-inset-top));
+  top: calc(34px + env(safe-area-inset-top));
   right: auto;
-  left: 17px;
+  left: 15px;
 }
 
 .detail-screen .header-icon {
@@ -2051,13 +2051,13 @@ button {
 }
 
 .detail-share-button {
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
 }
 
 .detail-share-button svg {
-  width: 30px;
-  height: 30px;
+  width: 27px;
+  height: 27px;
   stroke-width: 2.6;
 }
 
@@ -2766,15 +2766,15 @@ button {
 }
 
 .detail-card {
-  --detail-photo-width: clamp(120px, 31vw, 162px);
-  --detail-hero-gap: 20px;
+  --detail-photo-width: clamp(104px, 28vw, 132px);
+  --detail-hero-gap: 14px;
   position: relative;
   direction: ltr;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  min-height: calc(100vh - 118px);
-  padding: 17px 17px 132px;
+  min-height: calc(100vh - 86px);
+  padding: 12px 16px 104px;
 }
 
 .detail-card::before {
@@ -2793,7 +2793,7 @@ button {
 .detail-photo {
   display: block;
   width: var(--detail-photo-width);
-  aspect-ratio: 1 / 1.86;
+  aspect-ratio: 1 / 1.58;
   padding: 0;
   border: 0;
   border-radius: 7px;
@@ -2875,7 +2875,7 @@ button {
 .detail-summary {
   min-width: 0;
   width: 100%;
-  margin-top: 25px;
+  margin-top: 12px;
   padding-top: 0;
   text-align: center;
 }
@@ -2885,10 +2885,10 @@ button {
 }
 
 .detail-summary h2 {
-  margin: 0 0 20px;
+  margin: 0 0 15px;
   color: #050505;
   font-family: var(--font-app);
-  font-size: 20px;
+  font-size: 19px;
   line-height: 1.14;
   font-weight: 900;
   overflow-wrap: anywhere;
@@ -2913,7 +2913,7 @@ button {
   direction: ltr;
   unicode-bidi: isolate;
   color: #2c9bea;
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1.18;
   font-weight: 500;
 }
@@ -2921,9 +2921,9 @@ button {
 .detail-age {
   direction: ltr;
   unicode-bidi: isolate;
-  margin-top: 14px;
+  margin-top: 10px;
   color: #b3b3b3;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.2;
   font-weight: 400;
 }
@@ -3000,11 +3000,11 @@ button {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 4px;
+  gap: 5px;
   width: calc(100% - var(--detail-photo-width) - var(--detail-hero-gap));
   min-width: 0;
-  margin: -49px 0 16px;
-  padding-bottom: 16px;
+  margin: -36px 0 14px;
+  padding-bottom: 13px;
 }
 
 .detail-tools::after {
@@ -3021,8 +3021,8 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: 40px;
+  height: 40px;
   border: 1px solid #edf2f6;
   border-radius: 13px;
   color: var(--blue);
@@ -3045,28 +3045,28 @@ button {
 }
 
 .detail-tool-button > svg {
-  width: 28px;
-  height: 28px;
+  width: 25px;
+  height: 25px;
 }
 
 .detail-tool-button .ai-mark {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   font-size: 0.76rem;
 }
 
 .detail-flower-button {
   gap: 6px;
-  width: 76px;
+  width: 72px;
   padding: 0 8px;
   color: #1f8edc;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
 }
 
 .detail-flower-button .rose-graphic.small {
-  width: 24px;
-  height: 30px;
+  width: 22px;
+  height: 28px;
   flex: 0 0 auto;
 }
 
@@ -3093,11 +3093,11 @@ button {
   position: relative;
   direction: ltr;
   width: 100%;
-  min-height: 80px;
+  min-height: 72px;
   margin-top: 0;
-  padding: 13px 17px 16px;
+  padding: 12px 14px 14px;
   border: 0;
-  border-radius: 14px;
+  border-radius: 12px;
   background: #f3f3f3;
   text-align: left;
 }
@@ -3127,7 +3127,7 @@ button {
 
 .detail-entry-header {
   display: grid;
-  grid-template-columns: 30px minmax(0, 1fr) 42px;
+  grid-template-columns: 28px minmax(0, 1fr) 38px;
   align-items: center;
   gap: 8px;
 }
@@ -3135,8 +3135,8 @@ button {
 .detail-entry-avatar {
   grid-column: 3;
   grid-row: 1;
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   overflow: hidden;
   border-radius: 9px;
   background: #eef2f7;
@@ -3169,14 +3169,14 @@ button {
 
 .detail-entry-header strong {
   color: #111;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
 }
 
 .detail-entry-header span {
   margin-top: 3px;
   color: #777f8c;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .detail-entry-actions {
@@ -3191,8 +3191,8 @@ button {
 .detail-entry-menu-button {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border: 0;
   border-radius: 8px;
   color: #111;
@@ -3241,12 +3241,12 @@ button {
 .detail-info {
   display: -webkit-box;
   min-height: 0;
-  margin: 14px 0 0;
+  margin: 12px 0 0;
   padding: 0;
   border-radius: 0;
   background: transparent;
   color: #111;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.65;
   text-align: start;
   -webkit-line-clamp: 4;
@@ -3259,12 +3259,12 @@ button {
   direction: ltr;
   display: grid;
   gap: 0;
-  margin-top: 17px;
+  margin-top: 14px;
   border-top: 0;
 }
 
 .detail-message-card {
-  padding: 16px 0 18px;
+  padding: 14px 0 16px;
   border-bottom: 1px solid #d4d4d4;
   border-radius: 0;
   background: transparent;
@@ -3273,7 +3273,7 @@ button {
 
 .detail-message-header {
   display: grid;
-  grid-template-columns: 30px minmax(0, 1fr) 42px;
+  grid-template-columns: 28px minmax(0, 1fr) 38px;
   align-items: center;
   gap: 8px;
 }
@@ -3281,8 +3281,8 @@ button {
 .detail-message-avatar {
   grid-column: 3;
   grid-row: 1;
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   overflow: hidden;
   border-radius: 9px;
   background: #eef2f7;
@@ -3305,14 +3305,14 @@ button {
 
 .detail-message-header strong {
   color: #111;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
 }
 
 .detail-message-header span {
   margin-top: 3px;
   color: #777f8c;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .detail-message-actions {
@@ -3329,8 +3329,8 @@ button {
   place-items: center;
   justify-self: end;
   align-self: start;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border: 0;
   border-radius: 8px;
   color: #111;
@@ -3349,9 +3349,9 @@ button {
 
 .detail-message-image {
   display: block;
-  width: min(44%, 215px);
-  max-height: 240px;
-  margin: 18px auto 21px;
+  width: min(40%, 180px);
+  max-height: 205px;
+  margin: 14px auto 18px;
   border-radius: 4px;
   box-shadow: 0 0 0 9px #f4f4f4;
   object-fit: cover;
@@ -3360,7 +3360,7 @@ button {
 .detail-message-text {
   margin: 8px 0 0;
   color: #111;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.6;
   text-align: start;
   overflow-wrap: anywhere;
@@ -3610,19 +3610,19 @@ button {
 }
 
 .bottom-nav.detail-bottom-nav {
-  --nav-icon-box: 44px;
-  --nav-icon-size: 34px;
-  --nav-icon-stroke: 2.65;
+  --nav-icon-box: 38px;
+  --nav-icon-size: 29px;
+  --nav-icon-stroke: 2.55;
   direction: ltr;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: center;
-  min-height: 74px;
-  padding: 9px 24px calc(9px + env(safe-area-inset-bottom));
+  min-height: 62px;
+  padding: 6px 24px calc(6px + env(safe-area-inset-bottom));
   background: #078fd0;
 }
 
 .bottom-nav.detail-bottom-nav button {
-  min-height: 56px;
+  min-height: 48px;
   color: #fff;
 }
 
@@ -4694,9 +4694,9 @@ button {
 
 @media (max-width: 360px) {
   .detail-card {
-    --detail-photo-width: 96px;
-    --detail-hero-gap: 12px;
-    padding-inline: 16px;
+    --detail-photo-width: 92px;
+    --detail-hero-gap: 10px;
+    padding-inline: 14px;
   }
 
   .detail-tools {
@@ -4705,15 +4705,15 @@ button {
   }
 
   .detail-tool-button {
-    width: 42px;
-    height: 42px;
+    width: 37px;
+    height: 37px;
   }
 
   .detail-flower-button {
-    width: 74px;
+    width: 68px;
     gap: 5px;
-    padding-inline: 8px;
-    font-size: 1.04rem;
+    padding-inline: 7px;
+    font-size: 0.98rem;
   }
 
   .segmented {
