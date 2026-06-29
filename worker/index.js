@@ -8,6 +8,7 @@ const LIVE_DATA_KEY = "shrine:live:v1";
 const ADMIN_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const EMAIL_OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_RATE_LIMIT_FALLBACK_SECONDS = 60 * 60;
+const PUBLIC_MEDIA_MAX_LENGTH = 650000;
 const COUNTRY_HEADER_NAMES = [
   "CF-IPCountry",
   "X-Vercel-IP-Country",
@@ -628,7 +629,7 @@ function normalizeLiveUser(user) {
     otpPhone: limitText(user.otpPhone, 32),
     country: limitText(user.country || user.phoneCountry, 80),
     gender: limitText(user.gender, 24),
-    photo: limitText(firstText(user.photo, user.avatar, user.photoUrl, user.avatarUrl), 1200),
+    photo: limitText(firstText(user.photo, user.avatar, user.photoUrl, user.avatarUrl), PUBLIC_MEDIA_MAX_LENGTH),
     createdAt: normalizeIsoDate(user.createdAt, ""),
     updatedAt: normalizeIsoDate(firstText(user.updatedAt, user.createdAt), nowIso())
   };
@@ -640,7 +641,7 @@ function normalizeLiveComment(message, shrine, index = 0) {
   const shrineId = stableId(firstText(shrine?.id, shrine?.publicId));
   const id = stableId(firstText(message.id, message.commentId, message.messageId), `${shrineId}-comment-${index}`);
   const text = limitText(firstText(message.text, message.body, message.content, message.message), 2000);
-  const attachment = limitText(firstText(message.attachment, message.attachmentUrl, message.image, message.imageUrl), 1200);
+  const attachment = limitText(firstText(message.attachment, message.attachmentUrl, message.image, message.imageUrl), PUBLIC_MEDIA_MAX_LENGTH);
   if (!id || (!text && !attachment)) return null;
 
   return {
@@ -650,7 +651,7 @@ function normalizeLiveComment(message, shrine, index = 0) {
     shrineName: limitText(shrine?.fullName || shrine?.name, 180),
     userId: stableId(message.userId),
     userName: limitText(firstText(message.userName, message.user_name, message.authorName), 140),
-    userPhoto: limitText(firstText(message.userPhoto, message.userPhotoUrl, message.avatar, message.avatarUrl), 1200),
+    userPhoto: limitText(firstText(message.userPhoto, message.userPhotoUrl, message.avatar, message.avatarUrl), PUBLIC_MEDIA_MAX_LENGTH),
     text,
     attachment,
     attachmentName: limitText(message.attachmentName, 160),
@@ -687,7 +688,7 @@ function normalizeLiveShrine(person) {
     publicId: stableId(firstText(person.publicId, person.shareId, person.shortId, person.slug)),
     fullName,
     surnameCheck: limitText(person.surnameCheck, 120),
-    photo: limitText(firstText(person.photo, person.photoUrl, person.image, person.imageUrl), 1200),
+    photo: limitText(firstText(person.photo, person.photoUrl, person.image, person.imageUrl), PUBLIC_MEDIA_MAX_LENGTH),
     birthDate: limitText(person.birthDate, 24),
     deathDate: limitText(person.deathDate, 24),
     age: limitText(person.age, 8),

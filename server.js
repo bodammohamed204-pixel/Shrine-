@@ -19,6 +19,7 @@ const adminSessionTtlMs = 12 * 60 * 60 * 1000;
 const emailOtpTtlMs = 10 * 60 * 1000;
 const otpRateLimitFallbackSeconds = 60 * 60;
 const devEmailOtpSecret = crypto.randomBytes(32).toString("hex");
+const publicMediaMaxLength = 650000;
 const defaultAllowedOrigins =
   process.env.NODE_ENV === "production"
     ? "http://localhost,capacitor://localhost"
@@ -37,7 +38,7 @@ const countryHeaderNames = [
   "cloudfront-viewer-country"
 ];
 
-app.use(express.json({ limit: "32kb" }));
+app.use(express.json({ limit: "2mb" }));
 
 function isAllowedOrigin(origin) {
   if (!origin) return false;
@@ -427,7 +428,7 @@ function normalizeLiveUser(user) {
     otpPhone: limitText(user.otpPhone, 32),
     country: limitText(user.country || user.phoneCountry, 80),
     gender: limitText(user.gender, 24),
-    photo: limitText(firstText(user.photo, user.avatar, user.photoUrl, user.avatarUrl), 1200),
+    photo: limitText(firstText(user.photo, user.avatar, user.photoUrl, user.avatarUrl), publicMediaMaxLength),
     createdAt: normalizeIsoDate(user.createdAt, ""),
     updatedAt: normalizeIsoDate(firstText(user.updatedAt, user.createdAt), nowIso())
   };
@@ -438,7 +439,7 @@ function normalizeLiveComment(message, shrine = {}, index = 0) {
   const shrineId = stableId(firstText(message.shrineId, shrine.id, shrine.publicId));
   const id = stableId(firstText(message.id, message.commentId, message.messageId), `${shrineId}-comment-${index}`);
   const text = limitText(firstText(message.text, message.body, message.content, message.message), 2000);
-  const attachment = limitText(firstText(message.attachment, message.attachmentUrl, message.image, message.imageUrl), 1200);
+  const attachment = limitText(firstText(message.attachment, message.attachmentUrl, message.image, message.imageUrl), publicMediaMaxLength);
   if (!id || (!text && !attachment)) return null;
 
   return {
@@ -448,7 +449,7 @@ function normalizeLiveComment(message, shrine = {}, index = 0) {
     shrineName: limitText(firstText(message.shrineName, shrine.fullName, shrine.name), 180),
     userId: stableId(message.userId),
     userName: limitText(firstText(message.userName, message.user_name, message.authorName), 140),
-    userPhoto: limitText(firstText(message.userPhoto, message.userPhotoUrl, message.avatar, message.avatarUrl), 1200),
+    userPhoto: limitText(firstText(message.userPhoto, message.userPhotoUrl, message.avatar, message.avatarUrl), publicMediaMaxLength),
     text,
     attachment,
     attachmentName: limitText(message.attachmentName, 160),
@@ -483,7 +484,7 @@ function normalizeLiveShrine(person) {
     publicId: stableId(firstText(person.publicId, person.shareId, person.shortId, person.slug)),
     fullName,
     surnameCheck: limitText(person.surnameCheck, 120),
-    photo: limitText(firstText(person.photo, person.photoUrl, person.image, person.imageUrl), 1200),
+    photo: limitText(firstText(person.photo, person.photoUrl, person.image, person.imageUrl), publicMediaMaxLength),
     birthDate: limitText(person.birthDate, 24),
     deathDate: limitText(person.deathDate, 24),
     age: limitText(person.age, 8),
