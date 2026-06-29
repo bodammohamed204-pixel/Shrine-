@@ -35,9 +35,9 @@ import {
   Share2,
   ShieldCheck,
   Sparkles,
-  SquarePen,
   Trash2,
   UserRound,
+  UserRoundPen,
   UserRoundPlus,
   X
 } from "lucide-react";
@@ -640,6 +640,10 @@ function firstText(...values) {
   return "";
 }
 
+function firstArray(...values) {
+  return values.find((value) => Array.isArray(value)) || [];
+}
+
 function normalizeShrineApiPerson(data, fallbackId) {
   const source = data?.shrine || data?.person || data?.data || data;
   if (!source || typeof source !== "object" || Array.isArray(source)) return null;
@@ -679,6 +683,7 @@ function normalizeShrineApiPerson(data, fallbackId) {
     fatherName: firstText(source.fatherName, source.father_name),
     info: firstText(source.info, source.description, source.bio),
     createdByName: firstText(source.createdByName, source.created_by_name, source.creatorName, source.creator_name),
+    gallery: firstArray(source.gallery, source.photos, source.photoGallery, source.photo_gallery, source.images, source.media),
     messages: Array.isArray(source.messages) ? source.messages : Array.isArray(source.comments) ? source.comments : []
   });
 }
@@ -1527,11 +1532,76 @@ function normalizePersonMessages(messages) {
     .filter(Boolean);
 }
 
+function normalizeGalleryItems(items) {
+  if (!Array.isArray(items)) return [];
+
+  return items
+    .map((item) => {
+      const itemObject = item && typeof item === "object" ? item : {};
+      const src =
+        typeof item === "string"
+          ? item
+          : firstText(
+              itemObject.src,
+              itemObject.url,
+              itemObject.href,
+              itemObject.photo,
+              itemObject.photoUrl,
+              itemObject.photo_url,
+              itemObject.image,
+              itemObject.imageUrl,
+              itemObject.image_url,
+              itemObject.attachment,
+              itemObject.attachmentUrl,
+              itemObject.attachment_url,
+              itemObject.media,
+              itemObject.mediaUrl,
+              itemObject.media_url,
+              itemObject.path
+            );
+      if (!src) return null;
+
+      return {
+        id: firstText(itemObject.id, itemObject._id, itemObject.galleryId, itemObject.gallery_id, itemObject.photoId, itemObject.photo_id, src),
+        src,
+        alt: firstText(itemObject.alt, itemObject.title, itemObject.name, itemObject.caption)
+      };
+    })
+    .filter(Boolean);
+}
+
+function uniqueGalleryItems(items) {
+  const seen = new Set();
+
+  return items.filter((item) => {
+    const src = String(item?.src || "").trim();
+    if (!src || seen.has(src)) return false;
+    seen.add(src);
+    return true;
+  });
+}
+
+function personGalleryItems(person) {
+  if (!person) return [];
+
+  const savedItems = normalizeGalleryItems(person.gallery);
+  const commentItems = normalizePersonMessages(person.messages)
+    .filter((message) => message.attachment)
+    .map((message) => ({
+      id: `comment-${message.id}`,
+      src: message.attachment,
+      alt: message.attachmentName || message.text || person.fullName || ""
+    }));
+
+  return uniqueGalleryItems([...savedItems, ...commentItems]);
+}
+
 function normalizePersonFlowers(person) {
   return {
     ...person,
     publicId: publicShrineIdFromSource(person, person?.id),
     flowers: normalizeFlowerGifts(person?.flowers),
+    gallery: normalizeGalleryItems(person?.gallery),
     messages: normalizePersonMessages(person?.messages)
   };
 }
@@ -2557,12 +2627,12 @@ function SplashIntro() {
   );
 }
 
-function Header({ title, back, action, compact = false, flagCountry, onFlag, language = "EN", t = translator("EN") }) {
+function Header({ title, back, backIcon, action, compact = false, flagCountry, onFlag, language = "EN", t = translator("EN") }) {
   return (
     <header className={`top-header ${compact ? "compact" : ""}`}>
       {back && (
         <button className="header-icon left" onClick={back} aria-label={t("back")}>
-          <ArrowLeft size={32} />
+          {backIcon || <ArrowLeft size={32} />}
         </button>
       )}
       <div className="rays" />
@@ -3971,7 +4041,7 @@ function GalleryScreen({ state, t, setScreen, goBack }) {
     );
   }
 
-  const galleryItems = Array.isArray(person.gallery) ? person.gallery : [];
+  const galleryItems = personGalleryItems(person);
 
   return (
     <main className="main-screen gallery-screen scroll-screen">
@@ -4200,7 +4270,19 @@ function MessageScreen({ state, language, t, goBack, setScreen, onSendMessage, a
   );
 }
 
-function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedTarget, onSharedTargetHandled, setFlowerScreenMode }) {
+function DetailScreen({
+  state,
+  language,
+  t,
+  updateState,
+  setScreen,
+  goBack,
+  setModal,
+  sharedTarget,
+  onSharedTargetHandled,
+  setFlowerScreenMode,
+  canUseAccount
+}) {
   const [entryMenuOpen, setEntryMenuOpen] = useState(false);
   const [openMessageMenuId, setOpenMessageMenuId] = useState("");
   const [photoViewerOpen, setPhotoViewerOpen] = useState(false);
@@ -4251,6 +4333,7 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
   const creatorName =
     person.createdByName ||
     (creator ? getUserName(creator) : !person.createdBy || person.createdBy === "guest" ? t("guestAccount") : "Shrine");
+  const creatorPhoto = userAvatarSource(creator);
   const createdDate = personCreatedDate(person);
   const detailInfo = person.info?.trim();
   const lifeYears = personLifeYears(person, t);
@@ -4261,12 +4344,27 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
     .sort((left, right) => Date.parse(right.givenAt) - Date.parse(left.givenAt))[0];
   const shrineMessages = normalizePersonMessages(person.messages);
   const canOpenFlowerSenders = canViewFlowerSenders(person, state.currentUser);
+  const isFollowing = state.following.includes(person.id);
+  const ageText = displayAge ? `${displayAge} ${normalizeLanguage(language) === "AR" ? "سنه" : "Years"}` : "";
 
   const shareShrine = () => {
     shareContent({
       title: person.fullName,
       text: shrinePreviewDescription(person),
       url: buildShareUrl(person)
+    });
+  };
+
+  const toggleFollow = () => {
+    if (!canUseAccount) {
+      setModal({ type: "accountPrompt", intent: "follow" });
+      return;
+    }
+
+    updateState({
+      following: isFollowing
+        ? state.following.filter((personId) => personId !== person.id)
+        : [...state.following, person.id]
     });
   };
 
@@ -4293,6 +4391,7 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
       <Header
         title=""
         back={goBack}
+        backIcon={<ChevronRight size={44} />}
         language={language}
         t={t}
         action={
@@ -4305,18 +4404,26 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
       />
       <section className="detail-card">
         <div className="detail-hero">
-          <button type="button" className="detail-photo" onClick={() => setPhotoViewerOpen(true)} aria-label="Open photo">
-            {person.photo ? <img src={person.photo} alt={person.fullName} /> : <AvatarSilhouette />}
-          </button>
           <div className="detail-summary">
             <h2>{person.fullName}</h2>
             <p className="detail-dates">{lifeYears}</p>
-            {displayAge && <p className="detail-age">{displayAge} Year</p>}
+            {ageText && <p className="detail-age">{ageText}</p>}
           </div>
+          <button type="button" className="detail-photo" onClick={() => setPhotoViewerOpen(true)} aria-label="Open photo">
+            {person.photo ? <img src={person.photo} alt={person.fullName} /> : <AvatarSilhouette />}
+          </button>
         </div>
         <div className="detail-tools" aria-label={t("memorial")}>
-          <button className="detail-tool-button" onClick={() => setScreen("gallery")} aria-label={t("gallery")}>
-            <ImageIcon size={30} />
+          <button
+            className={`detail-tool-button detail-follow-button${isFollowing ? " is-following" : ""}`}
+            onClick={toggleFollow}
+            aria-label={t("follow")}
+            aria-pressed={isFollowing}
+          >
+            <UserRoundPlus size={31} />
+          </button>
+          <button className="detail-tool-button" onClick={() => setModal({ type: "aiSoon" })} aria-label="AI">
+            <AiMark />
           </button>
           <button
             className="detail-tool-button detail-flower-button"
@@ -4331,19 +4438,19 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
             }}
             aria-label={t("giveFlower")}
           >
-            <RoseGraphic small flowerType={latestFlower?.flowerType} />
             <span>{activeFlowers.length}</span>
+            <RoseGraphic small flowerType={latestFlower?.flowerType} />
           </button>
-          <button className="detail-tool-button" onClick={() => setModal({ type: "aiSoon" })} aria-label="AI">
-            <AiMark />
+          <button className="detail-tool-button" onClick={() => setScreen("gallery")} aria-label={t("gallery")}>
+            <ImageIcon size={30} />
           </button>
         </div>
         <article id="comment" ref={entryRef} className={`detail-entry ${detailInfo ? "" : "compact"}`}>
           <div className="detail-entry-header">
             <div className="detail-entry-avatar">
-              <AvatarSilhouette />
+              {creatorPhoto ? <img src={creatorPhoto} alt={creatorName} /> : <AvatarSilhouette />}
             </div>
-            <div>
+            <div className="detail-entry-author">
               <strong>{creatorName}</strong>
               {createdDate && <span>{createdDate}</span>}
             </div>
@@ -4373,7 +4480,7 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
               )}
             </div>
           </div>
-          {detailInfo && <p className="detail-info">{detailInfo}</p>}
+          {detailInfo && <p className="detail-info" dir="auto">{detailInfo}</p>}
         </article>
         {shrineMessages.length > 0 && (
           <section className="detail-message-list" aria-label={t("message")}>
@@ -4383,7 +4490,7 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
                   <div className="detail-message-avatar">
                     {message.userPhoto ? <img src={message.userPhoto} alt={message.userName || t("guestAccount")} /> : <AvatarSilhouette />}
                   </div>
-                  <div>
+                  <div className="detail-message-author">
                     <strong>{message.userName || t("guestAccount")}</strong>
                     <span>{formatStoredDate(message.createdAt)}</span>
                   </div>
@@ -4417,7 +4524,7 @@ function DetailScreen({ state, language, t, setScreen, goBack, setModal, sharedT
                 {message.attachment && (
                   <img className="detail-message-image" src={message.attachment} alt={message.attachmentName || t("message")} />
                 )}
-                {message.text && <p className="detail-message-text">{message.text}</p>}
+                {message.text && <p className="detail-message-text" dir="auto">{message.text}</p>}
               </article>
             ))}
           </section>
@@ -4521,10 +4628,13 @@ function BottomNav({ active, variant = "main", canEditShrine = false, setScreen,
   const isDetail = variant === "detail";
   const items = isDetail
     ? [
-        { id: "home", label: t("home"), icon: <ShrineHomeNavIcon /> },
+        { id: "settings", label: t("settings"), icon: <Settings size={42} /> },
         { id: "message", label: t("message"), icon: <MessageSquare size={38} /> },
-        { id: "editShrine", label: t("update"), icon: <SquarePen size={38} />, disabled: !canEditShrine },
-        { id: "settings", label: t("settings"), icon: <Settings size={42} /> }
+        {
+          id: canEditShrine ? "editShrine" : "profile",
+          label: canEditShrine ? t("update") : t("profile"),
+          icon: <UserRoundPen size={41} />
+        }
       ]
     : [
         { id: "home", label: t("home"), icon: <ShrineHomeNavIcon /> },
