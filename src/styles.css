@@ -64,8 +64,8 @@
   --app-max-width: 520px;
   --app-frame-width: min(100vw, var(--app-max-width));
   --visual-icon-scale: 0.88;
-  --profile-header-height: 92px;
-  --profile-header-icon-top: 29px;
+  --profile-header-height: 80px;
+  --profile-header-icon-top: 20px;
   --profile-header-radius: 22px;
   --profile-page-padding-x: 16px;
   --profile-photo-width: clamp(110px, 30vw, 154px);
