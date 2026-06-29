@@ -4389,11 +4389,11 @@ function ShrineHomeNavIcon() {
         fill="currentColor"
       />
       <path
-        d="M44.5 57.5L56.5 45.5"
+        d="M10.5 25.5L25.5 10.5"
         fill="none"
-        stroke="currentColor"
+        stroke="#161616"
         strokeLinecap="round"
-        strokeWidth="5"
+        strokeWidth="7"
       />
     </svg>
   );
