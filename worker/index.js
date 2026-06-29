@@ -415,6 +415,7 @@ function normalizeShrineApiData(data, fallbackId) {
     id: firstText(source.id, source._id, source.shrineId, source.shrine_id, fallbackId),
     publicId: publicShrineIdFromSource(source, fallbackId),
     fullName,
+    surnameCheck: firstText(source.surnameCheck, source.surname_check),
     photo: firstText(
       source.photo,
       source.photoUrl,
@@ -438,8 +439,15 @@ function normalizeShrineApiData(data, fallbackId) {
     ),
     birthDate: firstText(source.birthDate, source.birth_date, source.birth),
     deathDate: firstText(source.deathDate, source.death_date, source.death),
+    age: firstText(source.age),
+    gender: firstText(source.gender),
+    country: firstText(source.country),
     info: firstText(source.info, source.description, source.bio),
+    createdBy: firstText(source.createdBy, source.created_by),
     createdByName: firstText(source.createdByName, source.created_by_name, source.creatorName, source.creator_name),
+    createdAt: firstText(source.createdAt, source.created_at),
+    updatedAt: firstText(source.updatedAt, source.updated_at),
+    flowers: Array.isArray(source.flowers) ? source.flowers : [],
     messages: Array.isArray(source.messages) ? source.messages : Array.isArray(source.comments) ? source.comments : []
   };
 }
@@ -650,6 +658,23 @@ function normalizeLiveComment(message, shrine, index = 0) {
   };
 }
 
+function normalizeLiveFlower(flower) {
+  if (!flower || typeof flower !== "object" || Array.isArray(flower)) return null;
+
+  const userId = stableId(flower.userId);
+  const givenAt = normalizeIsoDate(flower.givenAt, "");
+  if (!userId || !givenAt) return null;
+
+  return {
+    id: stableId(flower.id, `${userId}-${givenAt}`),
+    userId,
+    userName: limitText(flower.userName, 140),
+    flowerType: limitText(firstText(flower.flowerType, flower.flowerId, flower.flower_id, flower.type), 40),
+    givenAt,
+    dayKey: limitText(flower.dayKey, 24)
+  };
+}
+
 function normalizeLiveShrine(person) {
   if (!person || typeof person !== "object" || Array.isArray(person)) return null;
 
@@ -678,6 +703,7 @@ function normalizeLiveShrine(person) {
   shrine.messages = ensureArray(person.messages)
     .map((message, index) => normalizeLiveComment(message, shrine, index))
     .filter(Boolean);
+  shrine.flowers = ensureArray(person.flowers).map(normalizeLiveFlower).filter(Boolean);
 
   return shrine;
 }
@@ -872,6 +898,7 @@ function publicLivePayload(data) {
   return {
     updatedAt: data.updatedAt,
     terms: data.terms,
+    shrines: ensureArray(data.shrines).map(normalizeLiveShrine).filter(Boolean),
     blockedPeople: data.blockedPeople,
     removedUserIds: data.removedUserIds,
     removedCommentIds: data.removedCommentIds
@@ -1093,25 +1120,34 @@ async function adminLogin(request, env) {
   }
 
   const secret = adminSecret(env);
-  const identifier = firstText(body.identifier, body.email, body.phone);
+  const identifier = adminIdentifierInput(body);
   const accessKey = String(firstText(body.accessKey, body.password, body.token) || "").trim();
 
   if (!secret) {
     return jsonResponse({ success: false, error: "Admin token is not configured." }, 503, noStoreCorsHeaders(request, env));
   }
 
-  if (!safeEqual(accessKey, secret)) {
+  if (accessKey && !safeEqual(accessKey, secret)) {
     return jsonResponse({ success: false, error: "Invalid admin key." }, 401, noStoreCorsHeaders(request, env));
   }
 
-  if (!(await adminIdentifierAllowed(identifier, env))) {
+  if (!liveStore(env)) return liveStoreMissingResponse(request, env);
+
+  const data = await readLiveData(env);
+
+  if (!(await adminIdentifierAllowed(identifier, env, data))) {
     return jsonResponse({ success: false, error: "This admin identifier is not allowed." }, 403, noStoreCorsHeaders(request, env));
+  }
+
+  if (!findAdminAccount(data, identifier)) {
+    return jsonResponse({ success: false, error: "This admin must have an existing user account first." }, 404, noStoreCorsHeaders(request, env));
   }
 
   return jsonResponse(
     {
       success: true,
       sessionToken: await createAdminSession(identifier, env),
+      identifier: normalizeAdminIdentifier(identifier),
       expiresInSeconds: ADMIN_SESSION_TTL_MS / 1000
     },
     200,

@@ -82,6 +82,7 @@ const INITIAL_FLOWER_TYPE = FLOWER_CHOICES[0].id;
 const DEFAULT_FLOWER_TYPE = "rose-red";
 const PROFILE_PHOTO_MAX_SIZE = 720;
 const PROFILE_PHOTO_QUALITY = 0.84;
+const LIVE_MEDIA_MAX_LENGTH = 650000;
 
 function normalizeFlowerType(value) {
   const text = String(value || "").trim();
@@ -483,6 +484,9 @@ function normalizeLiveData(data) {
 
   return {
     terms: normalizeTerms(live.terms),
+    shrines: Array.isArray(live.shrines)
+      ? live.shrines.map((shrine) => normalizeShrineApiPerson(shrine, shrine?.publicId || shrine?.id)).filter(Boolean)
+      : [],
     blockedPeople: Array.isArray(live.blockedPeople) ? live.blockedPeople : [],
     removedUserIds: Array.isArray(live.removedUserIds) ? live.removedUserIds.map(String) : [],
     removedCommentIds: Array.isArray(live.removedCommentIds) ? live.removedCommentIds.map(String) : [],
@@ -502,7 +506,10 @@ async function fetchLiveData(signal) {
 
 function compactMediaValue(value) {
   const text = String(value || "").trim();
-  if (!text || text.startsWith("data:")) return "";
+  if (!text) return "";
+  if (text.startsWith("data:")) {
+    return /^data:image\//i.test(text) && text.length <= LIVE_MEDIA_MAX_LENGTH ? text : "";
+  }
   return text;
 }
 
@@ -542,6 +549,14 @@ function personForLiveSync(person) {
     createdByName: person.createdByName,
     createdAt: person.createdAt,
     updatedAt: person.updatedAt,
+    flowers: activeFlowerGifts(person.flowers).map((flower) => ({
+      id: flower.id,
+      userId: flower.userId,
+      userName: flower.userName,
+      flowerType: flower.flowerType,
+      givenAt: flower.givenAt,
+      dayKey: flower.dayKey
+    })),
     messages: normalizePersonMessages(person.messages).map((message) => ({
       id: message.id,
       text: message.text,
@@ -1052,7 +1067,7 @@ const copy = {
     adminSignIn: "Admin sign in",
     adminIdentifier: "Admin email or phone",
     adminAccessKey: "Admin access key",
-    adminKeyHelp: "Use the admin key configured on the server.",
+    adminKeyHelp: "The dashboard opens automatically for the signed-in account when it is added as an admin.",
     adminUsers: "Users",
     adminAdmins: "Admins",
     adminTerms: "Terms",
@@ -1285,7 +1300,7 @@ const copy = {
     adminSignIn: "دخول الأدمن",
     adminIdentifier: "إيميل أو هاتف الأدمن",
     adminAccessKey: "مفتاح دخول الأدمن",
-    adminKeyHelp: "استخدم مفتاح الأدمن المحفوظ على السيرفر.",
+    adminKeyHelp: "لو الحساب الحالي مضاف كأدمن، الداش بورد هتفتح تلقائيًا.",
     adminUsers: "المستخدمون",
     adminAdmins: "الأدمنز",
     adminTerms: "الشروط",
@@ -1508,6 +1523,7 @@ function loadState() {
     return {
       ...merged,
       people,
+      following: normalizeFollowingIds(merged.following),
       flowerFadeNotices,
       guest: merged.currentUser ? false : true,
       language: normalizeLanguage(merged.language),
@@ -1882,6 +1898,96 @@ function visiblePersonMessages(person, state) {
   return normalizePersonMessages(person?.messages).filter((message) => !removed.has(String(message.id || "")));
 }
 
+function personFollowKeys(person) {
+  return [
+    person?.id,
+    person?.publicId,
+    person?.public_id,
+    person?.shareId,
+    person?.share_id,
+    person?.shortId,
+    person?.short_id,
+    person?.slug,
+    compactShrineId(person?.id)
+  ]
+    .map(cleanShareId)
+    .filter(Boolean);
+}
+
+function personFollowId(person) {
+  return personShareId(person) || cleanShareId(person?.id);
+}
+
+function normalizeFollowingIds(following) {
+  return Array.from(new Set((Array.isArray(following) ? following : []).map(cleanShareId).filter(Boolean)));
+}
+
+function isPersonFollowed(person, following) {
+  const followed = new Set(normalizeFollowingIds(following));
+  return personFollowKeys(person).some((key) => followed.has(key));
+}
+
+function removePersonFromFollowing(following, person) {
+  const keys = new Set(personFollowKeys(person));
+  return normalizeFollowingIds(following).filter((id) => !keys.has(id));
+}
+
+function mergeRecordsById(existing, incoming, normalize) {
+  const merged = new Map();
+  for (const item of normalize(existing)) {
+    if (item?.id) merged.set(String(item.id), item);
+  }
+  for (const item of normalize(incoming)) {
+    if (item?.id) merged.set(String(item.id), { ...merged.get(String(item.id)), ...item });
+  }
+  return Array.from(merged.values());
+}
+
+function personRecordsMatch(left, right) {
+  const leftKeys = new Set(personFollowKeys(left));
+  return personFollowKeys(right).some((key) => leftKeys.has(key));
+}
+
+function mergePersonRecord(existing, incoming) {
+  const merged = {
+    ...existing,
+    ...incoming,
+    id: existing?.id || incoming?.id,
+    publicId: firstText(existing?.publicId, incoming?.publicId, publicShrineIdFromSource(incoming, incoming?.id)),
+    photo: firstText(incoming?.photo, existing?.photo),
+    flowers: mergeRecordsById(existing?.flowers, incoming?.flowers, normalizeFlowerGifts),
+    messages: mergeRecordsById(existing?.messages, incoming?.messages, normalizePersonMessages)
+  };
+
+  return normalizePersonFlowers(merged);
+}
+
+function mergePeopleByShareId(existingPeople, incomingPeople) {
+  const nextPeople = (Array.isArray(existingPeople) ? existingPeople : []).map(normalizePersonFlowers);
+  const incoming = (Array.isArray(incomingPeople) ? incomingPeople : []).map(normalizePersonFlowers);
+
+  for (const person of incoming) {
+    const existingIndex = nextPeople.findIndex((item) => personRecordsMatch(item, person));
+    if (existingIndex >= 0) {
+      nextPeople[existingIndex] = mergePersonRecord(nextPeople[existingIndex], person);
+    } else {
+      nextPeople.unshift(person);
+    }
+  }
+
+  return JSON.stringify(nextPeople) === JSON.stringify(existingPeople || []) ? existingPeople : nextPeople;
+}
+
+function applyLiveDataToState(state, liveData) {
+  const live = normalizeLiveData(liveData);
+  return {
+    ...state,
+    live,
+    following: normalizeFollowingIds(state.following),
+    people: mergePeopleByShareId(state.people, live.shrines)
+  };
+}
+
 function liveTermsForLanguage(state, language) {
   const lang = normalizeLanguage(language);
   const liveTerms = state.live?.terms?.[lang];
@@ -2195,7 +2301,7 @@ function App() {
     const loadLiveData = async () => {
       const live = await fetchLiveData(controller.signal);
       if (!mounted || !live) return;
-      setState((current) => ({ ...current, live }));
+      setState((current) => applyLiveDataToState(current, live));
     };
 
     loadLiveData();
@@ -2216,7 +2322,7 @@ function App() {
       liveSyncSignatureRef.current = signature;
       const live = await syncLiveState(state);
       if (live) {
-        setState((current) => ({ ...current, live }));
+        setState((current) => applyLiveDataToState(current, live));
       }
     }, LIVE_SYNC_DEBOUNCE_MS);
 
@@ -2706,6 +2812,7 @@ function App() {
 
   const confirmLogout = () => {
     setModal(null);
+    saveAdminSession(null);
     updateState({ currentUser: null, guest: true });
     setScreen("login", { reset: true });
     showToast(t("logoutSuccess"), "logout");
@@ -3642,7 +3749,7 @@ function HomeScreen({ state, language, t, updateState, setModal, setScreen, acti
   const filteredPeople = useMemo(() => {
     const people = visiblePeopleForState(state);
     if (state.homeFilter === "Follow") {
-      return people.filter((person) => state.following.includes(person.id));
+      return people.filter((person) => isPersonFollowed(person, state.following));
     }
     if (state.homeFilter !== "Sponsor") {
       return people.filter((person) => person.country === state.homeFilter);
@@ -3702,7 +3809,7 @@ function HomeScreen({ state, language, t, updateState, setModal, setScreen, acti
             <PersonCard
               key={person.id}
               person={person}
-              followed={state.following.includes(person.id)}
+              followed={isPersonFollowed(person, state.following)}
               onOpen={() => {
                 updateState({ selectedPersonId: person.id });
                 setScreen("detail");
@@ -4401,6 +4508,21 @@ function userMatchesAdminIdentifier(user, identifier) {
   return userValues.some((value) => adminIdentifierVariants(value).some((variant) => target.has(variant)));
 }
 
+function adminIdentifiersFromUser(user) {
+  const phoneDigits = normalizePhoneDigits(user?.phone).replace(/^0+/, "");
+  const phoneWithCode = user?.phoneCode && phoneDigits ? `${user.phoneCode}${phoneDigits}` : "";
+  return Array.from(new Set([user?.email, user?.otpPhone, phoneWithCode, user?.phone].map((value) => firstText(value)).filter(Boolean)));
+}
+
+function adminIdentifierFromUser(user) {
+  return adminIdentifiersFromUser(user)[0] || "";
+}
+
+function adminIdentifiersMatch(left, right) {
+  const rightVariants = new Set(adminIdentifierVariants(right));
+  return adminIdentifierVariants(left).some((variant) => rightVariants.has(variant));
+}
+
 function normalizeDashboard(data) {
   const dashboard = data?.dashboard && typeof data.dashboard === "object" ? data.dashboard : {};
   return {
@@ -4417,17 +4539,22 @@ function normalizeDashboard(data) {
 }
 
 function AdminDashboardScreen({ state, language, t, goBack, setToast, setModal }) {
+  const currentAdminIdentifiers = adminIdentifiersFromUser(state.currentUser);
+  const currentAdminIdentifier = adminIdentifierFromUser(state.currentUser);
+  const currentAdminIdentifierKey = currentAdminIdentifiers.join("|");
   const [session, setSession] = useState(() => savedAdminSession());
-  const [identifier, setIdentifier] = useState(state.currentUser?.email || state.currentUser?.otpPhone || "");
-  const [accessKey, setAccessKey] = useState("");
-  const [keyVisible, setKeyVisible] = useState(false);
   const [dashboard, setDashboard] = useState(null);
   const [activeTab, setActiveTab] = useState("users");
   const [termsDraft, setTermsDraft] = useState({ EN: "", AR: "" });
   const [newAdminIdentifier, setNewAdminIdentifier] = useState("");
   const [adminPhoneCountry, setAdminPhoneCountry] = useState(() => findCountry(state.currentCountry || state.currentUser?.country || initialState.currentCountry));
   const [loading, setLoading] = useState(false);
-  const signedIn = Boolean(session?.sessionToken);
+  const autoLoginRef = useRef("");
+  const sessionMatchesCurrentUser = Boolean(
+    session?.sessionToken &&
+    currentAdminIdentifiers.some((value) => adminIdentifiersMatch(session.identifier, value))
+  );
+  const signedIn = sessionMatchesCurrentUser;
 
   const loadDashboard = async (activeSession = session) => {
     if (!activeSession?.sessionToken) return;
@@ -4457,9 +4584,60 @@ function AdminDashboardScreen({ state, language, t, goBack, setToast, setModal }
     }
   };
 
+  const loginWithCurrentAccount = async ({ silent = false } = {}) => {
+    if (loading || !currentAdminIdentifiers.length) return false;
+    setLoading(true);
+    let lastError = "";
+    try {
+      await syncLiveState(state);
+      for (const adminIdentifier of currentAdminIdentifiers) {
+        const { response, data } = await apiJson(
+          "/api/admin/login",
+          {
+            method: "POST",
+            body: JSON.stringify({ identifier: adminIdentifier })
+          },
+          "Could not sign in."
+        );
+        if (response.ok && data?.success) {
+          const nextSession = {
+            sessionToken: data.sessionToken,
+            identifier: data.identifier || adminIdentifier
+          };
+          saveAdminSession(nextSession);
+          setSession(nextSession);
+          if (!silent) setToast(t("adminSignedIn"));
+          return true;
+        }
+        lastError = data?.error || t("badLogin");
+      }
+      if (!silent) setToast(lastError || t("badLogin"));
+      return false;
+    } catch {
+      if (!silent) setToast(t("adminLiveOffline"));
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (signedIn) loadDashboard(session);
   }, [signedIn, session?.sessionToken]);
+
+  useEffect(() => {
+    if (!session?.sessionToken || sessionMatchesCurrentUser) return;
+    saveAdminSession(null);
+    setSession(null);
+    setDashboard(null);
+  }, [currentAdminIdentifierKey, session?.identifier, session?.sessionToken, sessionMatchesCurrentUser]);
+
+  useEffect(() => {
+    if (signedIn || loading || !currentAdminIdentifierKey) return;
+    if (autoLoginRef.current === currentAdminIdentifierKey) return;
+    autoLoginRef.current = currentAdminIdentifierKey;
+    loginWithCurrentAccount({ silent: true });
+  }, [currentAdminIdentifierKey, signedIn, loading]);
 
   useEffect(() => {
     const inferredCountry = countryFromInternationalPhone(newAdminIdentifier);
@@ -4468,31 +4646,7 @@ function AdminDashboardScreen({ state, language, t, goBack, setToast, setModal }
 
   const login = async (event) => {
     event.preventDefault();
-    if (loading) return;
-    setLoading(true);
-    try {
-      const { response, data } = await apiJson(
-        "/api/admin/login",
-        {
-          method: "POST",
-          body: JSON.stringify({ identifier, accessKey })
-        },
-        "Could not sign in."
-      );
-      if (!response.ok || !data?.success) {
-        setToast(data?.error || t("badLogin"));
-        return;
-      }
-      const nextSession = { sessionToken: data.sessionToken, identifier };
-      saveAdminSession(nextSession);
-      setSession(nextSession);
-      setAccessKey("");
-      setToast(t("adminSignedIn"));
-    } catch {
-      setToast(t("adminLiveOffline"));
-    } finally {
-      setLoading(false);
-    }
+    await loginWithCurrentAccount();
   };
 
   const logoutAdmin = () => {
@@ -4565,7 +4719,7 @@ function AdminDashboardScreen({ state, language, t, goBack, setToast, setModal }
             body: JSON.stringify({
               identifier: identifierValue,
               countryCode: adminPhoneCountry?.code || "",
-              createdBy: session?.identifier || identifier
+              createdBy: session?.identifier || currentAdminIdentifier
             })
           },
           "Could not add admin."
@@ -4645,17 +4799,13 @@ function AdminDashboardScreen({ state, language, t, goBack, setToast, setModal }
         <form className="admin-login-panel" onSubmit={login}>
           <ShieldCheck size={44} />
           <h2>{t("adminSignIn")}</h2>
-          <p>{t("adminKeyHelp")}</p>
-          <Input label={t("adminIdentifier")} value={identifier} onChange={setIdentifier} />
-          <PasswordInput
-            label={t("adminAccessKey")}
-            value={accessKey}
-            visible={keyVisible}
-            onToggle={() => setKeyVisible((value) => !value)}
-            onChange={setAccessKey}
-            t={t}
-          />
-          <button className="primary-button" type="submit" disabled={loading || !accessKey.trim()}>
+          <p>{currentAdminIdentifier ? t("adminKeyHelp") : t("adminAccountRequired")}</p>
+          {currentAdminIdentifier && (
+            <span className="admin-login-account" dir="auto">
+              {currentAdminIdentifier}
+            </span>
+          )}
+          <button className="primary-button" type="submit" disabled={loading || !currentAdminIdentifier}>
             {loading ? t("pleaseWait") : t("adminSignIn")}
           </button>
         </form>
@@ -5224,7 +5374,7 @@ function DetailScreen({
     .sort((left, right) => Date.parse(right.givenAt) - Date.parse(left.givenAt))[0];
   const shrineMessages = visiblePersonMessages(person, state);
   const canOpenFlowerSenders = canViewFlowerSenders(person, state.currentUser);
-  const isFollowing = state.following.includes(person.id);
+  const isFollowing = isPersonFollowed(person, state.following);
   const ageText = displayAge ? `${displayAge} ${normalizeLanguage(language) === "AR" ? "سنه" : "Years"}` : "";
 
   const shareShrine = () => {
@@ -5243,8 +5393,8 @@ function DetailScreen({
 
     updateState({
       following: isFollowing
-        ? state.following.filter((personId) => personId !== person.id)
-        : [...state.following, person.id]
+        ? removePersonFromFollowing(state.following, person)
+        : [...normalizeFollowingIds(state.following), personFollowId(person)]
     });
   };
 
@@ -5271,7 +5421,7 @@ function DetailScreen({
       <Header
         title=""
         back={goBack}
-        backIcon={<ChevronRight size={44} />}
+        backIcon={<ChevronLeft size={44} />}
         language={language}
         t={t}
         action={
@@ -5546,9 +5696,9 @@ function BottomNav({ active, variant = "main", canEditShrine = false, setScreen,
     : { id: "home", label: t("home"), icon: <ShrineHomeNavIcon /> };
   const items = isDetail
     ? [
-        { id: "settings", label: t("settings"), icon: <Settings size={42} /> },
+        detailAccountItem,
         { id: "message", label: t("message"), icon: <MessageSquare size={38} /> },
-        detailAccountItem
+        { id: "settings", label: t("settings"), icon: <Settings size={42} /> }
       ]
     : [
         { id: "home", label: t("home"), icon: <ShrineHomeNavIcon /> },

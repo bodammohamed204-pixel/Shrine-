@@ -143,24 +143,31 @@ app.post("/api/contact", async (req, res) => {
 
 app.post("/api/admin/login", async (req, res) => {
   const secret = adminSecret();
-  const identifier = firstText(req.body.identifier, req.body.email, req.body.phone);
+  const identifier = adminIdentifierInput(req.body);
   const accessKey = String(firstText(req.body.accessKey, req.body.password, req.body.token) || "").trim();
 
   if (!secret) {
     return res.status(503).json({ success: false, error: "Admin token is not configured." });
   }
 
-  if (!safeEqual(accessKey, secret)) {
+  if (accessKey && !safeEqual(accessKey, secret)) {
     return res.status(401).json({ success: false, error: "Invalid admin key." });
   }
 
-  if (!(await adminIdentifierAllowed(identifier))) {
+  const data = await readLiveData();
+
+  if (!(await adminIdentifierAllowed(identifier, data))) {
     return res.status(403).json({ success: false, error: "This admin identifier is not allowed." });
+  }
+
+  if (!findAdminAccount(data, identifier)) {
+    return res.status(404).json({ success: false, error: "This admin must have an existing user account first." });
   }
 
   return res.json({
     success: true,
     sessionToken: createAdminSession(identifier),
+    identifier: normalizeAdminIdentifier(identifier),
     expiresInSeconds: adminSessionTtlMs / 1000
   });
 });
@@ -449,6 +456,22 @@ function normalizeLiveComment(message, shrine = {}, index = 0) {
   };
 }
 
+function normalizeLiveFlower(flower) {
+  if (!flower || typeof flower !== "object" || Array.isArray(flower)) return null;
+  const userId = stableId(flower.userId);
+  const givenAt = normalizeIsoDate(flower.givenAt, "");
+  if (!userId || !givenAt) return null;
+
+  return {
+    id: stableId(flower.id, `${userId}-${givenAt}`),
+    userId,
+    userName: limitText(flower.userName, 140),
+    flowerType: limitText(firstText(flower.flowerType, flower.flowerId, flower.flower_id, flower.type), 40),
+    givenAt,
+    dayKey: limitText(flower.dayKey, 24)
+  };
+}
+
 function normalizeLiveShrine(person) {
   if (!person || typeof person !== "object" || Array.isArray(person)) return null;
   const id = stableId(firstText(person.id, person.publicId, person.shareId));
@@ -473,6 +496,7 @@ function normalizeLiveShrine(person) {
     updatedAt: normalizeIsoDate(firstText(person.updatedAt, person.createdAt), nowIso())
   };
   shrine.messages = ensureArray(person.messages).map((message, index) => normalizeLiveComment(message, shrine, index)).filter(Boolean);
+  shrine.flowers = ensureArray(person.flowers).map(normalizeLiveFlower).filter(Boolean);
   return shrine;
 }
 
@@ -633,6 +657,7 @@ function publicLivePayload(data) {
   return {
     updatedAt: data.updatedAt,
     terms: data.terms,
+    shrines: ensureArray(data.shrines).map(normalizeLiveShrine).filter(Boolean),
     blockedPeople: data.blockedPeople,
     removedUserIds: data.removedUserIds,
     removedCommentIds: data.removedCommentIds

@@ -1653,6 +1653,18 @@ button {
   line-height: 1.5;
 }
 
+.admin-login-account {
+  display: block;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid #dce5ee;
+  border-radius: 8px;
+  color: #172033;
+  background: #f8fafc;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
 .admin-overview {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2025,9 +2037,9 @@ button {
 
 .detail-screen .top-header {
   direction: ltr;
-  min-height: calc(86px + env(safe-area-inset-top));
+  min-height: calc(106px + env(safe-area-inset-top));
   padding-top: env(safe-area-inset-top);
-  border-radius: 0;
+  border-radius: 22px 22px 0 0;
   background: #ddf7ff;
 }
 
@@ -2040,9 +2052,9 @@ button {
 }
 
 .detail-screen .header-action {
-  top: calc(34px + env(safe-area-inset-top));
-  right: auto;
-  left: 15px;
+  top: calc(37px + env(safe-area-inset-top));
+  right: 20px;
+  left: auto;
 }
 
 .detail-screen .header-icon {
@@ -2051,13 +2063,13 @@ button {
 }
 
 .detail-share-button {
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
 }
 
 .detail-share-button svg {
-  width: 27px;
-  height: 27px;
+  width: 31px;
+  height: 31px;
   stroke-width: 2.6;
 }
 
@@ -2077,16 +2089,16 @@ button {
 
 .detail-screen .header-icon.left,
 .rtl .detail-screen .header-icon.left {
-  top: calc(52px + env(safe-area-inset-top));
-  right: 17px;
-  left: auto;
-  width: 36px;
-  height: 36px;
+  top: calc(37px + env(safe-area-inset-top));
+  right: auto;
+  left: 18px;
+  width: 40px;
+  height: 40px;
 }
 
 .detail-screen .header-icon.left svg {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   stroke-width: 2.45;
 }
 
@@ -2766,15 +2778,15 @@ button {
 }
 
 .detail-card {
-  --detail-photo-width: clamp(104px, 28vw, 132px);
-  --detail-hero-gap: 14px;
+  --detail-photo-width: clamp(118px, 30vw, 154px);
+  --detail-hero-gap: 24px;
   position: relative;
   direction: ltr;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  min-height: calc(100vh - 86px);
-  padding: 12px 16px 104px;
+  min-height: calc(100vh - 106px);
+  padding: 15px 16px 96px;
 }
 
 .detail-card::before {
@@ -2784,16 +2796,18 @@ button {
 .detail-hero {
   direction: ltr;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--detail-photo-width);
+  grid-template-columns: var(--detail-photo-width) minmax(0, 1fr);
   align-items: start;
   gap: var(--detail-hero-gap);
   width: 100%;
 }
 
 .detail-photo {
+  grid-column: 1;
+  grid-row: 1;
   display: block;
   width: var(--detail-photo-width);
-  aspect-ratio: 1 / 1.58;
+  aspect-ratio: 1 / 1.86;
   padding: 0;
   border: 0;
   border-radius: 7px;
@@ -2873,6 +2887,8 @@ button {
 }
 
 .detail-summary {
+  grid-column: 2;
+  grid-row: 1;
   min-width: 0;
   width: 100%;
   margin-top: 12px;
@@ -2885,10 +2901,10 @@ button {
 }
 
 .detail-summary h2 {
-  margin: 0 0 15px;
+  margin: 0 0 16px;
   color: #050505;
   font-family: var(--font-app);
-  font-size: 19px;
+  font-size: 24px;
   line-height: 1.14;
   font-weight: 900;
   overflow-wrap: anywhere;
@@ -2913,7 +2929,7 @@ button {
   direction: ltr;
   unicode-bidi: isolate;
   color: #2c9bea;
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1.18;
   font-weight: 500;
 }
@@ -2923,7 +2939,7 @@ button {
   unicode-bidi: isolate;
   margin-top: 10px;
   color: #b3b3b3;
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.2;
   font-weight: 400;
 }
@@ -2999,20 +3015,21 @@ button {
   direction: ltr;
   display: flex;
   align-items: center;
+  flex-direction: row-reverse;
   justify-content: flex-start;
-  gap: 5px;
+  gap: 4px;
   width: calc(100% - var(--detail-photo-width) - var(--detail-hero-gap));
   min-width: 0;
-  margin: -36px 0 14px;
-  padding-bottom: 13px;
+  margin: -57px 0 14px calc(var(--detail-photo-width) + var(--detail-hero-gap));
+  padding-bottom: 19px;
 }
 
 .detail-tools::after {
   content: "";
   position: absolute;
-  right: calc(-1 * (var(--detail-photo-width) + var(--detail-hero-gap)));
+  right: 0;
   bottom: 0;
-  left: 0;
+  left: calc(-1 * (var(--detail-photo-width) + var(--detail-hero-gap)));
   height: 1px;
   background: #d5d5d5;
 }
@@ -3021,8 +3038,8 @@ button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border: 1px solid #edf2f6;
   border-radius: 13px;
   color: var(--blue);
@@ -3045,28 +3062,28 @@ button {
 }
 
 .detail-tool-button > svg {
-  width: 25px;
-  height: 25px;
+  width: 28px;
+  height: 28px;
 }
 
 .detail-tool-button .ai-mark {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   font-size: 0.76rem;
 }
 
 .detail-flower-button {
   gap: 6px;
-  width: 72px;
+  width: 78px;
   padding: 0 8px;
   color: #1f8edc;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
 }
 
 .detail-flower-button .rose-graphic.small {
-  width: 22px;
-  height: 28px;
+  width: 24px;
+  height: 30px;
   flex: 0 0 auto;
 }
 
@@ -3093,9 +3110,9 @@ button {
   position: relative;
   direction: ltr;
   width: 100%;
-  min-height: 72px;
+  min-height: 78px;
   margin-top: 0;
-  padding: 12px 14px 14px;
+  padding: 8px 7px 10px;
   border: 0;
   border-radius: 12px;
   background: #f3f3f3;
@@ -3118,22 +3135,23 @@ button {
 }
 
 .detail-entry::after {
-  bottom: -17px;
+  bottom: -16px;
 }
 
 .detail-entry.compact {
-  padding-bottom: 14px;
+  min-height: 78px;
+  padding-bottom: 8px;
 }
 
 .detail-entry-header {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) 38px;
+  grid-template-columns: 42px minmax(0, 1fr) 30px;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .detail-entry-avatar {
-  grid-column: 3;
+  grid-column: 1;
   grid-row: 1;
   width: 38px;
   height: 38px;
@@ -3156,7 +3174,7 @@ button {
   grid-column: 2;
   grid-row: 1;
   min-width: 0;
-  text-align: right;
+  text-align: left;
 }
 
 .detail-entry-header strong,
@@ -3182,9 +3200,9 @@ button {
 .detail-entry-actions {
   position: relative;
   direction: ltr;
-  grid-column: 1;
+  grid-column: 3;
   grid-row: 1;
-  justify-self: start;
+  justify-self: end;
   align-self: start;
 }
 
@@ -3207,8 +3225,8 @@ button {
 .detail-entry-menu {
   position: absolute;
   top: 38px;
-  right: auto;
-  left: -4px;
+  right: -4px;
+  left: auto;
   z-index: 6;
   min-width: 152px;
   padding: 0;
@@ -3241,12 +3259,12 @@ button {
 .detail-info {
   display: -webkit-box;
   min-height: 0;
-  margin: 12px 0 0;
-  padding: 0;
+  margin: 18px 0 0;
+  padding: 0 10px;
   border-radius: 0;
   background: transparent;
   color: #111;
-  font-size: 15px;
+  font-size: 17px;
   line-height: 1.65;
   text-align: start;
   -webkit-line-clamp: 4;
@@ -3259,12 +3277,12 @@ button {
   direction: ltr;
   display: grid;
   gap: 0;
-  margin-top: 14px;
+  margin-top: 16px;
   border-top: 0;
 }
 
 .detail-message-card {
-  padding: 14px 0 16px;
+  padding: 13px 0 17px;
   border-bottom: 1px solid #d4d4d4;
   border-radius: 0;
   background: transparent;
@@ -3273,13 +3291,13 @@ button {
 
 .detail-message-header {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) 38px;
+  grid-template-columns: 42px minmax(0, 1fr) 30px;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .detail-message-avatar {
-  grid-column: 3;
+  grid-column: 1;
   grid-row: 1;
   width: 38px;
   height: 38px;
@@ -3292,7 +3310,7 @@ button {
   grid-column: 2;
   grid-row: 1;
   min-width: 0;
-  text-align: right;
+  text-align: left;
 }
 
 .detail-message-header strong,
@@ -3318,9 +3336,9 @@ button {
 .detail-message-actions {
   position: relative;
   direction: ltr;
-  grid-column: 1;
+  grid-column: 3;
   grid-row: 1;
-  justify-self: start;
+  justify-self: end;
   align-self: start;
 }
 
@@ -3343,14 +3361,14 @@ button {
 }
 
 .detail-message-menu {
-  right: auto;
-  left: -4px;
+  right: -4px;
+  left: auto;
 }
 
 .detail-message-image {
   display: block;
-  width: min(40%, 180px);
-  max-height: 205px;
+  width: min(44%, 190px);
+  max-height: 230px;
   margin: 14px auto 18px;
   border-radius: 4px;
   box-shadow: 0 0 0 9px #f4f4f4;
@@ -3360,7 +3378,7 @@ button {
 .detail-message-text {
   margin: 8px 0 0;
   color: #111;
-  font-size: 15px;
+  font-size: 17px;
   line-height: 1.6;
   text-align: start;
   overflow-wrap: anywhere;
@@ -3373,6 +3391,7 @@ button {
 .rtl .detail-entry-author,
 .rtl .detail-message-author {
   direction: rtl;
+  text-align: left;
 }
 
 .ai-mark {
