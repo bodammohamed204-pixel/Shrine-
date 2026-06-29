@@ -64,6 +64,17 @@
   --app-max-width: 520px;
   --app-frame-width: min(100vw, var(--app-max-width));
   --visual-icon-scale: 0.88;
+  --profile-header-height: 106px;
+  --profile-header-radius: 22px;
+  --profile-page-padding-x: 16px;
+  --profile-photo-width: clamp(110px, 30vw, 154px);
+  --profile-photo-ratio: 1 / 1.86;
+  --profile-hero-gap: 24px;
+  --profile-action-size: 42px;
+  --profile-name-size: 22px;
+  --profile-card-radius: 12px;
+  --profile-card-background: #f3f3f3;
+  --profile-rule-color: #d5d5d5;
   --splash-background: linear-gradient(180deg, #f8fdff 0%, #c9eff6 48%, #a7e1ed 100%);
   font-size: 14.5px;
   color: var(--ink);
@@ -1018,6 +1029,7 @@ button {
 .header-action-cluster {
   display: flex;
   align-items: center;
+  flex-direction: row-reverse;
   gap: 8px;
 }
 
@@ -2037,9 +2049,10 @@ button {
 
 .detail-screen .top-header {
   direction: ltr;
-  min-height: 106px;
+  height: var(--profile-header-height);
+  min-height: var(--profile-header-height);
   padding-top: 0;
-  border-radius: 22px 22px 0 0;
+  border-radius: var(--profile-header-radius) var(--profile-header-radius) 0 0;
   background: #ddf7ff;
 }
 
@@ -2538,6 +2551,62 @@ button {
   overflow-wrap: anywhere;
 }
 
+.gallery-owner-row,
+.flower-person-row,
+.message-person-row {
+  direction: ltr;
+  display: grid;
+  align-items: start;
+  gap: var(--profile-hero-gap);
+  margin: 0;
+  padding: 15px var(--profile-page-padding-x) 14px;
+  border-bottom: 1px solid var(--profile-rule-color);
+  background: #fff;
+}
+
+.gallery-owner-row {
+  grid-template-columns: var(--profile-photo-width) minmax(0, 1fr) 88px;
+}
+
+.flower-person-row,
+.message-person-row {
+  grid-template-columns: var(--profile-photo-width) minmax(0, 1fr);
+}
+
+.gallery-owner-avatar,
+.flower-person-photo,
+.message-person-photo {
+  display: block;
+  width: var(--profile-photo-width);
+  height: auto;
+  aspect-ratio: var(--profile-photo-ratio);
+  overflow: hidden;
+  border-radius: 7px;
+  background: #fbfbfb;
+}
+
+.gallery-owner-row strong,
+.flower-person-row strong,
+.message-person-row strong {
+  display: block;
+  min-width: 0;
+  width: 100%;
+  margin-top: 12px;
+  color: #050505;
+  font-family: var(--font-app);
+  font-size: var(--profile-name-size);
+  font-weight: 900;
+  line-height: 1.14;
+  text-align: center;
+  unicode-bidi: plaintext;
+  overflow-wrap: anywhere;
+}
+
+.gallery-view-toggle {
+  align-self: end;
+  padding-bottom: 22px;
+}
+
 .message-thread {
   display: flex;
   flex-direction: column;
@@ -2557,15 +2626,14 @@ button {
   align-self: flex-start;
   max-width: min(82%, 360px);
   padding: 12px 14px;
-  border: 1px solid #e5eaf0;
-  border-radius: 8px;
-  background: #f8fafc;
-  box-shadow: var(--shadow-sm);
+  border: 0;
+  border-radius: var(--profile-card-radius);
+  background: var(--profile-card-background);
+  box-shadow: none;
 }
 
 .message-bubble.mine {
   align-self: flex-end;
-  border-color: rgba(36, 148, 232, 0.22);
   background: #eef8ff;
 }
 
@@ -2778,15 +2846,15 @@ button {
 }
 
 .detail-card {
-  --detail-photo-width: clamp(118px, 30vw, 154px);
-  --detail-hero-gap: 24px;
+  --detail-photo-width: var(--profile-photo-width);
+  --detail-hero-gap: var(--profile-hero-gap);
   position: relative;
   direction: ltr;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  min-height: calc(100vh - 106px);
-  padding: 15px 16px 96px;
+  min-height: calc(100vh - var(--profile-header-height));
+  padding: 15px var(--profile-page-padding-x) 96px;
 }
 
 .detail-card::before {
@@ -2807,7 +2875,7 @@ button {
   grid-row: 1;
   display: block;
   width: var(--detail-photo-width);
-  aspect-ratio: 1 / 1.86;
+  aspect-ratio: var(--profile-photo-ratio);
   padding: 0;
   border: 0;
   border-radius: 7px;
@@ -2904,7 +2972,7 @@ button {
   margin: 0 0 16px;
   color: #050505;
   font-family: var(--font-app);
-  font-size: 22px;
+  font-size: var(--profile-name-size);
   line-height: 1.14;
   font-weight: 900;
   overflow-wrap: anywhere;
@@ -3031,15 +3099,15 @@ button {
   bottom: 0;
   left: calc(-1 * (var(--detail-photo-width) + var(--detail-hero-gap)));
   height: 1px;
-  background: #d5d5d5;
+  background: var(--profile-rule-color);
 }
 
 .detail-tool-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: var(--profile-action-size);
+  height: var(--profile-action-size);
   border: 1px solid #edf2f6;
   border-radius: 13px;
   color: var(--blue);
@@ -3114,8 +3182,8 @@ button {
   margin-top: 0;
   padding: 8px 7px 10px;
   border: 0;
-  border-radius: 12px;
-  background: #f3f3f3;
+  border-radius: var(--profile-card-radius);
+  background: var(--profile-card-background);
   text-align: left;
 }
 
@@ -3126,7 +3194,7 @@ button {
   left: 0;
   right: 0;
   height: 1px;
-  background: #d4d4d4;
+  background: var(--profile-rule-color);
 }
 
 .detail-entry::before {
@@ -3283,7 +3351,7 @@ button {
 
 .detail-message-card {
   padding: 13px 0 17px;
-  border-bottom: 1px solid #d4d4d4;
+  border-bottom: 1px solid var(--profile-rule-color);
   border-radius: 0;
   background: transparent;
   text-align: left;
@@ -3495,9 +3563,10 @@ button {
 .user-dashboard-screen .top-header,
 .edit-screen .top-header {
   direction: ltr;
-  min-height: 106px;
+  height: var(--profile-header-height);
+  min-height: var(--profile-header-height);
   padding-top: 0;
-  border-radius: 22px 22px 0 0;
+  border-radius: var(--profile-header-radius) var(--profile-header-radius) 0 0;
   background: #d9f5ff;
 }
 
@@ -4857,20 +4926,20 @@ button {
 }
 
 @media (max-width: 360px) {
+  :root {
+    --profile-page-padding-x: 14px;
+    --profile-photo-width: 108px;
+    --profile-hero-gap: 12px;
+    --profile-action-size: 39px;
+  }
+
   .detail-card {
-    --detail-photo-width: 92px;
-    --detail-hero-gap: 10px;
-    padding-inline: 14px;
+    padding-inline: var(--profile-page-padding-x);
   }
 
   .detail-tools {
     gap: 4px;
     min-width: 0;
-  }
-
-  .detail-tool-button {
-    width: 37px;
-    height: 37px;
   }
 
   .detail-flower-button {

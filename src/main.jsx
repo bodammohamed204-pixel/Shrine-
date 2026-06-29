@@ -5047,10 +5047,26 @@ function GalleryScreen({ state, t, setScreen, goBack }) {
   }
 
   const galleryItems = personGalleryItems({ ...person, messages: visiblePersonMessages(person, state) });
+  const shareShrine = () => {
+    shareContent({
+      title: person.fullName,
+      text: shrinePreviewDescription(person),
+      url: buildShareUrl(person)
+    });
+  };
 
   return (
     <main className="main-screen gallery-screen scroll-screen">
-      <Header title={t("gallery")} back={goBack} t={t} />
+      <Header
+        title={t("gallery")}
+        back={goBack}
+        t={t}
+        action={
+          <button className="header-icon detail-share-button" onClick={shareShrine} aria-label="Share">
+            <Share2 size={30} />
+          </button>
+        }
+      />
       <section className="gallery-owner-row">
         <button type="button" className="gallery-owner-avatar" onClick={() => setPhotoViewerOpen(true)} aria-label="Open photo">
           {person.photo ? <img src={person.photo} alt={person.fullName} /> : <AvatarSilhouette />}
@@ -5113,6 +5129,14 @@ function FlowerScreen({ state, language, t, setModal, goBack, flowerScreenMode }
   }
 
   const flowers = activeFlowerGifts(person.flowers).sort((left, right) => Date.parse(right.givenAt) - Date.parse(left.givenAt));
+  const shareShrine = () => {
+    shareContent({
+      title: person.fullName,
+      text: shrinePreviewDescription(person),
+      url: buildShareUrl(person)
+    });
+  };
+
   return (
     <main className="main-screen flowers-screen scroll-screen">
       <Header
@@ -5121,13 +5145,18 @@ function FlowerScreen({ state, language, t, setModal, goBack, flowerScreenMode }
         language={language}
         t={t}
         action={
-          <button
-            className="header-icon flower-header-button"
-            onClick={() => setModal({ type: "flower", personId: person.id })}
-            aria-label={t("giveFlower")}
-          >
-            <Plus size={34} />
-          </button>
+          <div className="header-action-cluster">
+            <button className="header-icon detail-share-button" onClick={shareShrine} aria-label="Share">
+              <Share2 size={30} />
+            </button>
+            <button
+              className="header-icon flower-header-button"
+              onClick={() => setModal({ type: "flower", personId: person.id })}
+              aria-label={t("giveFlower")}
+            >
+              <Plus size={34} />
+            </button>
+          </div>
         }
       />
       <section className="flower-person-row">
@@ -5174,6 +5203,13 @@ function MessageScreen({ state, language, t, goBack, setScreen, setModal, onSend
   const canSend = canUseAccount && Boolean(draft.trim() || attachment?.src);
   const draftPreview = draft.trim();
   const hasDraftPreview = Boolean(draftPreview || attachment?.src);
+  const shareShrine = () => {
+    shareContent({
+      title: person.fullName,
+      text: shrinePreviewDescription(person),
+      url: buildShareUrl(person)
+    });
+  };
 
   const pickAttachment = (event) => {
     if (!canUseAccount) {
@@ -5215,7 +5251,17 @@ function MessageScreen({ state, language, t, goBack, setScreen, setModal, onSend
 
   return (
     <main className="main-screen message-screen">
-      <Header title={t("message")} back={goBack} language={language} t={t} />
+      <Header
+        title={t("message")}
+        back={goBack}
+        language={language}
+        t={t}
+        action={
+          <button className="header-icon detail-share-button" onClick={shareShrine} aria-label="Share">
+            <Share2 size={30} />
+          </button>
+        }
+      />
       <section className="message-person-row">
         <div className="message-person-photo">
           {person.photo ? <img src={person.photo} alt={person.fullName} /> : <AvatarSilhouette />}
