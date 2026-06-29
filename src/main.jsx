@@ -1067,7 +1067,7 @@ const copy = {
     adminSignIn: "Admin sign in",
     adminIdentifier: "Admin email or phone",
     adminAccessKey: "Admin access key",
-    adminKeyHelp: "The dashboard opens automatically for the signed-in account when it is added as an admin.",
+    adminKeyHelp: "Use the signed-in account. It must be added as an admin first.",
     adminUsers: "Users",
     adminAdmins: "Admins",
     adminTerms: "Terms",
@@ -1300,7 +1300,7 @@ const copy = {
     adminSignIn: "دخول الأدمن",
     adminIdentifier: "إيميل أو هاتف الأدمن",
     adminAccessKey: "مفتاح دخول الأدمن",
-    adminKeyHelp: "لو الحساب الحالي مضاف كأدمن، الداش بورد هتفتح تلقائيًا.",
+    adminKeyHelp: "استخدم الحساب الحالي. لازم يكون مضاف كأدمن الأول.",
     adminUsers: "المستخدمون",
     adminAdmins: "الأدمنز",
     adminTerms: "الشروط",
@@ -4549,7 +4549,6 @@ function AdminDashboardScreen({ state, language, t, goBack, setToast, setModal }
   const [newAdminIdentifier, setNewAdminIdentifier] = useState("");
   const [adminPhoneCountry, setAdminPhoneCountry] = useState(() => findCountry(state.currentCountry || state.currentUser?.country || initialState.currentCountry));
   const [loading, setLoading] = useState(false);
-  const autoLoginRef = useRef("");
   const sessionMatchesCurrentUser = Boolean(
     session?.sessionToken &&
     currentAdminIdentifiers.some((value) => adminIdentifiersMatch(session.identifier, value))
@@ -4631,13 +4630,6 @@ function AdminDashboardScreen({ state, language, t, goBack, setToast, setModal }
     setSession(null);
     setDashboard(null);
   }, [currentAdminIdentifierKey, session?.identifier, session?.sessionToken, sessionMatchesCurrentUser]);
-
-  useEffect(() => {
-    if (signedIn || loading || !currentAdminIdentifierKey) return;
-    if (autoLoginRef.current === currentAdminIdentifierKey) return;
-    autoLoginRef.current = currentAdminIdentifierKey;
-    loginWithCurrentAccount({ silent: true });
-  }, [currentAdminIdentifierKey, signedIn, loading]);
 
   useEffect(() => {
     const inferredCountry = countryFromInternationalPhone(newAdminIdentifier);
