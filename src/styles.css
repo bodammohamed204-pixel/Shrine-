@@ -3111,8 +3111,7 @@ button {
 }
 
 .rtl .detail-entry-author,
-.rtl .detail-message-author,
-.rtl .detail-message-text {
+.rtl .detail-message-author {
   direction: rtl;
 }
 
